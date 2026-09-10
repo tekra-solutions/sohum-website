@@ -18,6 +18,7 @@ const columns = [
       { href: "/federal", label: "Federal Mission" },
       { href: "/contract-vehicles", label: "Contract Vehicles" },
       { href: "/careers", label: "Careers" },
+      { href: "/locations", label: "Locations" },
       { href: "/contact", label: "Contact" },
     ],
   },
@@ -137,11 +138,13 @@ export function Footer() {
             <p className="eyebrow mt-9 text-white/40">Appraisals &amp; certifications</p>
             {/* Badge art carries a white background, so each sits on its own
                 white plate rather than directly on the dark footer. */}
-            <ul className="mt-4 flex flex-wrap gap-2.5">
+            {/* Explicit grid rather than flex-wrap: with six badges, wrapping
+                left a single orphan on its own row at most widths. */}
+            <ul className="mt-4 grid grid-cols-3 gap-2.5 sm:grid-cols-6 lg:grid-cols-3 xl:grid-cols-6">
               {credentials.map((c) => (
                 <li
                   key={c.short}
-                  className="flex h-16 w-[7.5rem] items-center justify-center rounded-[3px] bg-white px-2"
+                  className="flex h-16 items-center justify-center rounded-[3px] bg-white px-2"
                   title={c.name}
                 >
                   <Image

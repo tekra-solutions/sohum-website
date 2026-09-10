@@ -30,6 +30,13 @@ export const metadata: Metadata = {
   applicationName: site.name,
   authors: [{ name: site.legalName }],
   keywords: [
+    "Sohum",
+    "Sohum Systems",
+    "Sohum Systems LLC",
+    "IT company Overland Park",
+    "IT company Kansas City",
+    "Kansas IT company",
+    "software development Kansas City",
     "federal IT services",
     "government technology solutions",
     "SBA 8(a) IT contractor",
@@ -95,6 +102,13 @@ const organizationSchema = {
     { "@type": "PropertyValue", propertyID: "CAGE", value: "7WCV6" },
   ],
   naics: naics.find((n) => n.primary)?.code,
+  areaServed: [
+    { "@type": "Country", name: "United States" },
+    { "@type": "State", name: "Kansas" },
+    { "@type": "City", name: "Overland Park" },
+    { "@type": "City", name: "Kansas City" },
+  ],
+  slogan: "Technology | Talent | Trust",
   hasCredential: credentials.map((c) => ({
     "@type": "EducationalOccupationalCredential",
     name: c.name,
@@ -131,6 +145,19 @@ const organizationSchema = {
   ],
 };
 
+/** Reinforces the brand name for "Sohum" / "Sohum Systems" queries. */
+const websiteSchema = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "@id": `${site.url}/#website`,
+  url: site.url,
+  name: site.name,
+  alternateName: ["Sohum", site.legalName],
+  description: site.description,
+  publisher: { "@id": `${site.url}/#organization` },
+  inLanguage: "en-US",
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${inter.variable} ${display.variable}`}>
@@ -149,8 +176,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="flex min-h-dvh flex-col antialiased">
         <script
           type="application/ld+json"
-          // Static, developer-authored schema object.
+          // Static, developer-authored schema objects.
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
         />
         <Header />
         <main id="main" className="flex-1">
