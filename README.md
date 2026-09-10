@@ -42,10 +42,19 @@ src/
 │   ├── Reveal.tsx              Scroll reveal                        [client]
 │   ├── Logo.tsx              Brand lockup (mark + live-text wordmark)
 │   ├── BrandMotif.tsx        Oversized mark used as background texture
+│   ├── LogoWall.tsx          Client/ecosystem logos (strip + grouped wall)
+│   ├── CredentialCards.tsx   Certification badges + what each commits us to
 │   └── CtaBand.tsx | LegalLayout.tsx | ui.tsx
 └── lib/
     ├── site.ts                 Company facts, credentials, vehicles, NAICS
+    ├── logos.ts                Organisation logos, grouped by relationship type
     └── capabilities.ts         11 capability definitions
+
+public/
+├── brand/logo-full.svg        Supplied brand artwork
+├── logos/                     13 organisation marks (from sohumsystems.com)
+├── certs/                     Certification + contract vehicle badge art
+└── team/                      Leadership photographs
 ```
 
 **All factual content lives in `src/lib/`.** Pages import from there, so a fact is
@@ -82,6 +91,25 @@ very low opacity as background texture on the hero.
 
 > **Tailwind v4 note:** write `bg-ink-900`, not `bg-[--color-ink-900]`. The
 > bracket form is parsed as a bare value and silently resolves to transparent.
+
+## Logos and badges
+
+All imagery is the artwork published on sohumsystems.com. Source marks carry a
+baked-in white background, so every logo sits on a white card — never on a tint
+or a dark ground. Marks render greyscale at rest and resolve to full colour on
+hover, which keeps a wall of competing brand palettes from fighting the page.
+
+**Grouping matters more than the grid.** The current site shows these
+organisations in one undifferentiated strip, which reads as a customer list. It
+is not — it mixes federal customers, commercial customers, technology platforms,
+and delivery frameworks. `src/lib/logos.ts` separates them into *Government
+organizations*, *Commercial organizations*, and *Technology & frameworks*, and
+the Federal Mission page carries a note that appearance does not imply
+endorsement or a current contractual relationship. That distinction protects the
+company if a contracting officer asks what a given logo represents.
+
+Certification badges are the issuing bodies' own artwork, paired with the
+appraisal or accreditation reference read off each badge.
 
 ## Accessibility
 
@@ -141,5 +169,9 @@ Claims that need owner confirmation before launch:
 1. Wire the contact form to a real endpoint. It currently composes a `mailto:`
    handoff so no submission is silently lost, but a server action or form service
    (with spam protection) is the production path.
-2. Replace leadership monograms with photographs if available.
+2. **Confirm the CMMI appraisal is current.** The badge artwork published on the
+   current site reads *Appraisal #61679, Exp. Apr 12, 2026* — which has passed.
+   The site presents CMMI Level 3 without printing that date; if the appraisal
+   has been renewed, supply the new badge and reference, and if it has lapsed the
+   claim needs to come down from every page.
 3. Confirm the items under "Content policy" above.

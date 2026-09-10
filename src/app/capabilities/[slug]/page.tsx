@@ -132,7 +132,7 @@ export default async function CapabilityPage({
         <div aria-hidden="true" className="absolute inset-0 grid-fine opacity-45" />
         <div className="container-page relative py-18 sm:py-24">
           <div className="grid gap-10 lg:grid-cols-[0.32fr_0.68fr] lg:gap-16">
-            <Reveal className="lg:sticky lg:top-28 lg:self-start">
+            <Reveal className="lg:sticky lg:top-32 lg:self-start">
               <Eyebrow tone="light">Our approach</Eyebrow>
               <h2 className="sr-only">Our approach</h2>
               <p className="mt-5 text-[1.0625rem] leading-[1.7] text-white/55">

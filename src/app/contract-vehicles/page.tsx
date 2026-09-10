@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import Image from "next/image";
 import { AlertCircle, ArrowRight, FileText, Phone } from "lucide-react";
 import { PageHero } from "@/components/PageHero";
 import { CtaBand } from "@/components/CtaBand";
@@ -100,7 +101,7 @@ export default function ContractVehiclesPage() {
               <Reveal key={v.slug} delay={i * 60}>
                 <article
                   id={v.slug}
-                  className="scroll-mt-28 overflow-hidden rounded-[4px] border border-paper-300 bg-white"
+                  className="scroll-mt-32 overflow-hidden rounded-[4px] border border-paper-300 bg-white"
                 >
                   <div className="grid lg:grid-cols-[1.35fr_0.65fr]">
                     {/* Narrative */}
@@ -113,9 +114,21 @@ export default function ContractVehiclesPage() {
                         <span className="text-[0.8125rem] text-graphite-500">{v.holder}</span>
                       </div>
 
-                      <h3 className="mt-5 text-[1.5rem] font-medium leading-tight text-ink-900 sm:text-[1.75rem]">
-                        {v.name}
-                      </h3>
+                      <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-3">
+                        <h3 className="text-[1.5rem] font-medium leading-tight text-ink-900 sm:text-[1.75rem]">
+                          {v.name}
+                        </h3>
+                        {v.badge && (
+                          <Image
+                            src={v.badge}
+                            alt={`${v.name} programme badge`}
+                            width={272}
+                            height={170}
+                            sizes="120px"
+                            className="h-12 w-auto max-w-[7.5rem] object-contain"
+                          />
+                        )}
+                      </div>
                       {v.full && (
                         <p className="mt-1.5 text-[0.9375rem] text-graphite-500">{v.full}</p>
                       )}
@@ -206,7 +219,7 @@ export default function ContractVehiclesPage() {
               </thead>
               <tbody>
                 {expired.map((v) => (
-                  <tr key={v.slug} id={v.slug} className="scroll-mt-28 border-b border-paper-200">
+                  <tr key={v.slug} id={v.slug} className="scroll-mt-32 border-b border-paper-200">
                     <th
                       scope="row"
                       className="py-5 pr-6 text-[0.9375rem] font-medium text-ink-900"

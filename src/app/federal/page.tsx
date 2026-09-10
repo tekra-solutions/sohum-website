@@ -4,6 +4,7 @@ import { ArrowRight, Landmark, Lock, ShieldCheck, Workflow } from "lucide-react"
 import { PageHero } from "@/components/PageHero";
 import { CtaBand } from "@/components/CtaBand";
 import { Reveal } from "@/components/Reveal";
+import { LogoWall } from "@/components/LogoWall";
 import { Eyebrow, SectionHeading } from "@/components/ui";
 import { capabilities } from "@/lib/capabilities";
 import { activeVehicles, site } from "@/lib/site";
@@ -153,6 +154,30 @@ export default function FederalPage() {
               </Reveal>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* ---- Organizations ---- */}
+      <section className="border-t border-paper-200 bg-white">
+        <div className="container-page py-20 sm:py-24">
+          <Reveal>
+            <SectionHeading
+              eyebrow="Organizations"
+              title="Who we work with, stated plainly."
+              lede="Logo walls usually blur the line between a customer, a platform, and a framework. We separate them, because a contracting officer evaluating past performance deserves to know which is which."
+            />
+          </Reveal>
+          <Reveal delay={80} className="mt-14">
+            <LogoWall />
+          </Reveal>
+          <Reveal>
+            <p className="mt-10 max-w-3xl border-t border-paper-200 pt-6 text-[0.875rem] leading-relaxed text-graphite-600">
+              Marks shown are the property of their respective owners. Their appearance
+              indicates the organizations represented in our work and the technologies our
+              teams are certified in — it does not imply endorsement or a current contractual
+              relationship. Detailed past performance references are available on request.
+            </p>
+          </Reveal>
         </div>
       </section>
 

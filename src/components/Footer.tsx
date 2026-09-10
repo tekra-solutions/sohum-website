@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Mail, MapPin, Phone, Printer } from "lucide-react";
 import { Logo } from "./Logo";
 import { capabilities } from "@/lib/capabilities";
@@ -134,13 +135,23 @@ export function Footer() {
             </ul>
 
             <p className="eyebrow mt-9 text-white/40">Appraisals &amp; certifications</p>
-            <ul className="mt-4 flex flex-wrap gap-2">
+            {/* Badge art carries a white background, so each sits on its own
+                white plate rather than directly on the dark footer. */}
+            <ul className="mt-4 flex flex-wrap gap-2.5">
               {credentials.map((c) => (
                 <li
                   key={c.short}
-                  className="rounded-full border border-white/15 px-3 py-1.5 text-[0.75rem] font-medium text-white/70"
+                  className="flex h-14 w-[6.5rem] items-center justify-center rounded-[3px] bg-white px-2.5"
+                  title={c.name}
                 >
-                  {c.short}
+                  <Image
+                    src={c.badge}
+                    alt={c.name}
+                    width={272}
+                    height={170}
+                    sizes="104px"
+                    className="h-auto max-h-10 w-auto max-w-full object-contain"
+                  />
                 </li>
               ))}
             </ul>

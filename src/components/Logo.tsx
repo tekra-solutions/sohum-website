@@ -26,10 +26,10 @@ export function Logo({
   const wordNavy = tone === "light" ? "text-white" : "text-brand-navy";
 
   return (
-    <span className={`inline-flex items-center gap-2.5 ${className}`}>
+    <span className={`inline-flex items-center gap-3 ${className}`}>
       <svg
         viewBox="286 0 301 292"
-        className="h-8 w-[2.0625rem] shrink-0"
+        className="h-[2.875rem] w-[2.9375rem] shrink-0"
         fill="none"
         aria-hidden="true"
         focusable="false"
@@ -61,7 +61,7 @@ export function Logo({
           {/* Lowercase geometric setting mirrors the brand wordmark, with
               "hum" carrying the orange exactly as the artwork does. */}
           <span
-            className={`font-[family-name:var(--font-display)] text-[1.125rem] font-semibold lowercase tracking-[-0.025em] ${wordNavy}`}
+            className={`font-[family-name:var(--font-display)] text-[1.5rem] font-semibold lowercase tracking-[-0.03em] ${wordNavy}`}
           >
             so
             {/* The artwork's orange (#f25806) is 3.4:1 on white — fine for the
@@ -70,13 +70,6 @@ export function Logo({
                 colour family; on dark grounds the brighter flame-400 is used. */}
             <span className={tone === "light" ? "text-flame-400" : "text-flame-600"}>hum</span>{" "}
             systems
-          </span>
-          <span
-            className={`mt-[0.3125rem] text-[0.5625rem] font-semibold uppercase tracking-[0.2em] ${
-              tone === "light" ? "text-white/60" : "text-graphite-500"
-            }`}
-          >
-            Federal Technology
           </span>
         </span>
       )}

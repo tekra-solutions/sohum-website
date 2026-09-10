@@ -52,12 +52,21 @@ export const naics: Naics[] = [
   { code: "541611", label: "Administrative & General Management Consulting" },
 ];
 
-/** Appraisals and certifications evidenced on the current site. */
+/**
+ * Appraisals and certifications evidenced on the current site.
+ *
+ * `badge` points at the official badge artwork published by the issuing body.
+ * `reference` values are read off those badges. Note that the CMMI badge art
+ * carries an expiry of 12 April 2026 — confirm the current appraisal status
+ * before presenting it as active.
+ */
 export const credentials = [
   {
     short: "CMMI DEV L3",
     name: "CMMI for Development, Level 3",
     kind: "Maturity appraisal",
+    badge: "/certs/cmmi-dev.webp",
+    reference: "Appraisal #61679",
     meaning:
       "Development work follows defined, organization-wide processes rather than per-project improvisation — the baseline many agencies require for software sustainment.",
   },
@@ -65,25 +74,34 @@ export const credentials = [
     short: "CMMI SVC L3",
     name: "CMMI for Services, Level 3",
     kind: "Maturity appraisal",
+    badge: "/certs/cmmi-svc.webp",
+    reference: "Appraisal #61679",
     meaning:
       "Service delivery and sustainment are managed against defined processes, which matters for O&M and help-desk task orders.",
   },
   {
     short: "ISO 9001",
-    name: "ISO 9001",
+    name: "ISO 9001:2015",
     kind: "Quality management",
+    badge: "/certs/iso-9001.webp",
+    reference: "AIAO-BAR accredited",
     meaning: "An audited quality management system governs how work is planned, reviewed, and corrected.",
   },
   {
-    short: "ISO/IEC 20000-1:2018",
+    short: "ISO/IEC 20000-1",
     name: "ISO/IEC 20000-1:2018",
     kind: "IT service management",
-    meaning: "IT service management practices are certified against the international standard for service lifecycle control.",
+    badge: "/certs/iso-20000.webp",
+    reference: "AIAO-BAR accredited",
+    meaning:
+      "IT service management practices are certified against the international standard for service lifecycle control.",
   },
   {
     short: "ISO/IEC 27001",
-    name: "ISO/IEC 27001",
+    name: "ISO/IEC 27001:2013",
     kind: "Information security",
+    badge: "/certs/iso-27001.webp",
+    reference: "AIAO-BAR accredited",
     meaning:
       "An information security management system governs access control, authentication, and the confidentiality, integrity, and availability of data.",
   },
@@ -91,6 +109,8 @@ export const credentials = [
     short: "SBA 8(a)",
     name: "SBA 8(a) Business Development Program",
     kind: "Socioeconomic certification",
+    badge: "/certs/sba-8a.webp",
+    reference: "Through Nov 11, 2027",
     meaning: "Eligible for 8(a) sole-source and set-aside awards through November 11, 2027.",
   },
 ] as const;
@@ -98,6 +118,8 @@ export const credentials = [
 export type Vehicle = {
   slug: string;
   name: string;
+  /** Official programme badge artwork, where the issuing body publishes one. */
+  badge?: string;
   full?: string;
   holder: string;
   number?: string;
@@ -114,6 +136,7 @@ export const vehicles: Vehicle[] = [
     name: "NASA SEWP VI",
     full: "Solutions for Enterprise-Wide Procurement VI",
     holder: "NASA",
+    badge: "/certs/sewp.png",
     status: "active",
     pop: "Nov 2026 – Oct 2036",
     detail: [
@@ -132,6 +155,7 @@ export const vehicles: Vehicle[] = [
     name: "SBA 8(a)",
     full: "SBA 8(a) Business Development Program",
     holder: "U.S. Small Business Administration",
+    badge: "/certs/sba-8a.webp",
     status: "active",
     pop: "Nov 12, 2018 – Nov 11, 2027",
     detail: [
@@ -148,6 +172,7 @@ export const vehicles: Vehicle[] = [
     name: "CIO-SP3 Small Business",
     full: "Chief Information Officer – Solutions and Partners 3, Small Business",
     holder: "NITAAC, National Institutes of Health",
+    badge: "/certs/nitaac.webp",
     number: "75N98120D00062",
     status: "active",
     detail: [
@@ -165,6 +190,7 @@ export const vehicles: Vehicle[] = [
     name: "GSA IT Schedule 70",
     full: "GSA Multiple Award Schedule, IT Category",
     holder: "U.S. General Services Administration",
+    badge: "/certs/gsa-schedule70.webp",
     number: "47QTCA19D00FK",
     status: "expired",
     pop: "Jul 18, 2019 – Jul 17, 2024",
@@ -182,6 +208,7 @@ export const vehicles: Vehicle[] = [
     name: "SeaPort NxG",
     full: "SeaPort Next Generation",
     holder: "U.S. Navy",
+    badge: "/certs/seaport.webp",
     number: "N00178-18-R-7000",
     status: "expired",
     pop: "Jan 2, 2019 – Jan 1, 2024",

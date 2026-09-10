@@ -23,7 +23,7 @@ const display = Sora({
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),
   title: {
-    default: "Sohum Systems — Federal Technology & Digital Modernization",
+    default: "Sohum Systems — Digital Modernization for Government",
     template: "%s | Sohum Systems",
   },
   description: site.description,
@@ -47,12 +47,12 @@ export const metadata: Metadata = {
     siteName: site.name,
     locale: "en_US",
     url: site.url,
-    title: "Sohum Systems — Federal Technology & Digital Modernization",
+    title: "Sohum Systems — Digital Modernization for Government",
     description: site.description,
   },
   twitter: {
     card: "summary_large_image",
-    title: "Sohum Systems — Federal Technology & Digital Modernization",
+    title: "Sohum Systems — Digital Modernization for Government",
     description: site.description,
   },
   robots: {

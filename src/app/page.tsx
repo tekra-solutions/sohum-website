@@ -4,7 +4,6 @@ import {
   ArrowRight,
   ArrowUpRight,
   Building2,
-  CheckCircle2,
   Cloud,
   Cpu,
   Database,
@@ -13,14 +12,17 @@ import {
   Map as MapIcon,
   Users,
 } from "lucide-react";
+import Image from "next/image";
 import { Hero } from "@/components/Hero";
+import { LogoStrip } from "@/components/LogoWall";
+import { CredentialCards } from "@/components/CredentialCards";
 import { Reveal } from "@/components/Reveal";
 import { ArrowLink, ButtonLink, Eyebrow, SectionHeading } from "@/components/ui";
 import { capabilities, pillars } from "@/lib/capabilities";
-import { activeVehicles, contact, credentials, site } from "@/lib/site";
+import { activeVehicles, contact, site } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "Sohum Systems — Federal Technology & Digital Modernization",
+  title: "Sohum Systems — Digital Modernization for Government",
   description: site.description,
   alternates: { canonical: "/" },
 };
@@ -39,16 +41,19 @@ const leadership = [
   {
     name: "Srinivas Moshugu",
     title: "Chief Executive Officer",
+    photo: "/team/srinivas-moshugu.webp",
     note: "Founded Sohum Systems in 2013. Eighteen years in IT, leading strategy, alliances, and partnerships.",
   },
   {
     name: "Jamie Royston",
     title: "Director of Operations",
+    photo: "/team/jamie-royston.webp",
     note: "Twenty-plus years of financial and operational leadership in the government market. MBA, PMP.",
   },
   {
     name: "Jacob Robertson",
     title: "Technical Director",
+    photo: "/team/jacob-robertson.webp",
     note: "Twenty-plus years in technical leadership, program management, and DevSecOps architecture.",
   },
 ];
@@ -57,6 +62,19 @@ export default function HomePage() {
   return (
     <>
       <Hero />
+
+      {/* ================================================= Trust strip */}
+      <section className="border-b border-paper-200 bg-white">
+        <div className="container-page py-12 sm:py-14">
+          <Reveal>
+            <p className="text-center text-[0.8125rem] leading-relaxed text-graphite-600">
+              Delivering for federal and commercial organizations, on the platforms and
+              frameworks their teams already run.
+            </p>
+            <LogoStrip className="mt-8" />
+          </Reveal>
+        </div>
+      </section>
 
       {/* ================================================= Positioning statement */}
       <section className="border-b border-paper-200 bg-white">
@@ -394,30 +412,9 @@ export default function HomePage() {
             />
           </Reveal>
 
-          <div className="mt-14 grid gap-px overflow-hidden rounded-[4px] border border-paper-300 bg-paper-300 md:grid-cols-2 lg:grid-cols-3">
-            {credentials.map((c, i) => (
-              <Reveal key={c.short} delay={i * 50} className="bg-white">
-                <div className="flex h-full flex-col p-7">
-                  <div className="flex items-start justify-between gap-4">
-                    <CheckCircle2
-                      className="size-5 shrink-0 text-flame-600"
-                      strokeWidth={1.75}
-                      aria-hidden="true"
-                    />
-                    <span className="text-[0.6875rem] font-semibold uppercase tracking-[0.1em] text-graphite-400">
-                      {c.kind}
-                    </span>
-                  </div>
-                  <h3 className="mt-5 text-[1.0625rem] font-medium leading-snug text-ink-900">
-                    {c.name}
-                  </h3>
-                  <p className="mt-2.5 text-[0.875rem] leading-[1.65] text-graphite-600">
-                    {c.meaning}
-                  </p>
-                </div>
-              </Reveal>
-            ))}
-          </div>
+          <Reveal className="mt-14">
+            <CredentialCards />
+          </Reveal>
         </div>
       </section>
 
@@ -441,16 +438,14 @@ export default function HomePage() {
             {leadership.map((person, i) => (
               <Reveal key={person.name} delay={i * 70}>
                 <div className="flex h-full flex-col rounded-[4px] border border-paper-300 bg-white p-7">
-                  {/* Monogram stands in for a photo rather than a stock portrait. */}
-                  <span
-                    aria-hidden="true"
-                    className="flex size-14 items-center justify-center rounded-full bg-ink-900 font-[family-name:var(--font-display)] text-[1.125rem] font-medium text-white ring-1 ring-flame-500/35 ring-offset-2 ring-offset-white"
-                  >
-                    {person.name
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")}
-                  </span>
+                  <Image
+                    src={person.photo}
+                    alt={`${person.name}, ${person.title}`}
+                    width={121}
+                    height={121}
+                    sizes="64px"
+                    className="size-16 rounded-full object-cover ring-1 ring-flame-500/30 ring-offset-2 ring-offset-white"
+                  />
                   <h3 className="mt-5 text-[1.125rem] font-medium text-ink-900">
                     {person.name}
                   </h3>
