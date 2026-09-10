@@ -1,7 +1,6 @@
 import { ButtonLink } from "./ui";
 import { ArrowRight } from "lucide-react";
 import { credentials } from "@/lib/site";
-import { BrandMotif } from "./BrandMotif";
 
 /**
  * Homepage hero.
@@ -14,34 +13,44 @@ export function Hero() {
   return (
     <section className="relative isolate overflow-hidden bg-ink-950 text-white">
       {/*
-        Background is deliberately flat and even. An earlier diagonal gradient
-        lifted the right-hand side, which made the credential panel read as a
-        highlighted box pasted on top rather than part of the composition.
+        A calm, even navy field. Earlier versions layered an oversized brand mark
+        and a warm pool behind the copy; at any opacity a large filled shape reads
+        as a smudge rather than as texture, and it competed with the credential
+        list sitting on top of it. The mark already appears in the header, footer
+        and favicon, so the hero does not need to repeat it.
+
+        What is left is a fine engineering grid plus a soft top-left lift, which
+        gives the surface depth without brightening any region enough to look
+        highlighted.
       */}
-      <div aria-hidden="true" className="absolute inset-0 grid-fine opacity-[0.35]" />
+      <div aria-hidden="true" className="absolute inset-0 grid-fine opacity-[0.28]" />
 
-      {/* Brand mark as background texture — echoes the flight form in the logo. */}
-      <BrandMotif
-        className="pointer-events-none absolute -right-[20%] -top-[14%] hidden w-[72%] rotate-[-8deg] text-flame-500/[0.055] lg:block"
-      />
-
-      {/* A single warm pool low and left, well away from the panel. */}
-      <div
-        aria-hidden="true"
-        className="absolute -left-[15%] bottom-[-45%] h-[720px] w-[720px] rounded-full blur-3xl"
-        style={{
-          background:
-            "radial-gradient(circle, rgba(242,88,6,0.13) 0%, rgba(242,88,6,0.04) 45%, transparent 70%)",
-        }}
-      />
-
-      {/* Vignette: settles the edges without brightening any one region. */}
       <div
         aria-hidden="true"
         className="absolute inset-0"
         style={{
           background:
-            "radial-gradient(120% 90% at 30% 40%, transparent 0%, rgba(9,12,19,0.55) 100%)",
+            "radial-gradient(90% 70% at 12% 8%, rgba(47,65,101,0.30) 0%, transparent 62%)",
+        }}
+      />
+
+      {/* Vignette settles the edges and keeps focus on the headline. */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(115% 85% at 28% 38%, transparent 0%, rgba(7,10,17,0.62) 100%)",
+        }}
+      />
+
+      {/* A single hairline of brand colour along the bottom edge. */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-x-0 bottom-0 h-px"
+        style={{
+          background:
+            "linear-gradient(to right, transparent 0%, rgba(242,88,6,0.35) 22%, rgba(242,88,6,0.35) 52%, transparent 88%)",
         }}
       />
 
