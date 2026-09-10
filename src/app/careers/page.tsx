@@ -137,7 +137,7 @@ export default function CareersPage() {
       </section>
 
       {/* ---- Open roles ---- */}
-      <section id="openings" className="scroll-mt-28 bg-paper-50">
+      <section id="openings" className="scroll-mt-32 bg-paper-50">
         <div className="container-page py-20 sm:py-24">
           <Reveal>
             <SectionHeading

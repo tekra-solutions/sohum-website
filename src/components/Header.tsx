@@ -98,7 +98,7 @@ export function Header() {
       </a>
 
       <div className="container-page">
-        <div className="flex h-[5.5rem] items-center justify-between gap-6">
+        <div className="flex h-[6.25rem] items-center justify-between gap-6">
           <Link
             href="/"
             className="rounded transition-opacity hover:opacity-70"
@@ -118,7 +118,7 @@ export function Header() {
                     onMouseEnter={() => (item.panel ? openPanel(item.panel) : setPanel(null))}
                     onFocus={() => (item.panel ? openPanel(item.panel) : setPanel(null))}
                     aria-expanded={item.panel ? panel === item.panel : undefined}
-                    className={`flex items-center gap-1 rounded px-3 py-2 text-[0.9375rem] transition-colors ${
+                    className={`relative flex items-center gap-1 rounded px-3.5 py-2.5 text-[0.9375rem] transition-colors ${
                       active
                         ? "text-ink-900"
                         : "text-graphite-600 hover:text-ink-900"
@@ -148,7 +148,7 @@ export function Header() {
           <div className="hidden items-center gap-3 lg:flex">
             <Link
               href="/contact"
-              className="rounded-[3px] bg-ink-900 px-5 py-3 text-[0.875rem] font-medium text-white transition-colors hover:bg-ink-700"
+              className="rounded-[3px] bg-ink-900 px-6 py-3.5 text-[0.9375rem] font-medium text-white shadow-[0_1px_2px_rgba(16,23,38,0.18)] transition-[background-color,box-shadow,transform] duration-200 hover:bg-ink-700 hover:shadow-[0_8px_24px_-10px_rgba(16,23,38,0.5)] active:translate-y-px"
             >
               Talk to us
             </Link>
@@ -256,7 +256,7 @@ export function Header() {
       <div
         id="mobile-nav"
         hidden={!mobileOpen}
-        className="fixed inset-x-0 top-[5.5rem] bottom-0 z-40 overflow-y-auto overscroll-contain border-t border-paper-200 bg-white lg:hidden"
+        className="fixed inset-x-0 top-[6.25rem] bottom-0 z-40 overflow-y-auto overscroll-contain border-t border-paper-200 bg-white lg:hidden"
       >
         <nav className="container-page py-6" aria-label="Mobile">
           <ul className="divide-y divide-paper-200">

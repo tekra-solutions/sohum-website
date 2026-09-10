@@ -101,7 +101,7 @@ export default function ContractVehiclesPage() {
               <Reveal key={v.slug} delay={i * 60}>
                 <article
                   id={v.slug}
-                  className="scroll-mt-32 overflow-hidden rounded-[4px] border border-paper-300 bg-white"
+                  className="scroll-mt-36 overflow-hidden rounded-[4px] border border-paper-300 bg-white"
                 >
                   <div className="grid lg:grid-cols-[1.35fr_0.65fr]">
                     {/* Narrative */}
@@ -219,7 +219,7 @@ export default function ContractVehiclesPage() {
               </thead>
               <tbody>
                 {expired.map((v) => (
-                  <tr key={v.slug} id={v.slug} className="scroll-mt-32 border-b border-paper-200">
+                  <tr key={v.slug} id={v.slug} className="scroll-mt-36 border-b border-paper-200">
                     <th
                       scope="row"
                       className="py-5 pr-6 text-[0.9375rem] font-medium text-ink-900"

@@ -108,8 +108,10 @@ the Federal Mission page carries a note that appearance does not imply
 endorsement or a current contractual relationship. That distinction protects the
 company if a contracting officer asks what a given logo represents.
 
-Certification badges are the issuing bodies' own artwork, paired with the
-appraisal or accreditation reference read off each badge.
+Certification badges are the issuing bodies' own artwork, paired with a note on
+what each credential commits the company to. The CMMI DEV and SVC badges were
+re-rendered from the originals to carry only the appraised mark — the source art
+had an appraisal/date line baked into the image, which is not shown.
 
 ## Accessibility
 
@@ -169,9 +171,8 @@ Claims that need owner confirmation before launch:
 1. Wire the contact form to a real endpoint. It currently composes a `mailto:`
    handoff so no submission is silently lost, but a server action or form service
    (with spam protection) is the production path.
-2. **Confirm the CMMI appraisal is current.** The badge artwork published on the
-   current site reads *Appraisal #61679, Exp. Apr 12, 2026* — which has passed.
-   The site presents CMMI Level 3 without printing that date; if the appraisal
-   has been renewed, supply the new badge and reference, and if it has lapsed the
-   claim needs to come down from every page.
+2. **Confirm the CMMI appraisal is current.** No dates are shown anywhere on the
+   site, but the underlying appraisal still needs to be valid for the CMMI Level 3
+   claim to stand. If it has been renewed, supply the current badge artwork; if it
+   has not, the claim needs to come down from every page.
 3. Confirm the items under "Content policy" above.

@@ -16,20 +16,25 @@ export function Logo({
   className = "",
   showWordmark = true,
   tone = "dark",
+  size = "md",
 }: {
   className?: string;
   showWordmark?: boolean;
   /** "dark" = for light backgrounds; "light" = for dark backgrounds. */
   tone?: "dark" | "light";
+  /** md = header/footer default; lg = generous, for the footer masthead. */
+  size?: "md" | "lg";
 }) {
   const navy = tone === "light" ? "#8fa2c4" : "#304368";
   const wordNavy = tone === "light" ? "text-white" : "text-brand-navy";
+  const markSize = size === "lg" ? "h-[4rem] w-[4.125rem]" : "h-[3.375rem] w-[3.4375rem]";
+  const wordSize = size === "lg" ? "text-[2rem]" : "text-[1.75rem]";
 
   return (
     <span className={`inline-flex items-center gap-3 ${className}`}>
       <svg
         viewBox="286 0 301 292"
-        className="h-[2.875rem] w-[2.9375rem] shrink-0"
+        className={`${markSize} shrink-0`}
         fill="none"
         aria-hidden="true"
         focusable="false"
@@ -61,7 +66,7 @@ export function Logo({
           {/* Lowercase geometric setting mirrors the brand wordmark, with
               "hum" carrying the orange exactly as the artwork does. */}
           <span
-            className={`font-[family-name:var(--font-display)] text-[1.5rem] font-semibold lowercase tracking-[-0.03em] ${wordNavy}`}
+            className={`font-[family-name:var(--font-display)] ${wordSize} font-semibold lowercase tracking-[-0.03em] ${wordNavy}`}
           >
             so
             {/* The artwork's orange (#f25806) is 3.4:1 on white — fine for the

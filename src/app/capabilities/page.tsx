@@ -56,7 +56,7 @@ export default function CapabilitiesPage() {
               >
                 <Reveal>
                   <div className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
-                    <div className="lg:sticky lg:top-32 lg:self-start">
+                    <div className="lg:sticky lg:top-36 lg:self-start">
                       <p className="font-mono text-[0.75rem] font-medium text-flame-700 tabular-nums">
                         0{pi + 1}
                       </p>

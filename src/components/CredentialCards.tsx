@@ -19,14 +19,14 @@ export function CredentialCards() {
           className="group/cred flex h-full flex-col overflow-hidden rounded-[4px] border border-paper-300 bg-white transition-[border-color,box-shadow,transform] duration-300 ease-out hover:-translate-y-0.5 hover:border-ink-500/25 hover:shadow-[var(--shadow-lift-lg)]"
         >
           {/* Badge plate */}
-          <div className="flex h-[8.5rem] items-center justify-center border-b border-paper-200 bg-paper-50 px-6">
+          <div className="flex h-[9rem] items-center justify-center border-b border-paper-200 bg-paper-50 px-5">
             <Image
               src={c.badge}
               alt={`${c.name} badge`}
-              width={272}
-              height={170}
-              sizes="(max-width: 768px) 60vw, 200px"
-              className="h-auto max-h-[5.5rem] w-auto max-w-[14rem] object-contain transition-transform duration-500 ease-out group-hover/cred:scale-[1.03]"
+              width={544}
+              height={340}
+              sizes="(max-width: 768px) 70vw, 320px"
+              className="h-[5.25rem] w-auto max-w-[15rem] object-contain transition-transform duration-500 ease-out group-hover/cred:scale-[1.04]"
             />
           </div>
 
@@ -39,9 +39,6 @@ export function CredentialCards() {
             </h3>
             <p className="mt-2.5 flex-1 text-[0.875rem] leading-[1.65] text-graphite-600">
               {c.meaning}
-            </p>
-            <p className="mt-5 border-t border-paper-200 pt-4 font-mono text-[0.75rem] text-graphite-500">
-              {c.reference}
             </p>
           </div>
         </li>

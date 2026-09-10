@@ -38,7 +38,7 @@ export function Footer() {
         {/* ---- Procurement quick-reference: the data a CO needs, above the links ---- */}
         <div className="grid gap-x-12 gap-y-10 border-b border-white/10 py-14 lg:grid-cols-[1.1fr_1fr_1fr]">
           <div>
-            <Logo tone="light" />
+            <Logo tone="light" size="lg" />
             <p className="mt-5 max-w-sm text-[0.9375rem] leading-[1.7] text-white/55">
               An SBA-certified 8(a) small business appraised at CMMI Level 3, engineering and
               sustaining the software, cloud, and data systems federal agencies depend on.
@@ -141,16 +141,16 @@ export function Footer() {
               {credentials.map((c) => (
                 <li
                   key={c.short}
-                  className="flex h-14 w-[6.5rem] items-center justify-center rounded-[3px] bg-white px-2.5"
+                  className="flex h-16 w-[7.5rem] items-center justify-center rounded-[3px] bg-white px-2"
                   title={c.name}
                 >
                   <Image
                     src={c.badge}
                     alt={c.name}
-                    width={272}
-                    height={170}
-                    sizes="104px"
-                    className="h-auto max-h-10 w-auto max-w-full object-contain"
+                    width={544}
+                    height={340}
+                    sizes="160px"
+                    className="h-[2.75rem] w-auto max-w-full object-contain"
                   />
                 </li>
               ))}

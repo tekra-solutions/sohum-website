@@ -56,17 +56,13 @@ export const naics: Naics[] = [
  * Appraisals and certifications evidenced on the current site.
  *
  * `badge` points at the official badge artwork published by the issuing body.
- * `reference` values are read off those badges. Note that the CMMI badge art
- * carries an expiry of 12 April 2026 — confirm the current appraisal status
- * before presenting it as active.
  */
 export const credentials = [
   {
     short: "CMMI DEV L3",
     name: "CMMI for Development, Level 3",
     kind: "Maturity appraisal",
-    badge: "/certs/cmmi-dev.webp",
-    reference: "Appraisal #61679",
+    badge: "/certs/cmmi-dev.png",
     meaning:
       "Development work follows defined, organization-wide processes rather than per-project improvisation — the baseline many agencies require for software sustainment.",
   },
@@ -74,8 +70,7 @@ export const credentials = [
     short: "CMMI SVC L3",
     name: "CMMI for Services, Level 3",
     kind: "Maturity appraisal",
-    badge: "/certs/cmmi-svc.webp",
-    reference: "Appraisal #61679",
+    badge: "/certs/cmmi-svc.png",
     meaning:
       "Service delivery and sustainment are managed against defined processes, which matters for O&M and help-desk task orders.",
   },
@@ -84,7 +79,6 @@ export const credentials = [
     name: "ISO 9001:2015",
     kind: "Quality management",
     badge: "/certs/iso-9001.webp",
-    reference: "AIAO-BAR accredited",
     meaning: "An audited quality management system governs how work is planned, reviewed, and corrected.",
   },
   {
@@ -92,7 +86,6 @@ export const credentials = [
     name: "ISO/IEC 20000-1:2018",
     kind: "IT service management",
     badge: "/certs/iso-20000.webp",
-    reference: "AIAO-BAR accredited",
     meaning:
       "IT service management practices are certified against the international standard for service lifecycle control.",
   },
@@ -101,7 +94,6 @@ export const credentials = [
     name: "ISO/IEC 27001:2013",
     kind: "Information security",
     badge: "/certs/iso-27001.webp",
-    reference: "AIAO-BAR accredited",
     meaning:
       "An information security management system governs access control, authentication, and the confidentiality, integrity, and availability of data.",
   },
@@ -110,7 +102,6 @@ export const credentials = [
     name: "SBA 8(a) Business Development Program",
     kind: "Socioeconomic certification",
     badge: "/certs/sba-8a.webp",
-    reference: "Through Nov 11, 2027",
     meaning: "Eligible for 8(a) sole-source and set-aside awards through November 11, 2027.",
   },
 ] as const;
