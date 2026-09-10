@@ -1,0 +1,46 @@
+import "server-only";
+import { db } from "@/db";
+import { auditLogs } from "@/db/schema";
+
+export type AuditAction =
+  | "ADMIN_LOGIN"
+  | "ADMIN_LOGIN_FAILED"
+  | "ADMIN_LOGOUT"
+  | "ADMIN_CREATED_JOB"
+  | "ADMIN_UPDATED_JOB"
+  | "ADMIN_PUBLISHED_JOB"
+  | "ADMIN_UNPUBLISHED_JOB"
+  | "ADMIN_ARCHIVED_JOB"
+  | "ADMIN_DELETED_JOB"
+  | "ADMIN_VIEWED_APPLICATION"
+  | "ADMIN_CHANGED_APPLICATION_STATUS"
+  | "ADMIN_UPDATED_NOTES"
+  | "ADMIN_DOWNLOADED_RESUME"
+  | "ADMIN_CHANGED_PASSWORD";
+
+/**
+ * Records an admin action. Never throws — an audit write failing must not
+ * abort the action the admin actually took.
+ */
+export async function audit(entry: {
+  adminId?: string | null;
+  action: AuditAction;
+  entityType: string;
+  entityId?: string | null;
+  metadata?: Record<string, unknown>;
+}) {
+  try {
+    await db.insert(auditLogs).values({
+      adminId: entry.adminId ?? null,
+      action: entry.action,
+      entityType: entry.entityType,
+      entityId: entry.entityId ?? null,
+      metadata: entry.metadata ?? null,
+    });
+  } catch (err) {
+    console.error("[audit] write failed", {
+      action: entry.action,
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+}

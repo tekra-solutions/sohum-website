@@ -1,0 +1,262 @@
+import "server-only";
+import { and, count, desc, eq, gte, ilike, or, sql } from "drizzle-orm";
+import { db } from "@/db";
+import { applicationEvents, applications, jobs, resumeFiles } from "@/db/schema";
+import { buildResumePath, deleteResume, uploadResume } from "@/lib/storage/resumes";
+import { serverEnv } from "@/lib/env";
+
+/** SOH-APP-2026-000123 — derived from the row's own sequence. */
+export const formatReference = (sequence: number, year = new Date().getFullYear()) =>
+  `SOH-APP-${year}-${String(sequence).padStart(6, "0")}`;
+
+/**
+ * Has this email already applied to this job inside the configured window?
+ * Used to warn, not to permanently block a legitimate re-application.
+ */
+export async function findRecentDuplicate(jobId: string, email: string) {
+  const days = serverEnv().duplicateWindowDays;
+  if (days <= 0) return null;
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+  return db.query.applications.findFirst({
+    where: and(
+      eq(applications.jobId, jobId),
+      sql`lower(${applications.email}) = ${email.toLowerCase()}`,
+      gte(applications.createdAt, since),
+    ),
+    columns: { id: true, reference: true, createdAt: true },
+  });
+}
+
+export type SubmitResult =
+  | { ok: true; reference: string; applicationId: string }
+  | { ok: false; error: string; code: "JOB_UNAVAILABLE" | "UPLOAD_FAILED" | "DB_FAILED" };
+
+/**
+ * Submits an application.
+ *
+ * Ordering matters: the row is inserted first so the resume path can be keyed
+ * by a real application id, then the file is uploaded, then metadata is
+ * attached. If the upload or metadata write fails we delete both the row and
+ * any uploaded object, so a half-finished application is never left behind.
+ */
+export async function submitApplication(input: {
+  values: typeof applications.$inferInsert;
+  resume: { filename: string; mimeType: string; size: number; bytes: ArrayBuffer };
+}): Promise<SubmitResult> {
+  // The job must still be open at submission time, not just when the page loaded.
+  const job = await db.query.jobs.findFirst({
+    where: and(eq(jobs.id, input.values.jobId), eq(jobs.status, "PUBLISHED" as const)),
+    columns: { id: true, title: true },
+  });
+  if (!job) {
+    return { ok: false, error: "This position is no longer accepting applications.", code: "JOB_UNAVAILABLE" };
+  }
+
+  let applicationId: string | undefined;
+  let storagePath: string | undefined;
+
+  try {
+    // Reference is derived from the row's sequence, so it is unique without
+    // a second round trip or a race between concurrent submissions.
+    const [row] = await db
+      .insert(applications)
+      .values({ ...input.values, reference: "PENDING" })
+      .returning({ id: applications.id, sequence: applications.sequence });
+    if (!row) throw new Error("Insert returned no row");
+
+    applicationId = row.id;
+    const reference = formatReference(row.sequence);
+    await db.update(applications).set({ reference }).where(eq(applications.id, row.id));
+
+    storagePath = buildResumePath(row.id, input.resume.filename);
+    await uploadResume({
+      path: storagePath,
+      body: input.resume.bytes,
+      contentType: input.resume.mimeType,
+    });
+
+    await db.insert(resumeFiles).values({
+      applicationId: row.id,
+      originalFilename: input.resume.filename,
+      storagePath,
+      mimeType: input.resume.mimeType,
+      fileSize: input.resume.size,
+    });
+
+    await db.insert(applicationEvents).values({
+      applicationId: row.id,
+      toStatus: "NEW",
+      note: "Application submitted",
+    });
+
+    return { ok: true, reference, applicationId: row.id };
+  } catch (err) {
+    console.error("[applications] submit failed", {
+      jobId: input.values.jobId,
+      error: err instanceof Error ? err.message : String(err),
+    });
+
+    // Roll back in reverse order. Both steps are best-effort; failing to clean
+    // up must not mask the original error.
+    if (storagePath) await deleteResume(storagePath);
+    if (applicationId) {
+      try {
+        await db.delete(applications).where(eq(applications.id, applicationId));
+      } catch (cleanupErr) {
+        console.error("[applications] rollback failed", {
+          applicationId,
+          error: cleanupErr instanceof Error ? cleanupErr.message : String(cleanupErr),
+        });
+      }
+    }
+
+    const code = storagePath ? "UPLOAD_FAILED" : "DB_FAILED";
+    return {
+      ok: false,
+      code,
+      error: "We could not submit your application. Please try again in a moment.",
+    };
+  }
+}
+
+/* ---------------------------------------------------------------- admin */
+
+export type AdminApplicationFilters = {
+  q?: string;
+  status?: string;
+  jobId?: string;
+  from?: string;
+  to?: string;
+  sort?: "newest" | "oldest" | "name";
+  page?: number;
+  pageSize?: number;
+};
+
+/** Server-side pagination and filtering — never ships the whole table. */
+export async function listApplications(f: AdminApplicationFilters) {
+  const page = Math.max(1, f.page ?? 1);
+  const pageSize = Math.min(100, Math.max(5, f.pageSize ?? 25));
+
+  const where = [];
+  if (f.q?.trim()) {
+    const term = `%${f.q.trim()}%`;
+    where.push(
+      or(
+        ilike(applications.firstName, term),
+        ilike(applications.lastName, term),
+        ilike(applications.email, term),
+        ilike(applications.reference, term),
+        ilike(jobs.title, term),
+      )!,
+    );
+  }
+  if (f.status && f.status !== "ALL") {
+    where.push(eq(applications.status, f.status as "NEW"));
+  }
+  if (f.jobId && f.jobId !== "ALL") where.push(eq(applications.jobId, f.jobId));
+  if (f.from) where.push(gte(applications.createdAt, new Date(f.from)));
+  if (f.to) {
+    const end = new Date(f.to);
+    end.setHours(23, 59, 59, 999);
+    where.push(sql`${applications.createdAt} <= ${end}`);
+  }
+
+  const clause = where.length ? and(...where) : undefined;
+
+  const order =
+    f.sort === "oldest" ? applications.createdAt
+    : f.sort === "name" ? applications.lastName
+    : desc(applications.createdAt);
+
+  const rows = await db
+    .select({
+      application: applications,
+      jobTitle: jobs.title,
+      jobLocation: jobs.location,
+    })
+    .from(applications)
+    .innerJoin(jobs, eq(applications.jobId, jobs.id))
+    .where(clause)
+    .orderBy(f.sort === "newest" || !f.sort ? desc(applications.createdAt) : order)
+    .limit(pageSize)
+    .offset((page - 1) * pageSize);
+
+  const [totalRow] = await db
+    .select({ n: count() })
+    .from(applications)
+    .innerJoin(jobs, eq(applications.jobId, jobs.id))
+    .where(clause);
+
+  const total = totalRow?.n ?? 0;
+  return {
+    rows,
+    total,
+    page,
+    pageSize,
+    pageCount: Math.max(1, Math.ceil(total / pageSize)),
+  };
+}
+
+export async function getApplicationDetail(id: string) {
+  const row = await db.query.applications.findFirst({
+    where: eq(applications.id, id),
+    with: {
+      job: true,
+      resume: true,
+      events: { orderBy: (e, { asc }) => [asc(e.createdAt)] },
+    },
+  });
+  return row ?? null;
+}
+
+/** Dashboard counters, computed in one round trip. */
+export async function dashboardStats() {
+  const [jobRow] = await db
+    .select({
+      published: sql<number>`count(*) filter (where ${jobs.status} = 'PUBLISHED')::int`,
+      draft: sql<number>`count(*) filter (where ${jobs.status} = 'DRAFT')::int`,
+    })
+    .from(jobs);
+
+  const [appRow] = await db
+    .select({
+      total: sql<number>`count(*)::int`,
+      isNew: sql<number>`count(*) filter (where ${applications.status} = 'NEW')::int`,
+      reviewing: sql<number>`count(*) filter (where ${applications.status} = 'REVIEWING')::int`,
+      shortlisted: sql<number>`count(*) filter (where ${applications.status} = 'SHORTLISTED')::int`,
+      interview: sql<number>`count(*) filter (where ${applications.status} = 'INTERVIEW')::int`,
+      hired: sql<number>`count(*) filter (where ${applications.status} = 'HIRED')::int`,
+      rejected: sql<number>`count(*) filter (where ${applications.status} = 'REJECTED')::int`,
+    })
+    .from(applications);
+
+  return {
+    publishedJobs: jobRow?.published ?? 0,
+    draftJobs: jobRow?.draft ?? 0,
+    totalApplications: appRow?.total ?? 0,
+    newApplications: appRow?.isNew ?? 0,
+    reviewing: appRow?.reviewing ?? 0,
+    shortlisted: appRow?.shortlisted ?? 0,
+    interview: appRow?.interview ?? 0,
+    hired: appRow?.hired ?? 0,
+    rejected: appRow?.rejected ?? 0,
+  };
+}
+
+export async function recentApplications(limit = 6) {
+  return db
+    .select({
+      id: applications.id,
+      reference: applications.reference,
+      firstName: applications.firstName,
+      lastName: applications.lastName,
+      status: applications.status,
+      createdAt: applications.createdAt,
+      jobTitle: jobs.title,
+    })
+    .from(applications)
+    .innerJoin(jobs, eq(applications.jobId, jobs.id))
+    .orderBy(desc(applications.createdAt))
+    .limit(limit);
+}
