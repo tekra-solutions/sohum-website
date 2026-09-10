@@ -124,13 +124,13 @@ export default function AboutPage() {
         <div
           aria-hidden="true"
           className="absolute left-1/2 top-0 h-[500px] w-[900px] -translate-x-1/2 blur-3xl"
-          style={{ background: "radial-gradient(ellipse, rgba(18,165,218,0.10) 0%, transparent 70%)" }}
+          style={{ background: "radial-gradient(ellipse, rgba(242,88,6,0.09) 0%, transparent 70%)" }}
         />
         <div className="container-page relative py-20 sm:py-28">
           <Reveal>
             <div className="mx-auto max-w-3xl text-center">
               <Quote
-                className="mx-auto size-8 text-signal-400/50"
+                className="mx-auto size-8 text-flame-500/60"
                 strokeWidth={1.25}
                 aria-hidden="true"
               />
@@ -194,7 +194,7 @@ export default function AboutPage() {
                   {/* Monogram avatar — chosen over stock portraiture, which reads as filler. */}
                   <span
                     aria-hidden="true"
-                    className="flex size-16 shrink-0 items-center justify-center rounded-full bg-ink-900 font-[family-name:var(--font-display)] text-[1.25rem] font-medium text-white"
+                    className="flex size-16 shrink-0 items-center justify-center rounded-full bg-ink-900 font-[family-name:var(--font-display)] text-[1.25rem] font-medium text-white ring-1 ring-flame-500/35 ring-offset-2 ring-offset-white"
                   >
                     {person.initials}
                   </span>
@@ -203,7 +203,7 @@ export default function AboutPage() {
                     <h3 className="text-[1.375rem] font-medium leading-tight text-ink-900">
                       {person.name}
                     </h3>
-                    <p className="mt-1.5 text-[0.8125rem] font-semibold uppercase tracking-[0.1em] text-signal-700">
+                    <p className="mt-1.5 text-[0.8125rem] font-semibold uppercase tracking-[0.1em] text-flame-700">
                       {person.title}
                     </p>
                     <p className="mt-4 max-w-2xl text-[1rem] leading-[1.7] text-graphite-600">
@@ -245,7 +245,7 @@ export default function AboutPage() {
                 <div className="flex h-full flex-col p-7">
                   <div className="flex items-start justify-between gap-4">
                     <CheckCircle2
-                      className="size-5 shrink-0 text-signal-500"
+                      className="size-5 shrink-0 text-flame-600"
                       strokeWidth={1.75}
                       aria-hidden="true"
                     />

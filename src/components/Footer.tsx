@@ -30,14 +30,14 @@ export function Footer() {
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 grid-fine opacity-[0.5]" />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-signal-500/40 to-transparent"
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-flame-500/45 to-transparent"
       />
 
       <div className="container-page relative">
         {/* ---- Procurement quick-reference: the data a CO needs, above the links ---- */}
         <div className="grid gap-x-12 gap-y-10 border-b border-white/10 py-14 lg:grid-cols-[1.1fr_1fr_1fr]">
           <div>
-            <Logo className="text-white" />
+            <Logo tone="light" />
             <p className="mt-5 max-w-sm text-[0.9375rem] leading-[1.7] text-white/55">
               An SBA-certified 8(a) small business appraised at CMMI Level 3, engineering and
               sustaining the software, cloud, and data systems federal agencies depend on.
@@ -72,7 +72,7 @@ export function Footer() {
               {col.heading === "Capabilities" && (
                 <Link
                   href="/capabilities"
-                  className="mt-4 inline-block text-[0.8125rem] font-medium text-signal-300 transition-colors hover:text-white"
+                  className="mt-4 inline-block text-[0.8125rem] font-medium text-flame-400 transition-colors hover:text-white"
                 >
                   All 11 capabilities →
                 </Link>
@@ -127,7 +127,7 @@ export function Footer() {
                   <span className="font-mono text-white/85 tabular-nums">{n.code}</span>
                   <span className="text-white/50">
                     {n.label}
-                    {n.primary && <span className="text-signal-300"> · primary</span>}
+                    {n.primary && <span className="text-flame-400"> · primary</span>}
                   </span>
                 </li>
               ))}

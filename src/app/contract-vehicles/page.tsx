@@ -56,9 +56,9 @@ export default function ContractVehiclesPage() {
       <section className="border-b border-paper-200 bg-white">
         <div className="container-page py-14 sm:py-16">
           <Reveal>
-            <div className="grid gap-8 rounded-[4px] border border-signal-500/25 bg-signal-500/[0.045] p-7 sm:p-9 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
+            <div className="grid gap-8 rounded-[4px] border border-flame-500/30 bg-flame-500/[0.045] p-7 sm:p-9 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
               <div>
-                <p className="eyebrow text-signal-700">Fastest path to award</p>
+                <p className="eyebrow text-flame-700">Fastest path to award</p>
                 <p className="mt-4 text-[1.1875rem] font-medium leading-[1.5] text-ink-900 sm:text-[1.3125rem]">
                   As an SBA-certified 8(a) small business, we can be awarded directly without full
                   and open competition — within program thresholds — through November 11, 2027.
@@ -107,7 +107,7 @@ export default function ContractVehiclesPage() {
                     <div className="p-7 sm:p-9">
                       <div className="flex flex-wrap items-center gap-3">
                         <Badge tone="active">
-                          <span className="size-1.5 rounded-full bg-signal-500" aria-hidden="true" />
+                          <span className="size-1.5 rounded-full bg-flame-500" aria-hidden="true" />
                           Active
                         </Badge>
                         <span className="text-[0.8125rem] text-graphite-500">{v.holder}</span>
@@ -271,7 +271,7 @@ export default function ContractVehiclesPage() {
                       <dd className="text-[0.9375rem] text-graphite-600">
                         {n.label}
                         {n.primary && (
-                          <span className="ml-2 text-[0.75rem] font-semibold uppercase tracking-[0.08em] text-signal-700">
+                          <span className="ml-2 text-[0.75rem] font-semibold uppercase tracking-[0.08em] text-flame-700">
                             Primary
                           </span>
                         )}
@@ -301,7 +301,7 @@ export default function ContractVehiclesPage() {
                     </p>
                     <a
                       href="tel:+19132217204"
-                      className="mt-4 inline-flex items-center gap-2 font-mono text-[0.875rem] text-ink-800 transition-colors hover:text-signal-600"
+                      className="mt-4 inline-flex items-center gap-2 font-mono text-[0.875rem] text-ink-800 transition-colors hover:text-flame-700"
                     >
                       <Phone className="size-3.5" aria-hidden="true" />
                       {contact.phoneAlt}
@@ -314,13 +314,13 @@ export default function ContractVehiclesPage() {
                     </p>
                     <a
                       href={`mailto:${contact.emailGeneral}`}
-                      className="mt-3 block text-[1.0625rem] font-medium text-ink-900 underline decoration-paper-300 underline-offset-4 transition-colors hover:decoration-signal-500"
+                      className="mt-3 block text-[1.0625rem] font-medium text-ink-900 underline decoration-paper-300 underline-offset-4 transition-colors hover:decoration-flame-500"
                     >
                       {contact.emailGeneral}
                     </a>
                     <a
                       href={`tel:${contact.phoneHref}`}
-                      className="mt-3 inline-flex items-center gap-2 font-mono text-[0.875rem] text-ink-800 transition-colors hover:text-signal-600"
+                      className="mt-3 inline-flex items-center gap-2 font-mono text-[0.875rem] text-ink-800 transition-colors hover:text-flame-700"
                     >
                       <Phone className="size-3.5" aria-hidden="true" />
                       {contact.phone}

@@ -35,7 +35,7 @@ export default function CapabilitiesPage() {
             <ul className="mt-5 space-y-2.5">
               {credentials.slice(0, 5).map((c) => (
                 <li key={c.short} className="flex items-baseline gap-3 text-[0.875rem]">
-                  <span className="mt-1.5 size-1 shrink-0 rounded-full bg-signal-400" aria-hidden="true" />
+                  <span className="mt-1.5 size-1 shrink-0 rounded-full bg-flame-400" aria-hidden="true" />
                   <span className="text-white/70">{c.name}</span>
                 </li>
               ))}
@@ -57,7 +57,7 @@ export default function CapabilitiesPage() {
                 <Reveal>
                   <div className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
                     <div className="lg:sticky lg:top-28 lg:self-start">
-                      <p className="font-mono text-[0.75rem] font-medium text-signal-700 tabular-nums">
+                      <p className="font-mono text-[0.75rem] font-medium text-flame-700 tabular-nums">
                         0{pi + 1}
                       </p>
                       <h2 className="mt-3 text-[1.75rem] font-medium leading-tight text-ink-900 sm:text-[2rem]">
@@ -87,7 +87,7 @@ export default function CapabilitiesPage() {
                               </p>
                             </div>
                             <ArrowRight
-                              className="mt-1 size-4 shrink-0 text-graphite-400 transition-all duration-300 group-hover/row:translate-x-1 group-hover/row:text-signal-500"
+                              className="mt-1 size-4 shrink-0 text-graphite-400 transition-all duration-300 group-hover/row:translate-x-1 group-hover/row:text-flame-600"
                               aria-hidden="true"
                             />
                           </Link>
@@ -133,7 +133,7 @@ export default function CapabilitiesPage() {
             ].map((step, i) => (
               <Reveal key={step.h} delay={i * 70}>
                 <div className="border-t border-paper-300 pt-6">
-                  <p className="font-mono text-[0.75rem] font-medium text-signal-700 tabular-nums">
+                  <p className="font-mono text-[0.75rem] font-medium text-flame-700 tabular-nums">
                     {String(i + 1).padStart(2, "0")}
                   </p>
                   <h3 className="mt-3.5 text-[1.0625rem] font-medium leading-snug text-ink-900">

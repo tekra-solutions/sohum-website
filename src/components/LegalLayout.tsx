@@ -34,7 +34,7 @@ export function LegalLayout({
                 [&_li]:before:absolute [&_li]:before:left-0 [&_li]:before:top-[0.6875rem]
                 [&_li]:before:size-1 [&_li]:before:rounded-full [&_li]:before:bg-graphite-400
                 [&_a]:text-ink-900 [&_a]:underline [&_a]:decoration-paper-300 [&_a]:underline-offset-4
-                [&_a:hover]:decoration-signal-500"
+                [&_a:hover]:decoration-flame-500"
             >
               {children}
             </div>

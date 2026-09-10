@@ -122,7 +122,7 @@ export default function HomePage() {
                 <Reveal key={pillar.id} delay={i * 70} className="bg-white">
                   <div className="flex h-full flex-col p-7">
                     <div className="flex items-baseline gap-3">
-                      <span className="font-mono text-[0.75rem] font-medium text-signal-700 tabular-nums">
+                      <span className="font-mono text-[0.75rem] font-medium text-flame-700 tabular-nums">
                         0{i + 1}
                       </span>
                       <h3 className="text-[1.25rem] font-medium text-ink-900">
@@ -140,7 +140,7 @@ export default function HomePage() {
                             className="group/link flex items-start gap-2 text-[0.875rem] leading-snug text-graphite-700 transition-colors hover:text-ink-950"
                           >
                             <ArrowUpRight
-                              className="mt-0.5 size-3.5 shrink-0 text-graphite-400 transition-transform duration-200 group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 group-hover/link:text-signal-500"
+                              className="mt-0.5 size-3.5 shrink-0 text-graphite-400 transition-transform duration-200 group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 group-hover/link:text-flame-600"
                               aria-hidden="true"
                             />
                             {c.name}
@@ -163,7 +163,7 @@ export default function HomePage() {
                   className="group/card flex h-full flex-col rounded-[4px] border border-paper-300 bg-white p-7 transition-[border-color,box-shadow,transform] duration-300 ease-out hover:-translate-y-0.5 hover:border-ink-500/30 hover:shadow-[var(--shadow-lift-lg)]"
                 >
                   <c.Icon
-                    className="size-5 text-ink-500 transition-colors duration-300 group-hover/card:text-signal-500"
+                    className="size-5 text-ink-500 transition-colors duration-300 group-hover/card:text-flame-600"
                     strokeWidth={1.5}
                     aria-hidden="true"
                   />
@@ -194,7 +194,7 @@ export default function HomePage() {
           aria-hidden="true"
           className="absolute right-[-10%] top-[-20%] h-[600px] w-[600px] rounded-full blur-3xl"
           style={{
-            background: "radial-gradient(circle, rgba(18,165,218,0.14) 0%, transparent 68%)",
+            background: "radial-gradient(circle, rgba(242,88,6,0.11) 0%, transparent 68%)",
           }}
         />
         <div className="container-page relative py-20 sm:py-28">
@@ -227,7 +227,7 @@ export default function HomePage() {
             ].map((item, i) => (
               <Reveal key={item.n} delay={i * 80}>
                 <div className="border-t border-white/15 pt-7">
-                  <p className="font-mono text-[0.75rem] font-medium text-signal-400 tabular-nums">
+                  <p className="font-mono text-[0.75rem] font-medium text-flame-400 tabular-nums">
                     {item.n}
                   </p>
                   <h3 className="mt-4 text-[1.3125rem] font-medium leading-snug text-white">
@@ -243,7 +243,7 @@ export default function HomePage() {
           <Reveal delay={120}>
             <div className="mt-16 flex flex-col gap-6 rounded-[4px] border border-white/10 bg-white/[0.03] p-7 sm:flex-row sm:items-center sm:justify-between sm:p-9">
               <div className="max-w-2xl">
-                <p className="eyebrow text-signal-300">Information security</p>
+                <p className="eyebrow text-flame-400">Information security</p>
                 <p className="mt-3 text-[1.0625rem] leading-relaxed text-white/75">
                   Our quality policy commits us to maintaining the confidentiality, integrity, and
                   availability of information — accessible only to authorized users, through proper
@@ -294,7 +294,7 @@ export default function HomePage() {
                     className="rounded-[4px] border border-paper-300 bg-paper-50 p-6"
                   >
                     <Building2 className="size-5 text-ink-500" strokeWidth={1.5} aria-hidden="true" />
-                    <p className="mt-4 font-mono text-[0.75rem] font-semibold uppercase tracking-[0.1em] text-signal-700">
+                    <p className="mt-4 font-mono text-[0.75rem] font-semibold uppercase tracking-[0.1em] text-flame-700">
                       {p.prog}
                     </p>
                     <p className="mt-2 text-[1rem] font-medium leading-snug text-ink-900">
@@ -352,8 +352,8 @@ export default function HomePage() {
                   className="group/v flex h-full flex-col rounded-[4px] border border-paper-300 bg-white p-7 transition-[border-color,box-shadow] duration-300 hover:border-ink-500/30 hover:shadow-[var(--shadow-lift)]"
                 >
                   <div className="flex items-center gap-2">
-                    <span className="size-1.5 rounded-full bg-signal-500" aria-hidden="true" />
-                    <span className="text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-signal-700">
+                    <span className="size-1.5 rounded-full bg-flame-500" aria-hidden="true" />
+                    <span className="text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-flame-700">
                       Active
                     </span>
                   </div>
@@ -400,7 +400,7 @@ export default function HomePage() {
                 <div className="flex h-full flex-col p-7">
                   <div className="flex items-start justify-between gap-4">
                     <CheckCircle2
-                      className="size-5 shrink-0 text-signal-500"
+                      className="size-5 shrink-0 text-flame-600"
                       strokeWidth={1.75}
                       aria-hidden="true"
                     />
@@ -444,7 +444,7 @@ export default function HomePage() {
                   {/* Monogram stands in for a photo rather than a stock portrait. */}
                   <span
                     aria-hidden="true"
-                    className="flex size-14 items-center justify-center rounded-full bg-ink-900 font-[family-name:var(--font-display)] text-[1.125rem] font-medium text-white"
+                    className="flex size-14 items-center justify-center rounded-full bg-ink-900 font-[family-name:var(--font-display)] text-[1.125rem] font-medium text-white ring-1 ring-flame-500/35 ring-offset-2 ring-offset-white"
                   >
                     {person.name
                       .split(" ")
@@ -454,7 +454,7 @@ export default function HomePage() {
                   <h3 className="mt-5 text-[1.125rem] font-medium text-ink-900">
                     {person.name}
                   </h3>
-                  <p className="mt-1 text-[0.8125rem] font-semibold uppercase tracking-[0.08em] text-signal-700">
+                  <p className="mt-1 text-[0.8125rem] font-semibold uppercase tracking-[0.08em] text-flame-700">
                     {person.title}
                   </p>
                   <p className="mt-3.5 text-[0.9375rem] leading-[1.65] text-graphite-600">
@@ -501,7 +501,7 @@ export default function HomePage() {
 
             <Reveal delay={100}>
               <div className="rounded-[4px] border border-white/10 bg-white/[0.03] p-7">
-                <Users className="size-5 text-signal-300" strokeWidth={1.5} aria-hidden="true" />
+                <Users className="size-5 text-flame-400" strokeWidth={1.5} aria-hidden="true" />
                 <p className="mt-5 text-[0.9375rem] font-medium text-white">Benefits include</p>
                 <ul className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2.5 text-[0.875rem] text-white/60">
                   {[
@@ -565,7 +565,7 @@ export default function HomePage() {
                       <p className="text-[0.8125rem] text-graphite-500">Business development</p>
                       <a
                         href={`mailto:${contact.emailGeneral}`}
-                        className="mt-1 block font-medium text-ink-900 underline decoration-paper-300 underline-offset-4 transition-colors hover:decoration-signal-500"
+                        className="mt-1 block font-medium text-ink-900 underline decoration-paper-300 underline-offset-4 transition-colors hover:decoration-flame-500"
                       >
                         {contact.emailGeneral}
                       </a>

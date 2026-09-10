@@ -97,7 +97,7 @@ export default async function CapabilityPage({
                 {capability.credentials.map((c) => (
                   <li key={c} className="flex items-start gap-3 text-[0.9375rem] leading-snug">
                     <Check
-                      className="mt-0.5 size-4 shrink-0 text-signal-400"
+                      className="mt-0.5 size-4 shrink-0 text-flame-400"
                       strokeWidth={2}
                       aria-hidden="true"
                     />
@@ -149,7 +149,7 @@ export default async function CapabilityPage({
                   className="flex gap-5 border-t border-white/12 py-7 first:border-t-0 first:pt-0"
                 >
                     <span
-                      className="mt-0.5 shrink-0 font-mono text-[0.75rem] font-medium text-signal-400 tabular-nums"
+                      className="mt-0.5 shrink-0 font-mono text-[0.75rem] font-medium text-flame-400 tabular-nums"
                       aria-hidden="true"
                     >
                       {String(i + 1).padStart(2, "0")}
@@ -179,7 +179,7 @@ export default async function CapabilityPage({
                       className="flex items-start gap-3 bg-white px-5 py-4 text-[0.9375rem] leading-snug text-graphite-700"
                     >
                       <CircleDot
-                        className="mt-0.5 size-4 shrink-0 text-signal-500"
+                        className="mt-0.5 size-4 shrink-0 text-flame-600"
                         strokeWidth={1.75}
                         aria-hidden="true"
                       />
@@ -240,7 +240,7 @@ export default async function CapabilityPage({
                       href={`/contract-vehicles#${v.slug}`}
                       className="inline-flex items-center gap-2 rounded-full border border-paper-300 bg-white px-4 py-2 text-[0.875rem] font-medium text-ink-800 transition-colors hover:border-ink-500/40 hover:text-ink-950"
                     >
-                      <span className="size-1.5 rounded-full bg-signal-500" aria-hidden="true" />
+                      <span className="size-1.5 rounded-full bg-flame-500" aria-hidden="true" />
                       {v.name}
                     </Link>
                   </li>
@@ -262,7 +262,7 @@ export default async function CapabilityPage({
                 </h2>
                 <Link
                   href="/capabilities"
-                  className="text-[0.875rem] font-medium text-ink-900 underline decoration-paper-300 underline-offset-4 hover:decoration-signal-500"
+                  className="text-[0.875rem] font-medium text-ink-900 underline decoration-paper-300 underline-offset-4 hover:decoration-flame-500"
                 >
                   All capabilities
                 </Link>
@@ -281,7 +281,7 @@ export default async function CapabilityPage({
                       {c.blurb}
                     </p>
                     <ArrowRight
-                      className="mt-5 size-4 text-graphite-400 transition-all duration-300 group-hover/r:translate-x-1 group-hover/r:text-signal-500"
+                      className="mt-5 size-4 text-graphite-400 transition-all duration-300 group-hover/r:translate-x-1 group-hover/r:text-flame-600"
                       aria-hidden="true"
                     />
                   </Link>

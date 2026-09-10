@@ -101,7 +101,7 @@ export function Header() {
         <div className="flex h-[4.75rem] items-center justify-between gap-6">
           <Link
             href="/"
-            className="rounded text-ink-900 transition-opacity hover:opacity-70"
+            className="rounded transition-opacity hover:opacity-70"
             aria-label="Sohum Systems — home"
           >
             <Logo />
@@ -135,7 +135,7 @@ export function Header() {
                     )}
                     <span
                       aria-hidden="true"
-                      className={`absolute inset-x-3 -bottom-px h-0.5 origin-left bg-signal-500 transition-transform duration-300 ${
+                      className={`absolute inset-x-3 -bottom-px h-0.5 origin-left bg-flame-500 transition-transform duration-300 ${
                         active ? "scale-x-100" : "scale-x-0"
                       }`}
                     />
@@ -205,7 +205,7 @@ export function Header() {
               </p>
               <Link
                 href="/capabilities"
-                className="text-[0.875rem] font-medium text-ink-900 underline decoration-paper-300 underline-offset-4 hover:decoration-signal-500"
+                className="text-[0.875rem] font-medium text-ink-900 underline decoration-paper-300 underline-offset-4 hover:decoration-flame-500"
               >
                 View all capabilities
               </Link>
@@ -228,7 +228,7 @@ export function Header() {
               </p>
               <Link
                 href="/contract-vehicles"
-                className="mt-5 inline-block text-[0.875rem] font-medium text-ink-900 underline decoration-paper-300 underline-offset-4 hover:decoration-signal-500"
+                className="mt-5 inline-block text-[0.875rem] font-medium text-ink-900 underline decoration-paper-300 underline-offset-4 hover:decoration-flame-500"
               >
                 All contract vehicles
               </Link>

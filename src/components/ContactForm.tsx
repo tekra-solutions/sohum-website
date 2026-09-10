@@ -18,7 +18,7 @@ const inquiryTypes = [
 const fieldClasses =
   "w-full rounded-[3px] border bg-white px-4 py-3 text-[0.9375rem] text-ink-900 " +
   "placeholder:text-graphite-400 transition-colors " +
-  "focus:border-signal-500 focus:outline-none focus:ring-2 focus:ring-signal-500/25";
+  "focus:border-flame-500 focus:outline-none focus:ring-2 focus:ring-flame-500/30";
 
 /**
  * Contact form.
@@ -101,9 +101,9 @@ export function ContactForm() {
           </div>
         )}
         {state === "sent" && (
-          <div className="flex gap-3 rounded-[3px] border border-signal-500/30 bg-signal-500/[0.06] p-4">
+          <div className="flex gap-3 rounded-[3px] border border-flame-500/30 bg-flame-500/[0.06] p-4">
             <CheckCircle2
-              className="mt-0.5 size-4 shrink-0 text-signal-600"
+              className="mt-0.5 size-4 shrink-0 text-flame-700"
               aria-hidden="true"
             />
             <p className="text-[0.875rem] text-ink-800">

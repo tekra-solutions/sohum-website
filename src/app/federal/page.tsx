@@ -73,7 +73,7 @@ export default function FederalPage() {
             </ul>
             <Link
               href="/contract-vehicles"
-              className="mt-6 inline-flex items-center gap-1.5 text-[0.875rem] font-medium text-signal-300 transition-colors hover:text-white"
+              className="mt-6 inline-flex items-center gap-1.5 text-[0.875rem] font-medium text-flame-400 transition-colors hover:text-white"
             >
               Procurement detail
               <ArrowRight className="size-3.5" aria-hidden="true" />
@@ -239,7 +239,7 @@ export default function FederalPage() {
             ].map((step, i) => (
               <Reveal key={step.h} as="li" delay={i * 65} className="flex h-full flex-col bg-white p-7">
                 <div className="contents">
-                  <span className="font-mono text-[0.75rem] font-medium text-signal-700 tabular-nums">
+                  <span className="font-mono text-[0.75rem] font-medium text-flame-700 tabular-nums">
                     {String(i + 1).padStart(2, "0")}
                   </span>
                   <h3 className="mt-4 text-[1.0625rem] font-medium leading-snug text-ink-900">

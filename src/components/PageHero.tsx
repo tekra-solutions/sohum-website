@@ -47,7 +47,7 @@ export function PageHero({
       <div
         aria-hidden="true"
         className="absolute left-[-15%] top-[-40%] h-[620px] w-[620px] rounded-full blur-3xl"
-        style={{ background: "radial-gradient(circle, rgba(18,165,218,0.16) 0%, transparent 68%)" }}
+        style={{ background: "radial-gradient(circle, rgba(242,88,6,0.12) 0%, transparent 68%)" }}
       />
 
       <div className="container-page relative">
@@ -85,8 +85,8 @@ export function PageHero({
           }`}
         >
           <div className={aside ? "" : "max-w-3xl"}>
-            <p className="eyebrow text-signal-300">
-              <span aria-hidden="true" className="h-px w-8 bg-signal-400/60" />
+            <p className="eyebrow text-flame-400">
+              <span aria-hidden="true" className="h-px w-8 bg-flame-500/60" />
               {eyebrow}
             </p>
             <h1 className="mt-6 text-[2.125rem] font-medium leading-[1.08] tracking-[-0.03em] sm:text-[2.875rem] lg:text-[3.25rem]">

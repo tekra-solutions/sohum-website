@@ -30,6 +30,8 @@ src/
 │   ├── careers/                EVP, open roles, benefits, EEO
 │   ├── contact/                Form + direct routes + identifiers
 │   ├── privacy | terms | accessibility
+│   ├── icon.svg              Favicon (mark on brand navy)
+│   ├── opengraph-image.tsx   Generated social card
 │   ├── sitemap.ts | robots.ts | not-found.tsx
 │   └── globals.css             Design tokens + utilities (Tailwind v4 @theme)
 ├── components/
@@ -38,7 +40,9 @@ src/
 │   ├── Hero.tsx | PageHero.tsx Hero + inner hero w/ Breadcrumb JSON-LD
 │   ├── ContactForm.tsx         Accessible validated form            [client]
 │   ├── Reveal.tsx              Scroll reveal                        [client]
-│   ├── CtaBand.tsx | LegalLayout.tsx | Logo.tsx | ui.tsx
+│   ├── Logo.tsx              Brand lockup (mark + live-text wordmark)
+│   ├── BrandMotif.tsx        Oversized mark used as background texture
+│   └── CtaBand.tsx | LegalLayout.tsx | ui.tsx
 └── lib/
     ├── site.ts                 Company facts, credentials, vehicles, NAICS
     └── capabilities.ts         11 capability definitions
@@ -49,18 +53,32 @@ changed in exactly one place. Only three components ship JavaScript to the brows
 
 ## Design system
 
-Tokens are declared in `globals.css` under `@theme`, which generates the Tailwind
-utilities (`bg-ink-900`, `text-graphite-600`, …).
+The palette is derived from the supplied brand mark (`public/brand/logo-full.svg`):
+navy **#304368** and orange **#f25806**. Tokens live in `globals.css` under
+`@theme`, which generates the Tailwind utilities (`bg-ink-900`, `text-flame-600`, …).
 
-| Group | Tokens |
-|---|---|
-| Ink (dark grounds) | `ink-950` `ink-900` `ink-850` `ink-800` `ink-700` `ink-600` `ink-500` |
-| Paper (light grounds) | `paper` `paper-50` `paper-100` `paper-200` `paper-300` |
-| Graphite (body text) | `graphite-400` `graphite-500` `graphite-600` `graphite-700` |
-| Signal (accent) | `signal-300` `signal-400` `signal-500` `signal-600` `signal-700` |
+| Group | Role | Tokens |
+|---|---|---|
+| Ink | Dark grounds, built on the logo's 220deg hue | `ink-950` … `ink-500` |
+| Brand navy | `#304368` — 9.87:1 on white | `brand-navy` |
+| Paper | Light grounds | `paper` `paper-50` `paper-100` `paper-200` `paper-300` |
+| Graphite | Body text | `graphite-400` … `graphite-700` |
+| Flame | Brand orange accent | `flame-300` … `flame-700` |
 
-`signal-700` and `graphite-500`+ are the text-safe values — they clear 4.5:1 on
-white and on the paper tints. Type is Sora (display) + Inter (UI/body).
+**Contrast rule for the orange.** The logo orange `flame-500` (#f25806) is 3.40:1 on
+white — valid for the graphic mark, rules, dots, and large display type, but short of
+AA for small text. So:
+
+- `flame-500` — the mark, fills, borders, focus ring, large type
+- `flame-600` (4.82:1 on white) — small text on light grounds, including the wordmark
+- `flame-400` (6.6:1 on ink-900) — text and accents on dark grounds
+
+The logo lockup renders the mark as inline SVG and the wordmark as live text, so it
+stays crisp and selectable. On dark grounds `tone="light"` swaps the navy half of the
+mark for a light slate, since the brand navy would otherwise disappear.
+
+Type is Sora (display) + Inter (UI/body). `BrandMotif` renders the mark oversized at
+very low opacity as background texture on the hero.
 
 > **Tailwind v4 note:** write `bg-ink-900`, not `bg-[--color-ink-900]`. The
 > bracket form is parsed as a bare value and silently resolves to transparent.
@@ -123,7 +141,5 @@ Claims that need owner confirmation before launch:
 1. Wire the contact form to a real endpoint. It currently composes a `mailto:`
    handoff so no submission is silently lost, but a server action or form service
    (with spam protection) is the production path.
-2. Add `public/og-image.png` (1200×630) — Open Graph metadata is configured and
-   will pick it up.
-3. Replace leadership monograms with photographs if available.
-4. Confirm the items under "Content policy" above.
+2. Replace leadership monograms with photographs if available.
+3. Confirm the items under "Content policy" above.

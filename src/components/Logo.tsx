@@ -1,31 +1,81 @@
 /**
- * Sohum Systems mark.
+ * Sohum Systems brand mark.
  *
- * A square aperture with three ascending data bars — reads as both a structured
- * system and forward progression. Uses currentColor so it inverts cleanly on
- * dark surfaces without a second asset.
+ * Paths are taken verbatim from the supplied brand SVG. The artwork is a
+ * two-part rotationally symmetric bird form: one half in the brand orange,
+ * one in the brand navy.
+ *
+ * Rendering notes:
+ *  - The source file packs the symbol (x 286-587, y 0-292) above the wordmark.
+ *    We crop the viewBox to the symbol and set the wordmark in live text, so
+ *    the lockup stays crisp, searchable, and translatable.
+ *  - On dark grounds the navy half would nearly vanish, so `tone="light"`
+ *    swaps it for a light slate that keeps the two halves legible.
  */
-export function Logo({ className = "", showWordmark = true }: { className?: string; showWordmark?: boolean }) {
+export function Logo({
+  className = "",
+  showWordmark = true,
+  tone = "dark",
+}: {
+  className?: string;
+  showWordmark?: boolean;
+  /** "dark" = for light backgrounds; "light" = for dark backgrounds. */
+  tone?: "dark" | "light";
+}) {
+  const navy = tone === "light" ? "#8fa2c4" : "#304368";
+  const wordNavy = tone === "light" ? "text-white" : "text-brand-navy";
+
   return (
     <span className={`inline-flex items-center gap-2.5 ${className}`}>
       <svg
-        viewBox="0 0 32 32"
-        className="size-8 shrink-0"
+        viewBox="286 0 301 292"
+        className="h-8 w-[2.0625rem] shrink-0"
         fill="none"
         aria-hidden="true"
         focusable="false"
       >
-        <rect x="0.75" y="0.75" width="30.5" height="30.5" rx="1.25" stroke="currentColor" strokeWidth="1.5" opacity="0.32" />
-        <rect x="7" y="18" width="4" height="7" fill="currentColor" opacity="0.55" />
-        <rect x="14" y="13" width="4" height="12" fill="currentColor" opacity="0.78" />
-        <rect x="21" y="7" width="4" height="18" fill="currentColor" />
+        {/* Upper sweep — orange outer, navy inner */}
+        <path
+          fill="#f25806"
+          d="m428.93,0c-30.41,8.17-142.92,63.88-142.38,116.97,0,58.55,115.04,50.4,143.46,46.7,0,0-14.78-3.13-14.78-19.7s14.78-20.65,14.78-20.65c-30.39-1.79-84.63,6.87-86.35-35.62,0-44.48,79.59-79.3,85.26-87.7Z"
+        />
+        <path
+          fill={navy}
+          d="m432.65,16.92c-27.2,6.3-63.51,29.24-73.6,56.14-5.03,13.42.9,28.44,14,34.25,22.23,9.85,58.24,5.64,58.24,5.64,0,0-6.46-1.34-6.63-10.42-.17-9.21,6.9-9.07,6.9-9.07-6.25-1.61-46.02,4.6-45.95-22.2.81-27,39.59-48.8,47.03-54.34Z"
+        />
+        {/* Pivot */}
+        <circle fill={navy} cx="435" cy="143.06" r="10.11" />
+        {/* Lower sweep — navy outer, orange inner */}
+        <path
+          fill={navy}
+          d="m444.59,286.98c30.41-8.17,142.92-63.88,142.38-116.97,0-58.55-115.04-50.4-143.46-46.7,0,0,14.78,3.13,14.78,19.7s-14.78,20.65-14.78,20.65c30.39,1.79,84.63-6.87,86.35,35.62,0,44.48-79.59,79.3-85.26,87.7Z"
+        />
+        <path
+          fill="#f25806"
+          d="m440.87,270.06c27.2-6.3,63.51-29.24,73.6-56.14,5.03-13.42-.9-28.44-14-34.25-22.23-9.85-58.24-5.64-58.24-5.64,0,0,6.46,1.34,6.63,10.42.17,9.21-6.9,9.07-6.9,9.07,6.25,1.61,46.02-4.6,45.95,22.2-.81,27-39.59,48.8-47.03,54.34Z"
+        />
       </svg>
+
       {showWordmark && (
         <span className="flex flex-col leading-none">
-          <span className="font-[family-name:var(--font-display)] text-[1.0625rem] font-semibold tracking-[-0.02em]">
-            Sohum Systems
+          {/* Lowercase geometric setting mirrors the brand wordmark, with
+              "hum" carrying the orange exactly as the artwork does. */}
+          <span
+            className={`font-[family-name:var(--font-display)] text-[1.125rem] font-semibold lowercase tracking-[-0.025em] ${wordNavy}`}
+          >
+            so
+            {/* The artwork's orange (#f25806) is 3.4:1 on white — fine for the
+                graphic mark, short of AA for text this size. On light grounds we
+                set the wordmark in flame-600 (4.82:1), which is visually the same
+                colour family; on dark grounds the brighter flame-400 is used. */}
+            <span className={tone === "light" ? "text-flame-400" : "text-flame-600"}>hum</span>{" "}
+            systems
           </span>
-          <span className="mt-1 text-[0.5625rem] font-semibold uppercase tracking-[0.2em] opacity-75">
+          <span
+            className={`mt-[0.3125rem] text-[0.5625rem] font-semibold uppercase tracking-[0.2em] ${
+              tone === "light" ? "text-white/60" : "text-graphite-500"
+            }`}
+          >
             Federal Technology
           </span>
         </span>

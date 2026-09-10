@@ -1,6 +1,7 @@
 import { ButtonLink } from "./ui";
 import { ArrowRight } from "lucide-react";
 import { credentials } from "@/lib/site";
+import { BrandMotif } from "./BrandMotif";
 
 /**
  * Homepage hero.
@@ -19,15 +20,20 @@ export function Hero() {
         className="absolute -left-1/4 top-[-30%] h-[820px] w-[820px] rounded-full opacity-[0.55] blur-3xl"
         style={{
           background:
-            "radial-gradient(circle, rgba(18,165,218,0.20) 0%, rgba(18,165,218,0.06) 42%, transparent 70%)",
+            "radial-gradient(circle, rgba(242,88,6,0.16) 0%, rgba(242,88,6,0.05) 42%, transparent 70%)",
         }}
       />
+      {/* Brand mark as background texture — echoes the flight form in the logo. */}
+      <BrandMotif
+        className="pointer-events-none absolute -right-[18%] -top-[10%] hidden w-[70%] rotate-[-8deg] text-flame-500/[0.10] lg:block"
+      />
+
       <div
         aria-hidden="true"
         className="absolute inset-0"
         style={{
           background:
-            "linear-gradient(105deg, rgba(5,8,15,0.94) 0%, rgba(5,8,15,0.72) 45%, rgba(8,13,26,0.55) 100%)",
+            "linear-gradient(105deg, rgba(11,16,28,0.94) 0%, rgba(11,16,28,0.70) 45%, rgba(21,30,48,0.52) 100%)",
         }}
       />
 
@@ -35,8 +41,8 @@ export function Hero() {
         <div className="grid items-center gap-16 py-20 sm:py-24 lg:grid-cols-[1.08fr_0.92fr] lg:gap-20 lg:py-32">
           {/* ---- Copy ---- */}
           <div>
-            <p className="eyebrow text-signal-300">
-              <span aria-hidden="true" className="h-px w-8 bg-signal-400/60" />
+            <p className="eyebrow text-flame-400">
+              <span aria-hidden="true" className="h-px w-8 bg-flame-500/60" />
               SBA 8(a) · CMMI Level 3 · Est. 2013
             </p>
 
@@ -83,7 +89,7 @@ export function Hero() {
             <div className="relative rounded-[4px] border border-white/10 bg-white/[0.035] p-7 backdrop-blur-sm sm:p-9">
               <div className="flex items-baseline justify-between gap-4">
                 <p className="eyebrow text-white/40">Credentialed to deliver</p>
-                <span className="size-1.5 rounded-full bg-signal-400" aria-hidden="true" />
+                <span className="size-1.5 rounded-full bg-flame-400" aria-hidden="true" />
               </div>
 
               <ul className="mt-7 divide-y divide-white/[0.07]">

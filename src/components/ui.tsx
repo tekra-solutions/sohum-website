@@ -19,7 +19,7 @@ const buttonVariants: Record<ButtonVariant, string> = {
   ghost:
     "text-ink-900 hover:bg-paper-100 px-4",
   onDark:
-    "bg-white text-ink-950 hover:bg-signal-300 shadow-[0_8px_28px_-12px_rgba(0,0,0,0.6)]",
+    "bg-white text-ink-950 hover:bg-flame-300 shadow-[0_8px_28px_-12px_rgba(0,0,0,0.6)]",
 };
 
 export function Button({
@@ -65,8 +65,8 @@ export function ArrowLink({
 }) {
   const color =
     tone === "dark"
-      ? "text-ink-900 decoration-paper-300 hover:decoration-signal-500"
-      : "text-white decoration-white/30 hover:decoration-signal-300";
+      ? "text-ink-900 decoration-paper-300 hover:decoration-flame-500"
+      : "text-white decoration-white/30 hover:decoration-flame-400";
   return (
     <Link
       href={href}
@@ -95,12 +95,12 @@ export function Eyebrow({
   return (
     <p
       className={`eyebrow ${
-        tone === "dark" ? "text-graphite-500" : "text-signal-300"
+        tone === "dark" ? "text-graphite-500" : "text-flame-400"
       } ${className}`}
     >
       <span
         aria-hidden="true"
-        className={`h-px w-6 ${tone === "dark" ? "bg-paper-300" : "bg-signal-400/50"}`}
+        className={`h-px w-6 ${tone === "dark" ? "bg-paper-300" : "bg-flame-500/50"}`}
       />
       {children}
     </p>
@@ -164,7 +164,7 @@ export function Badge({
 }) {
   const tones = {
     neutral: "border-paper-300 bg-paper-50 text-graphite-700",
-    active: "border-signal-500/40 bg-signal-500/8 text-signal-700",
+    active: "border-flame-500/40 bg-flame-500/8 text-flame-700",
     muted: "border-paper-300 bg-transparent text-graphite-600",
     accent: "border-ember-500/30 bg-ember-400/10 text-[#8a5a06]",
   };

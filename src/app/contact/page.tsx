@@ -87,13 +87,13 @@ export default function ContactPage() {
                       <span>
                         <a
                           href={`tel:${contact.phoneHref}`}
-                          className="block font-mono text-[0.9375rem] text-ink-800 transition-colors hover:text-signal-600"
+                          className="block font-mono text-[0.9375rem] text-ink-800 transition-colors hover:text-flame-700"
                         >
                           {contact.phone}
                         </a>
                         <a
                           href="tel:+19132217204"
-                          className="mt-1 block font-mono text-[0.9375rem] text-graphite-600 transition-colors hover:text-signal-600"
+                          className="mt-1 block font-mono text-[0.9375rem] text-graphite-600 transition-colors hover:text-flame-700"
                         >
                           {contact.phoneAlt}
                         </a>
@@ -131,7 +131,7 @@ export default function ContactPage() {
                         </p>
                         <a
                           href={`mailto:${r.email}`}
-                          className="mt-4 inline-flex items-center gap-2 text-[0.875rem] font-medium text-ink-900 underline decoration-paper-300 underline-offset-4 transition-colors hover:decoration-signal-500"
+                          className="mt-4 inline-flex items-center gap-2 text-[0.875rem] font-medium text-ink-900 underline decoration-paper-300 underline-offset-4 transition-colors hover:decoration-flame-500"
                         >
                           <Mail className="size-3.5" aria-hidden="true" />
                           {r.email}

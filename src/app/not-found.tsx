@@ -46,7 +46,7 @@ export default function NotFound() {
                 <li key={l.href}>
                   <Link
                     href={l.href}
-                    className="text-[0.9375rem] text-white/65 underline decoration-white/20 underline-offset-4 transition-colors hover:text-white hover:decoration-signal-300"
+                    className="text-[0.9375rem] text-white/65 underline decoration-white/20 underline-offset-4 transition-colors hover:text-white hover:decoration-flame-400"
                   >
                     {l.label}
                   </Link>

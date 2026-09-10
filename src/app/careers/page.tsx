@@ -59,7 +59,7 @@ export default function CareersPage() {
             </p>
             <a
               href={`mailto:${contact.emailHr}?subject=Application`}
-              className="mt-6 inline-flex items-center gap-1.5 text-[0.875rem] font-medium text-signal-300 transition-colors hover:text-white"
+              className="mt-6 inline-flex items-center gap-1.5 text-[0.875rem] font-medium text-flame-400 transition-colors hover:text-white"
             >
               {contact.emailHr}
               <ArrowUpRight className="size-3.5" aria-hidden="true" />
@@ -223,12 +223,12 @@ export default function CareersPage() {
             {benefits.map((group, i) => (
               <Reveal key={group.group} delay={i * 60}>
                 <div className="border-t border-white/15 pt-6">
-                  <p className="eyebrow text-signal-300">{group.group}</p>
+                  <p className="eyebrow text-flame-400">{group.group}</p>
                   <ul className="mt-5 space-y-2.5">
                     {group.items.map((item) => (
                       <li key={item} className="flex items-start gap-2.5 text-[0.9375rem] text-white/70">
                         <span
-                          className="mt-[0.4375rem] size-1 shrink-0 rounded-full bg-signal-400"
+                          className="mt-[0.4375rem] size-1 shrink-0 rounded-full bg-flame-400"
                           aria-hidden="true"
                         />
                         {item}
