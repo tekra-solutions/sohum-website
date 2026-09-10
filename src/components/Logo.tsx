@@ -63,18 +63,17 @@ export function Logo({
 
       {showWordmark && (
         <span className="flex flex-col leading-none">
-          {/* Lowercase geometric setting mirrors the brand wordmark, with
-              "hum" carrying the orange exactly as the artwork does. */}
+          {/* "hum" carries the orange exactly as the brand artwork does. */}
           <span
-            className={`font-[family-name:var(--font-display)] ${wordSize} font-semibold lowercase tracking-[-0.03em] ${wordNavy}`}
+            className={`font-[family-name:var(--font-display)] ${wordSize} font-semibold tracking-[-0.03em] ${wordNavy}`}
           >
-            so
+            So
             {/* The artwork's orange (#f25806) is 3.4:1 on white — fine for the
                 graphic mark, short of AA for text this size. On light grounds we
                 set the wordmark in flame-600 (4.82:1), which is visually the same
                 colour family; on dark grounds the brighter flame-400 is used. */}
             <span className={tone === "light" ? "text-flame-400" : "text-flame-600"}>hum</span>{" "}
-            systems
+            Systems
           </span>
         </span>
       )}
