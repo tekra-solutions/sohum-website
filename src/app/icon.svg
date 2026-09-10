@@ -1,15 +1,22 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 112 108">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <!--
-    Favicon: the S mark alone on a transparent ground.
-    The navy sweep would vanish against a dark tab strip, so it lightens under
-    prefers-color-scheme: dark. The orange sweep never changes.
+    Favicon: the mark alone, on a transparent ground.
+
+    The navy half of the mark would vanish against a dark tab strip, so the
+    stylesheet swaps it for a light slate under prefers-color-scheme: dark.
+    The orange half is legible either way and never changes.
   -->
   <style>
-    .sweep { fill: #1b2a5e; }
+    .navy { fill: #304368; }
     @media (prefers-color-scheme: dark) {
-      .sweep { fill: #dbe3f2; }
+      .navy { fill: #9fb2d1; }
     }
   </style>
-  <path fill="#e8622a" d="M108 8C62 8 20 26 12 50 6 68 24 79 50 81 32 75 24 63 31 49 43 27 74 12 108 8Z"/>
-  <path class="sweep" d="M4 100c46 0 88-18 96-42 6-18-12-29-38-31 18 6 26 18 19 32C69 81 38 96 4 100Z"/>
+  <g transform="translate(256 256) scale(1.70) translate(-436 -146)">
+    <path fill="#f25806" d="m428.93,0c-30.41,8.17-142.92,63.88-142.38,116.97,0,58.55,115.04,50.4,143.46,46.7,0,0-14.78-3.13-14.78-19.7s14.78-20.65,14.78-20.65c-30.39-1.79-84.63,6.87-86.35-35.62,0-44.48,79.59-79.3,85.26-87.7Z"/>
+    <path class="navy" d="m432.65,16.92c-27.2,6.3-63.51,29.24-73.6,56.14-5.03,13.42.9,28.44,14,34.25,22.23,9.85,58.24,5.64,58.24,5.64,0,0-6.46-1.34-6.63-10.42-.17-9.21,6.9-9.07,6.9-9.07-6.25-1.61-46.02,4.6-45.95-22.2.81-27,39.59-48.8,47.03-54.34Z"/>
+    <circle class="navy" cx="435" cy="143.06" r="10.11"/>
+    <path class="navy" d="m444.59,286.98c30.41-8.17,142.92-63.88,142.38-116.97,0-58.55-115.04-50.4-143.46-46.7,0,0,14.78,3.13,14.78,19.7s-14.78,20.65-14.78,20.65c30.39,1.79,84.63-6.87,86.35,35.62,0,44.48-79.59,79.3-85.26,87.7Z"/>
+    <path fill="#f25806" d="m440.87,270.06c27.2-6.3,63.51-29.24,73.6-56.14,5.03-13.42-.9-28.44-14-34.25-22.23-9.85-58.24-5.64-58.24-5.64,0,0,6.46,1.34,6.63,10.42.17,9.21-6.9,9.07-6.9,9.07,6.25,1.61,46.02-4.6,45.95,22.2-.81,27-39.59,48.8-47.03,54.34Z"/>
+  </g>
 </svg>
