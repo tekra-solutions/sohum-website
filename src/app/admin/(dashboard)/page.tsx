@@ -45,13 +45,13 @@ export default async function AdminDashboard() {
         }
       />
 
-      <div className="space-y-8 p-5 sm:p-8">
+      <div className="space-y-7 p-5 sm:p-6 lg:p-8">
         {/* ---- Counters ---- */}
         <section aria-labelledby="overview">
           <h2 id="overview" className="sr-only">
             Overview
           </h2>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
             <StatCard label="Open jobs" value={stats.publishedJobs} href="/admin/jobs?status=PUBLISHED" />
             <StatCard label="Applications" value={stats.totalApplications} href="/admin/applications" />
             <StatCard label="New" value={stats.newApplications} href="/admin/applications?status=NEW" tone="accent" />
@@ -94,13 +94,13 @@ export default async function AdminDashboard() {
                   <li key={r.id} className="bg-white">
                     <Link
                       href={`/admin/applications/${r.id}`}
-                      className="group/row flex flex-col gap-3 p-4 transition-colors hover:bg-paper-50 sm:flex-row sm:items-center sm:justify-between sm:p-5"
+                      className="group/row flex flex-col gap-2 px-4 py-3 transition-colors hover:bg-paper-50 sm:flex-row sm:items-center sm:justify-between sm:px-5"
                     >
                       <div className="min-w-0">
-                        <p className="truncate text-[1rem] font-medium text-ink-900">
+                        <p className="truncate text-[0.9375rem] font-medium text-ink-900">
                           {r.firstName} {r.lastName}
                         </p>
-                        <p className="mt-0.5 truncate text-[0.875rem] text-graphite-600">
+                        <p className="mt-0.5 truncate text-[0.8125rem] text-graphite-600">
                           {r.jobTitle}
                         </p>
                       </div>
@@ -132,11 +132,11 @@ export default async function AdminDashboard() {
               <Link
                 key={a.href}
                 href={a.href}
-                className="group/qa rounded-[4px] border border-paper-300 bg-white p-5 transition-[border-color,box-shadow] duration-300 hover:border-ink-500/30 hover:shadow-[var(--shadow-lift)]"
+                className="group/qa rounded-[4px] border border-paper-300 bg-white p-4 transition-[border-color,box-shadow] duration-300 hover:border-ink-500/30 hover:shadow-[var(--shadow-lift)]"
               >
-                <a.Icon className="size-5 text-ink-500" strokeWidth={1.5} aria-hidden="true" />
-                <p className="mt-4 text-[1rem] font-medium text-ink-900">{a.title}</p>
-                <p className="mt-1 text-[0.875rem] text-graphite-600">{a.body}</p>
+                <a.Icon className="size-4.5 text-ink-500" strokeWidth={1.5} aria-hidden="true" />
+                <p className="mt-3 text-[0.9375rem] font-medium text-ink-900">{a.title}</p>
+                <p className="mt-0.5 text-[0.8125rem] text-graphite-600">{a.body}</p>
               </Link>
             ))}
           </div>

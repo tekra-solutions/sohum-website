@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, desc, eq, ilike, ne, or, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, ne, or, sql } from "drizzle-orm";
 import { db, isDatabaseConfigured } from "@/db";
 import { applications, jobs } from "@/db/schema";
 
@@ -144,18 +144,28 @@ export async function listAdminJobs(opts: {
     : opts.sort === "title" ? asc(jobs.title)
     : desc(jobs.createdAt);
 
-  const rows = await db
-    .select({
-      job: jobs,
-      applicationCount: sql<number>`(
-        select count(*)::int from ${applications} where ${applications.jobId} = ${jobs.id}
-      )`,
-    })
+  const jobRows = await db
+    .select()
     .from(jobs)
     .where(where.length ? and(...where) : undefined)
     .orderBy(order);
 
-  return rows.map((r) => ({ ...r.job, applicationCount: r.applicationCount }));
+  if (jobRows.length === 0) return [];
+
+  // Counts are fetched in a single grouped query rather than a correlated
+  // sub-select: an inline sql`` fragment came back under the column name
+  // "count", so the mapped field was silently undefined and every row showed 0.
+  const counts = await db
+    .select({ jobId: applications.jobId, n: count() })
+    .from(applications)
+    .groupBy(applications.jobId);
+
+  const byJob = new Map(counts.map((c) => [c.jobId, Number(c.n)]));
+
+  return jobRows.map((job) => ({
+    ...job,
+    applicationCount: byJob.get(job.id) ?? 0,
+  }));
 }
 
 export const getJobById = (id: string) =>

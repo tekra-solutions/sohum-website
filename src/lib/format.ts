@@ -58,6 +58,12 @@ export function formatDate(date: Date | string) {
   return d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 }
 
+/** Compact date for dense tables: "Sep 10, 2026". */
+export function shortDate(date: Date | string) {
+  const d = typeof date === "string" ? new Date(date) : date;
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
 export function formatDateTime(date: Date | string) {
   const d = typeof date === "string" ? new Date(date) : date;
   return d.toLocaleString("en-US", {

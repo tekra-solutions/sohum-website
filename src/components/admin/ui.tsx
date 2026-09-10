@@ -12,9 +12,11 @@ export function AdminHeader({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-4 border-b border-paper-300 bg-white px-5 py-6 sm:px-8 sm:py-7 lg:flex-row lg:items-center lg:justify-between">
-      <div>
-        <h1 className="text-[1.5rem] font-medium leading-tight text-ink-900">{title}</h1>
+    <div className="sticky top-0 z-20 flex flex-col gap-4 border-b border-paper-300 bg-white/95 px-5 py-5 backdrop-blur-sm sm:px-8 sm:py-6 lg:flex-row lg:items-center lg:justify-between">
+      <div className="min-w-0">
+        <h1 className="truncate text-[1.375rem] font-medium leading-tight text-ink-900 sm:text-[1.5rem]">
+          {title}
+        </h1>
         {description && (
           <p className="mt-1.5 text-[0.9375rem] text-graphite-600">{description}</p>
         )}
@@ -37,11 +39,11 @@ export function StatCard({
 }) {
   const body = (
     <>
-      <p className="text-[0.75rem] font-semibold uppercase tracking-[0.1em] text-graphite-500">
+      <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.1em] text-graphite-500">
         {label}
       </p>
       <p
-        className={`mt-2.5 font-[family-name:var(--font-display)] text-[2rem] font-medium leading-none tabular-nums ${
+        className={`mt-1.5 font-[family-name:var(--font-display)] text-[1.75rem] font-medium leading-none tabular-nums ${
           tone === "accent" ? "text-flame-600" : "text-ink-900"
         }`}
       >
@@ -51,7 +53,7 @@ export function StatCard({
   );
 
   const cls =
-    "block rounded-[4px] border border-paper-300 bg-white p-5 transition-[border-color,box-shadow] duration-300";
+    "block rounded-[4px] border border-paper-300 bg-white px-4 py-3.5 transition-[border-color,box-shadow] duration-300";
 
   return href ? (
     <Link href={href} className={`${cls} hover:border-ink-500/30 hover:shadow-[var(--shadow-lift)]`}>

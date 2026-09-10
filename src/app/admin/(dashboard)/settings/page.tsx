@@ -22,7 +22,7 @@ export default async function SettingsPage() {
     <>
       <AdminHeader title="Settings" description="Your profile and system configuration." />
 
-      <div className="max-w-3xl space-y-5 p-5 sm:p-8">
+      <div className="max-w-3xl space-y-5 p-5 sm:p-6 lg:p-8">
         <section className="rounded-[4px] border border-paper-300 bg-white p-6">
           <h2 className="text-[1.0625rem] font-medium text-ink-900">Profile</h2>
           <dl className="mt-4">

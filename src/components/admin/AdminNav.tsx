@@ -72,8 +72,8 @@ export function AdminNav({ adminName }: { adminName: string }) {
     <>
       {/* ---- Mobile bar ---- */}
       <div className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-white/10 bg-ink-950 px-4 lg:hidden">
-        <Link href="/admin" className="text-white">
-          <Logo tone="light" showWordmark={false} />
+        <Link href="/admin" className="text-white" aria-label="Sohum Systems recruiting dashboard">
+          <Logo tone="light" showWordmark={false} size="sm" />
         </Link>
         <span className="text-[0.875rem] font-medium text-white/80">Recruiting</span>
         <button
@@ -98,14 +98,19 @@ export function AdminNav({ adminName }: { adminName: string }) {
       </div>
 
       {/* ---- Desktop sidebar ---- */}
-      <aside className="hidden w-60 shrink-0 flex-col justify-between bg-ink-950 p-5 lg:sticky lg:top-0 lg:flex lg:h-dvh">
+      <aside className="hidden w-64 shrink-0 flex-col justify-between bg-ink-950 p-5 lg:sticky lg:top-0 lg:flex lg:h-dvh">
         <div>
-          <Link href="/admin" className="block">
-            <Logo tone="light" />
+          <Link href="/admin" className="flex items-center gap-2.5">
+            <Logo tone="light" showWordmark={false} size="sm" />
+            <span className="flex min-w-0 flex-col leading-none">
+              <span className="truncate font-[family-name:var(--font-display)] text-[1.0625rem] font-semibold tracking-[-0.02em] text-white">
+                <span className="text-flame-400">Sohum</span> Systems
+              </span>
+              <span className="mt-1 text-[0.625rem] font-semibold uppercase tracking-[0.14em] text-white/50">
+                Recruiting
+              </span>
+            </span>
           </Link>
-          <p className="mt-1.5 pl-1 text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-flame-400">
-            Recruiting
-          </p>
           <nav aria-label="Admin" className="mt-8">
             {links}
           </nav>

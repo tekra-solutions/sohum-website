@@ -27,7 +27,7 @@ export default async function ApplicationsPage({
     return (
       <>
         <AdminHeader title="Applications" />
-        <div className="p-5 sm:p-8">
+        <div className="p-5 sm:p-6 lg:p-8">
           <EmptyState title="Database not configured" description="See docs/DEPLOYMENT.md to connect Supabase." />
         </div>
       </>
@@ -63,15 +63,15 @@ export default async function ApplicationsPage({
     <>
       <AdminHeader title="Applications" description={`${total} total across all positions.`} />
 
-      <div className="p-5 sm:p-8">
+      <div className="p-5 sm:p-6 lg:p-8">
         <form method="get" className="rounded-[4px] border border-paper-300 bg-white p-4 sm:p-5">
-          <div className="grid gap-3 lg:grid-cols-[1.4fr_repeat(4,1fr)_auto]">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(16rem,1.6fr)_repeat(2,minmax(0,1fr))_auto_auto_auto] lg:items-end">
             <div>
               <label htmlFor="q" className="sr-only">Search applications</label>
               <div className="relative">
                 <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-graphite-400" aria-hidden="true" />
                 <input id="q" name="q" type="search" defaultValue={filters.q ?? ""}
-                  placeholder="Name, email, reference or job"
+                  placeholder="Name, email or reference"
                   className="w-full rounded-[3px] border border-paper-300 py-2.5 pl-9 pr-3 text-[0.875rem] focus:border-flame-500 focus:outline-none focus:ring-2 focus:ring-flame-500/30" />
               </div>
             </div>
@@ -95,17 +95,21 @@ export default async function ApplicationsPage({
                 ))}
               </select>
             </div>
-            <div>
-              <label htmlFor="from" className="block text-[0.6875rem] uppercase tracking-[0.1em] text-graphite-500">From</label>
+            <div className="lg:w-[9.5rem]">
+              <label htmlFor="from" className="block text-[0.6875rem] font-semibold uppercase tracking-[0.1em] text-graphite-500">From</label>
               <input id="from" name="from" type="date" defaultValue={filters.from ?? ""}
-                className="mt-1 w-full rounded-[3px] border border-paper-300 px-3 py-2 text-[0.875rem] focus:border-flame-500 focus:outline-none focus:ring-2 focus:ring-flame-500/30" />
+                className="mt-1 w-full rounded-[3px] border border-paper-300 px-2.5 py-2 text-[0.8125rem] focus:border-flame-500 focus:outline-none focus:ring-2 focus:ring-flame-500/30" />
             </div>
-            <div>
-              <label htmlFor="to" className="block text-[0.6875rem] uppercase tracking-[0.1em] text-graphite-500">To</label>
+            <div className="lg:w-[9.5rem]">
+              <label htmlFor="to" className="block text-[0.6875rem] font-semibold uppercase tracking-[0.1em] text-graphite-500">To</label>
               <input id="to" name="to" type="date" defaultValue={filters.to ?? ""}
-                className="mt-1 w-full rounded-[3px] border border-paper-300 px-3 py-2 text-[0.875rem] focus:border-flame-500 focus:outline-none focus:ring-2 focus:ring-flame-500/30" />
+                className="mt-1 w-full rounded-[3px] border border-paper-300 px-2.5 py-2 text-[0.8125rem] focus:border-flame-500 focus:outline-none focus:ring-2 focus:ring-flame-500/30" />
             </div>
-            <button type="submit" className={`${adminButtonSecondary} self-end`}>Apply</button>
+            <div className="sm:col-span-2 lg:col-span-1 lg:self-end">
+              <button type="submit" className={`${adminButtonSecondary} w-full lg:w-auto`}>
+                Apply
+              </button>
+            </div>
           </div>
         </form>
 
@@ -127,18 +131,18 @@ export default async function ApplicationsPage({
                   <tbody>
                     {rows.map(({ application: a, jobTitle, jobLocation }) => (
                       <tr key={a.id} className="border-b border-paper-200 last:border-0 hover:bg-paper-50">
-                        <th scope="row" className="px-4 py-3.5">
+                        <th scope="row" className="px-4 py-3">
                           <Link href={`/admin/applications/${a.id}`} className="block">
                             <span className="block text-[0.9375rem] font-medium text-ink-900">{a.firstName} {a.lastName}</span>
                             <span className="block text-[0.8125rem] text-graphite-600">{a.email}</span>
                           </Link>
                         </th>
-                        <td className="px-4 py-3.5 text-[0.875rem] text-graphite-700">{jobTitle}</td>
-                        <td className="px-4 py-3.5 text-[0.875rem] text-graphite-600">{jobLocation}</td>
-                        <td className="px-4 py-3.5 text-[0.8125rem] text-graphite-600">
+                        <td className="px-4 py-3 text-[0.875rem] text-graphite-700">{jobTitle}</td>
+                        <td className="px-4 py-3 text-[0.875rem] text-graphite-600">{jobLocation}</td>
+                        <td className="px-4 py-3 text-[0.8125rem] text-graphite-600">
                           <span title={formatDate(a.createdAt)}>{relativeTime(a.createdAt)}</span>
                         </td>
-                        <td className="px-4 py-3.5"><StatusPill status={a.status} label={applicationStatusLabel[a.status]} /></td>
+                        <td className="px-4 py-3"><StatusPill status={a.status} label={applicationStatusLabel[a.status]} /></td>
                       </tr>
                     ))}
                   </tbody>

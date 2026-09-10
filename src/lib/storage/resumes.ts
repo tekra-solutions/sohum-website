@@ -8,6 +8,7 @@
  */
 import "server-only";
 import { createClient } from "@supabase/supabase-js";
+import WebSocket from "ws";
 import { serverEnv, isStorageConfigured } from "@/lib/env";
 
 function admin() {
@@ -19,6 +20,11 @@ function admin() {
   }
   return createClient(env.supabaseUrl, env.supabaseServiceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
+    // supabase-js eagerly constructs a realtime client even though we only use
+    // Storage. On Node < 22 (Vercel's default runtime) that constructor throws
+    // without a WebSocket implementation supplied, so every call here — upload,
+    // download, signed URL — would crash. `ws` is never actually connected.
+    realtime: { transport: WebSocket as unknown as typeof globalThis.WebSocket },
   });
 }
 

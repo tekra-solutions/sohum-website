@@ -5,7 +5,7 @@ import {
 } from "@/components/admin/ui";
 import { listAdminJobs } from "@/lib/services/jobs";
 import { setJobStatusAction } from "@/lib/services/job-actions";
-import { employmentTypeLabel, formatDate, jobStatusLabel } from "@/lib/format";
+import { employmentTypeLabel, jobStatusLabel, shortDate } from "@/lib/format";
 import { requireAdmin } from "@/lib/auth/session";
 import { isDatabaseConfigured } from "@/db";
 
@@ -43,7 +43,7 @@ export default async function AdminJobsPage({
         }
       />
 
-      <div className="p-5 sm:p-8">
+      <div className="p-5 sm:p-6 lg:p-8">
         {/* ---- Filters (GET form: no JS required) ---- */}
         <form method="get" className="rounded-[4px] border border-paper-300 bg-white p-4 sm:p-5">
           <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto_auto]">
@@ -108,24 +108,24 @@ export default async function AdminJobsPage({
                   <tbody>
                     {rows.map((j) => (
                       <tr key={j.id} className="border-b border-paper-200 last:border-0">
-                        <th scope="row" className="px-4 py-3.5 text-[0.9375rem] font-medium text-ink-900">
+                        <th scope="row" className="px-4 py-3 text-[0.9375rem] font-medium text-ink-900">
                           <Link href={`/admin/jobs/${j.id}`} className="hover:underline underline-offset-4">{j.title}</Link>
                         </th>
-                        <td className="px-4 py-3.5 text-[0.875rem] text-graphite-600">{j.department}</td>
-                        <td className="px-4 py-3.5 text-[0.875rem] text-graphite-600">{j.location}</td>
-                        <td className="px-4 py-3.5 text-[0.875rem] text-graphite-600">{employmentTypeLabel[j.employmentType]}</td>
-                        <td className="px-4 py-3.5 text-[0.875rem] tabular-nums text-graphite-700">
+                        <td className="px-4 py-3 text-[0.875rem] text-graphite-600">{j.department}</td>
+                        <td className="px-4 py-3 text-[0.875rem] text-graphite-600">{j.location}</td>
+                        <td className="whitespace-nowrap px-4 py-3 text-[0.875rem] text-graphite-600">{employmentTypeLabel[j.employmentType]}</td>
+                        <td className="px-4 py-3 text-[0.875rem] tabular-nums text-graphite-700">
                           {j.applicationCount > 0 ? (
                             <Link href={`/admin/applications?jobId=${j.id}`} className="underline decoration-paper-300 underline-offset-4 hover:decoration-flame-500">
                               {j.applicationCount}
                             </Link>
                           ) : "0"}
                         </td>
-                        <td className="px-4 py-3.5"><StatusPill status={j.status} label={jobStatusLabel[j.status]} /></td>
-                        <td className="px-4 py-3.5 text-[0.8125rem] text-graphite-600">
-                          {j.publishedAt ? formatDate(j.publishedAt) : "—"}
+                        <td className="whitespace-nowrap px-4 py-3"><StatusPill status={j.status} label={jobStatusLabel[j.status]} /></td>
+                        <td className="whitespace-nowrap px-4 py-3 text-[0.8125rem] text-graphite-600">
+                          {j.publishedAt ? shortDate(j.publishedAt) : "—"}
                         </td>
-                        <td className="px-4 py-3.5">
+                        <td className="px-4 py-3">
                           <div className="flex items-center justify-end gap-2">
                             {j.status === "PUBLISHED" && (
                               <Link href={`/careers/${j.slug}`} target="_blank" className="rounded p-1.5 text-graphite-500 hover:bg-paper-100 hover:text-ink-900" aria-label={`View ${j.title} publicly`}>
