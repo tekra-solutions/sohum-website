@@ -8,6 +8,7 @@
  */
 import "server-only";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { SignJWT, jwtVerify } from "jose";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
@@ -66,19 +67,33 @@ export async function getSessionAdmin(): Promise<SessionAdmin | null> {
     return null; // expired or tampered
   }
 
-  const row = await db.query.admins.findFirst({
-    where: eq(admins.id, adminId),
-    columns: { id: true, name: true, email: true, role: true, isActive: true },
-  });
+  let row;
+  try {
+    row = await db.query.admins.findFirst({
+      where: eq(admins.id, adminId),
+      columns: { id: true, name: true, email: true, role: true, isActive: true },
+    });
+  } catch (err) {
+    // An unreachable database must fail closed, not 500.
+    console.error("[auth] admin lookup failed", {
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return null;
+  }
   if (!row || !row.isActive) return null;
 
   return { id: row.id, name: row.name, email: row.email, role: row.role };
 }
 
-/** Throws if not authenticated. Use at the top of every admin mutation. */
+/**
+ * Returns the signed-in admin or redirects to the login page.
+ *
+ * Redirecting rather than throwing keeps an expired session from surfacing as a
+ * 500 with a stack trace. Call at the top of every admin page and mutation.
+ */
 export async function requireAdmin(): Promise<SessionAdmin> {
   const admin = await getSessionAdmin();
-  if (!admin) throw new AuthError("Not authenticated");
+  if (!admin) redirect("/admin/login");
   return admin;
 }
 

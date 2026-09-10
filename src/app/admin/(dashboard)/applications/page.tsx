@@ -1,0 +1,180 @@
+import Link from "next/link";
+import { Search } from "lucide-react";
+import { AdminHeader, EmptyState, StatusPill, adminButtonSecondary } from "@/components/admin/ui";
+import { listApplications } from "@/lib/services/applications";
+import { listAdminJobs } from "@/lib/services/jobs";
+import { applicationStatusLabel, formatDate, relativeTime } from "@/lib/format";
+import { applicationStatuses } from "@/lib/validation/schemas";
+import { requireAdmin } from "@/lib/auth/session";
+import { isDatabaseConfigured } from "@/db";
+
+export const dynamic = "force-dynamic";
+export const metadata = { title: "Applications" };
+
+export default async function ApplicationsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  await requireAdmin();
+  const sp = await searchParams;
+  const one = (k: string) => {
+    const v = sp[k];
+    return Array.isArray(v) ? v[0] : v;
+  };
+
+  if (!isDatabaseConfigured()) {
+    return (
+      <>
+        <AdminHeader title="Applications" />
+        <div className="p-5 sm:p-8">
+          <EmptyState title="Database not configured" description="See docs/DEPLOYMENT.md to connect Supabase." />
+        </div>
+      </>
+    );
+  }
+
+  const filters = {
+    q: one("q"),
+    status: one("status") ?? "ALL",
+    jobId: one("jobId") ?? "ALL",
+    from: one("from"),
+    to: one("to"),
+    sort: (one("sort") ?? "newest") as "newest" | "oldest" | "name",
+    page: Number(one("page") ?? 1),
+  };
+
+  const [{ rows, total, page, pageCount }, allJobs] = await Promise.all([
+    listApplications(filters),
+    listAdminJobs({}),
+  ]);
+
+  /** Preserves the current filters when moving between pages. */
+  const pageHref = (n: number) => {
+    const params = new URLSearchParams();
+    for (const [k, v] of Object.entries(filters)) {
+      if (v && v !== "ALL" && k !== "page") params.set(k, String(v));
+    }
+    params.set("page", String(n));
+    return `/admin/applications?${params}`;
+  };
+
+  return (
+    <>
+      <AdminHeader title="Applications" description={`${total} total across all positions.`} />
+
+      <div className="p-5 sm:p-8">
+        <form method="get" className="rounded-[4px] border border-paper-300 bg-white p-4 sm:p-5">
+          <div className="grid gap-3 lg:grid-cols-[1.4fr_repeat(4,1fr)_auto]">
+            <div>
+              <label htmlFor="q" className="sr-only">Search applications</label>
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-graphite-400" aria-hidden="true" />
+                <input id="q" name="q" type="search" defaultValue={filters.q ?? ""}
+                  placeholder="Name, email, reference or job"
+                  className="w-full rounded-[3px] border border-paper-300 py-2.5 pl-9 pr-3 text-[0.875rem] focus:border-flame-500 focus:outline-none focus:ring-2 focus:ring-flame-500/30" />
+              </div>
+            </div>
+            <div>
+              <label htmlFor="status" className="sr-only">Status</label>
+              <select id="status" name="status" defaultValue={filters.status}
+                className="w-full rounded-[3px] border border-paper-300 bg-white px-3 py-2.5 text-[0.875rem] focus:border-flame-500 focus:outline-none focus:ring-2 focus:ring-flame-500/30">
+                <option value="ALL">All statuses</option>
+                {applicationStatuses.map((s) => (
+                  <option key={s} value={s}>{applicationStatusLabel[s]}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="jobId" className="sr-only">Job</label>
+              <select id="jobId" name="jobId" defaultValue={filters.jobId}
+                className="w-full rounded-[3px] border border-paper-300 bg-white px-3 py-2.5 text-[0.875rem] focus:border-flame-500 focus:outline-none focus:ring-2 focus:ring-flame-500/30">
+                <option value="ALL">All jobs</option>
+                {allJobs.map((j) => (
+                  <option key={j.id} value={j.id}>{j.title}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="from" className="block text-[0.6875rem] uppercase tracking-[0.1em] text-graphite-500">From</label>
+              <input id="from" name="from" type="date" defaultValue={filters.from ?? ""}
+                className="mt-1 w-full rounded-[3px] border border-paper-300 px-3 py-2 text-[0.875rem] focus:border-flame-500 focus:outline-none focus:ring-2 focus:ring-flame-500/30" />
+            </div>
+            <div>
+              <label htmlFor="to" className="block text-[0.6875rem] uppercase tracking-[0.1em] text-graphite-500">To</label>
+              <input id="to" name="to" type="date" defaultValue={filters.to ?? ""}
+                className="mt-1 w-full rounded-[3px] border border-paper-300 px-3 py-2 text-[0.875rem] focus:border-flame-500 focus:outline-none focus:ring-2 focus:ring-flame-500/30" />
+            </div>
+            <button type="submit" className={`${adminButtonSecondary} self-end`}>Apply</button>
+          </div>
+        </form>
+
+        <div className="mt-5">
+          {rows.length === 0 ? (
+            <EmptyState title="No applications found" description="Try a different search, filter or date range." />
+          ) : (
+            <>
+              {/* Desktop table */}
+              <div className="hidden overflow-x-auto rounded-[4px] border border-paper-300 bg-white lg:block">
+                <table className="w-full min-w-[54rem] border-collapse text-left">
+                  <thead>
+                    <tr className="border-b border-paper-300">
+                      {["Applicant","Job","Location","Applied","Status"].map((h) => (
+                        <th key={h} scope="col" className="px-4 py-3 text-[0.6875rem] font-semibold uppercase tracking-[0.1em] text-graphite-500">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map(({ application: a, jobTitle, jobLocation }) => (
+                      <tr key={a.id} className="border-b border-paper-200 last:border-0 hover:bg-paper-50">
+                        <th scope="row" className="px-4 py-3.5">
+                          <Link href={`/admin/applications/${a.id}`} className="block">
+                            <span className="block text-[0.9375rem] font-medium text-ink-900">{a.firstName} {a.lastName}</span>
+                            <span className="block text-[0.8125rem] text-graphite-600">{a.email}</span>
+                          </Link>
+                        </th>
+                        <td className="px-4 py-3.5 text-[0.875rem] text-graphite-700">{jobTitle}</td>
+                        <td className="px-4 py-3.5 text-[0.875rem] text-graphite-600">{jobLocation}</td>
+                        <td className="px-4 py-3.5 text-[0.8125rem] text-graphite-600">
+                          <span title={formatDate(a.createdAt)}>{relativeTime(a.createdAt)}</span>
+                        </td>
+                        <td className="px-4 py-3.5"><StatusPill status={a.status} label={applicationStatusLabel[a.status]} /></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile cards */}
+              <ul className="grid gap-3 lg:hidden">
+                {rows.map(({ application: a, jobTitle }) => (
+                  <li key={a.id}>
+                    <Link href={`/admin/applications/${a.id}`} className="block rounded-[4px] border border-paper-300 bg-white p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <span className="text-[1rem] font-medium text-ink-900">{a.firstName} {a.lastName}</span>
+                        <StatusPill status={a.status} label={applicationStatusLabel[a.status]} />
+                      </div>
+                      <p className="mt-1 truncate text-[0.875rem] text-graphite-600">{a.email}</p>
+                      <p className="mt-2 border-t border-paper-200 pt-2 text-[0.875rem] text-graphite-700">{jobTitle}</p>
+                      <p className="mt-1 text-[0.8125rem] text-graphite-500">{relativeTime(a.createdAt)}</p>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+
+              {pageCount > 1 && (
+                <nav className="mt-5 flex items-center justify-between gap-4" aria-label="Pagination">
+                  <p className="text-[0.875rem] text-graphite-600">Page {page} of {pageCount}</p>
+                  <div className="flex gap-2">
+                    {page > 1 && <Link href={pageHref(page - 1)} className={adminButtonSecondary}>Previous</Link>}
+                    {page < pageCount && <Link href={pageHref(page + 1)} className={adminButtonSecondary}>Next</Link>}
+                  </div>
+                </nav>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
