@@ -1,7 +1,23 @@
 import "server-only";
 import { and, asc, desc, eq, ilike, ne, or, sql } from "drizzle-orm";
-import { db } from "@/db";
+import { db, isDatabaseConfigured } from "@/db";
 import { applications, jobs } from "@/db/schema";
+
+/**
+ * Public reads must not take the marketing site down. If the database is
+ * unconfigured or unreachable we log and fall back, so /careers still renders.
+ */
+async function safe<T>(label: string, fn: () => Promise<T>, fallback: T): Promise<T> {
+  if (!isDatabaseConfigured()) return fallback;
+  try {
+    return await fn();
+  } catch (err) {
+    console.error(`[jobs] ${label} failed`, {
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return fallback;
+  }
+}
 
 /** URL-safe slug; uniqueness is enforced separately against the table. */
 export function slugify(input: string) {
@@ -42,6 +58,10 @@ export type PublicJobFilters = {
 
 /** Only PUBLISHED jobs are ever returned here. */
 export async function listPublishedJobs(filters: PublicJobFilters = {}) {
+  return safe("listPublishedJobs", () => queryPublishedJobs(filters), []);
+}
+
+async function queryPublishedJobs(filters: PublicJobFilters) {
   const where = [eq(jobs.status, "PUBLISHED" as const)];
 
   if (filters.q?.trim()) {
@@ -65,6 +85,10 @@ export async function listPublishedJobs(filters: PublicJobFilters = {}) {
 }
 
 export async function getPublishedJobBySlug(slug: string) {
+  return safe("getPublishedJobBySlug", () => queryJobBySlug(slug), undefined);
+}
+
+async function queryJobBySlug(slug: string) {
   return db.query.jobs.findFirst({
     where: and(eq(jobs.slug, slug), eq(jobs.status, "PUBLISHED" as const)),
   });
@@ -72,6 +96,14 @@ export async function getPublishedJobBySlug(slug: string) {
 
 /** Distinct values for the public filter controls. */
 export async function jobFacets() {
+  return safe(
+    "jobFacets",
+    () => queryFacets(),
+    { departments: [], locations: [], employmentTypes: [], experienceLevels: [] },
+  );
+}
+
+async function queryFacets() {
   const rows = await db
     .select({
       department: jobs.department,
