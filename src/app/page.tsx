@@ -139,10 +139,8 @@ export default function HomePage() {
               return (
                 <Reveal key={pillar.id} delay={i * 70} className="bg-white">
                   <div className="flex h-full flex-col p-7">
-                    <div className="flex items-baseline gap-3">
-                      <span className="font-mono text-[0.75rem] font-medium text-flame-700 tabular-nums">
-                        0{i + 1}
-                      </span>
+                    <div className="flex items-center gap-3">
+                      <span aria-hidden="true" className="h-4 w-0.5 rounded-full bg-flame-500" />
                       <h3 className="text-[1.25rem] font-medium text-ink-900">
                         {pillar.label}
                       </h3>
@@ -228,27 +226,21 @@ export default function HomePage() {
           <div className="mt-16 grid gap-x-12 gap-y-12 lg:grid-cols-3">
             {[
               {
-                n: "01",
                 h: "A lean structure, by design",
                 p: "A flat organization and low overhead mean the people who scope your work are the people who deliver it. Decisions do not queue behind three management layers, and the rate you pay is not carrying a corporate campus.",
               },
               {
-                n: "02",
                 h: "Appraised processes, not promised ones",
                 p: "CMMI Level 3 for Development and for Services, plus ISO 9001, ISO/IEC 20000-1:2018, and ISO/IEC 27001. Independent appraisal is the difference between saying you have a process and being able to show it.",
               },
               {
-                n: "03",
                 h: "Certified practitioners on the work",
                 p: "PMI-certified project managers, GISCI and Esri certified GIS professionals, and Oracle and Amazon certified systems architects. Most of our staff hold certification in their primary area of focus.",
               },
             ].map((item, i) => (
-              <Reveal key={item.n} delay={i * 80}>
-                <div className="border-t border-white/15 pt-7">
-                  <p className="font-mono text-[0.75rem] font-medium text-flame-400 tabular-nums">
-                    {item.n}
-                  </p>
-                  <h3 className="mt-4 text-[1.3125rem] font-medium leading-snug text-white">
+              <Reveal key={item.h} delay={i * 80}>
+                <div className="border-t-2 border-flame-500/70 pt-7">
+                  <h3 className="text-[1.3125rem] font-medium leading-snug text-white">
                     {item.h}
                   </h3>
                   <p className="mt-3.5 text-[0.9375rem] leading-[1.7] text-white/60">{item.p}</p>

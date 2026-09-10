@@ -57,10 +57,8 @@ export default function CapabilitiesPage() {
                 <Reveal>
                   <div className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
                     <div className="lg:sticky lg:top-36 lg:self-start">
-                      <p className="font-mono text-[0.75rem] font-medium text-flame-700 tabular-nums">
-                        0{pi + 1}
-                      </p>
-                      <h2 className="mt-3 text-[1.75rem] font-medium leading-tight text-ink-900 sm:text-[2rem]">
+                      <span aria-hidden="true" className="block h-0.5 w-10 rounded-full bg-flame-500" />
+                      <h2 className="mt-5 text-[1.75rem] font-medium leading-tight text-ink-900 sm:text-[2rem]">
                         {pillar.label}
                       </h2>
                       <p className="mt-4 text-[1rem] leading-[1.7] text-graphite-600">
@@ -132,11 +130,8 @@ export default function CapabilitiesPage() {
               },
             ].map((step, i) => (
               <Reveal key={step.h} delay={i * 70}>
-                <div className="border-t border-paper-300 pt-6">
-                  <p className="font-mono text-[0.75rem] font-medium text-flame-700 tabular-nums">
-                    {String(i + 1).padStart(2, "0")}
-                  </p>
-                  <h3 className="mt-3.5 text-[1.0625rem] font-medium leading-snug text-ink-900">
+                <div className="border-t-2 border-flame-500/70 pt-6">
+                  <h3 className="text-[1.0625rem] font-medium leading-snug text-ink-900">
                     {step.h}
                   </h3>
                   <p className="mt-2.5 text-[0.9375rem] leading-[1.65] text-graphite-600">

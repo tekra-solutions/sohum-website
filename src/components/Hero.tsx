@@ -13,27 +13,35 @@ import { BrandMotif } from "./BrandMotif";
 export function Hero() {
   return (
     <section className="relative isolate overflow-hidden bg-ink-950 text-white">
-      {/* Layered background: fine grid, a soft directional glow, and a vignette. */}
-      <div aria-hidden="true" className="absolute inset-0 grid-fine opacity-60" />
-      <div
-        aria-hidden="true"
-        className="absolute -left-1/4 top-[-30%] h-[820px] w-[820px] rounded-full opacity-[0.55] blur-3xl"
-        style={{
-          background:
-            "radial-gradient(circle, rgba(242,88,6,0.16) 0%, rgba(242,88,6,0.05) 42%, transparent 70%)",
-        }}
-      />
+      {/*
+        Background is deliberately flat and even. An earlier diagonal gradient
+        lifted the right-hand side, which made the credential panel read as a
+        highlighted box pasted on top rather than part of the composition.
+      */}
+      <div aria-hidden="true" className="absolute inset-0 grid-fine opacity-[0.35]" />
+
       {/* Brand mark as background texture — echoes the flight form in the logo. */}
       <BrandMotif
-        className="pointer-events-none absolute -right-[18%] -top-[10%] hidden w-[70%] rotate-[-8deg] text-flame-500/[0.10] lg:block"
+        className="pointer-events-none absolute -right-[20%] -top-[14%] hidden w-[72%] rotate-[-8deg] text-flame-500/[0.055] lg:block"
       />
 
+      {/* A single warm pool low and left, well away from the panel. */}
+      <div
+        aria-hidden="true"
+        className="absolute -left-[15%] bottom-[-45%] h-[720px] w-[720px] rounded-full blur-3xl"
+        style={{
+          background:
+            "radial-gradient(circle, rgba(242,88,6,0.13) 0%, rgba(242,88,6,0.04) 45%, transparent 70%)",
+        }}
+      />
+
+      {/* Vignette: settles the edges without brightening any one region. */}
       <div
         aria-hidden="true"
         className="absolute inset-0"
         style={{
           background:
-            "linear-gradient(105deg, rgba(11,16,28,0.94) 0%, rgba(11,16,28,0.70) 45%, rgba(21,30,48,0.52) 100%)",
+            "radial-gradient(120% 90% at 30% 40%, transparent 0%, rgba(9,12,19,0.55) 100%)",
         }}
       />
 
@@ -46,9 +54,13 @@ export function Hero() {
               SBA 8(a) · CMMI Level 3 · Est. 2013
             </p>
 
-            <h1 className="mt-7 text-[2.375rem] font-medium leading-[1.06] tracking-[-0.03em] text-balance sm:text-[3.125rem] lg:text-[3.625rem]">
+            {/*
+              The trailing clause is kept on one line only from `sm` up; at phone
+              widths it must be free to wrap or it overflows the viewport.
+            */}
+            <h1 className="mt-7 text-[2.125rem] font-medium leading-[1.08] tracking-[-0.03em] text-balance sm:text-[3.125rem] lg:text-[3.625rem]">
               We modernize the systems{" "}
-              <span className="whitespace-nowrap">
+              <span className="sm:whitespace-nowrap">
                 <span className="text-flame-400">federal missions</span> run on.
               </span>
             </h1>
@@ -81,42 +93,42 @@ export function Hero() {
             </p>
           </div>
 
-          {/* ---- Credential panel: procurement facts, not decoration ---- */}
-          <div className="relative">
-            <div
+          {/*
+            Credential list: procurement facts, not decoration.
+            Set open on the background — a single hairline on the left carries
+            the grouping, so nothing here reads as a highlighted card.
+          */}
+          <div className="relative lg:pl-10">
+            <span
               aria-hidden="true"
-              className="absolute -inset-px rounded-[4px] bg-gradient-to-b from-white/12 to-transparent"
+              className="absolute left-0 top-1 hidden h-[calc(100%-0.25rem)] w-px bg-gradient-to-b from-flame-500/60 via-white/12 to-transparent lg:block"
             />
-            <div className="relative rounded-[4px] border border-white/10 bg-white/[0.035] p-7 backdrop-blur-sm sm:p-9">
-              <div className="flex items-baseline justify-between gap-4">
-                <p className="eyebrow text-white/55">Credentialed to deliver</p>
-                <span className="size-1.5 rounded-full bg-flame-400" aria-hidden="true" />
-              </div>
 
-              <ul className="mt-7 divide-y divide-white/[0.07]">
-                {credentials.slice(0, 4).map((c) => (
-                  <li key={c.short} className="py-4 first:pt-0">
-                    <p className="font-[family-name:var(--font-display)] text-[1.0625rem] font-medium text-white">
-                      {c.name}
-                    </p>
-                    <p className="mt-1 text-[0.75rem] uppercase tracking-[0.1em] text-white/50">
-                      {c.kind}
-                    </p>
-                  </li>
-                ))}
-              </ul>
+            <p className="eyebrow text-white/50">Credentialed to deliver</p>
 
-              <div className="mt-7 grid grid-cols-2 gap-4 border-t border-white/10 pt-6">
-                <div>
-                  <p className="text-[0.6875rem] uppercase tracking-[0.12em] text-white/55">DUNS</p>
-                  <p className="mt-1.5 font-mono text-[0.875rem] text-white/85">053861658</p>
-                </div>
-                <div>
-                  <p className="text-[0.6875rem] uppercase tracking-[0.12em] text-white/55">CAGE</p>
-                  <p className="mt-1.5 font-mono text-[0.875rem] text-white/85">7WCV6</p>
-                </div>
+            <ul className="mt-6 space-y-5">
+              {credentials.slice(0, 4).map((c) => (
+                <li key={c.short}>
+                  <p className="font-[family-name:var(--font-display)] text-[1.125rem] font-medium leading-snug text-white">
+                    {c.name}
+                  </p>
+                  <p className="mt-1 text-[0.75rem] uppercase tracking-[0.1em] text-white/45">
+                    {c.kind}
+                  </p>
+                </li>
+              ))}
+            </ul>
+
+            <dl className="mt-8 flex flex-wrap gap-x-10 gap-y-4 border-t border-white/10 pt-6">
+              <div>
+                <dt className="text-[0.6875rem] uppercase tracking-[0.12em] text-white/45">DUNS</dt>
+                <dd className="mt-1.5 font-mono text-[0.875rem] text-white/85">053861658</dd>
               </div>
-            </div>
+              <div>
+                <dt className="text-[0.6875rem] uppercase tracking-[0.12em] text-white/45">CAGE</dt>
+                <dd className="mt-1.5 font-mono text-[0.875rem] text-white/85">7WCV6</dd>
+              </div>
+            </dl>
           </div>
         </div>
       </div>

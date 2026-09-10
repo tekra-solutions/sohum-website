@@ -264,10 +264,8 @@ export default function FederalPage() {
             ].map((step, i) => (
               <Reveal key={step.h} as="li" delay={i * 65} className="flex h-full flex-col bg-white p-7">
                 <div className="contents">
-                  <span className="font-mono text-[0.75rem] font-medium text-flame-700 tabular-nums">
-                    {String(i + 1).padStart(2, "0")}
-                  </span>
-                  <h3 className="mt-4 text-[1.0625rem] font-medium leading-snug text-ink-900">
+                  <span aria-hidden="true" className="h-0.5 w-8 rounded-full bg-flame-500" />
+                  <h3 className="mt-5 text-[1.0625rem] font-medium leading-snug text-ink-900">
                     {step.h}
                   </h3>
                   <p className="mt-3 text-[0.9375rem] leading-[1.65] text-graphite-600">

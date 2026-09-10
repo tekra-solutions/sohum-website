@@ -148,12 +148,11 @@ export default async function CapabilityPage({
                   delay={i * 60}
                   className="flex gap-5 border-t border-white/12 py-7 first:border-t-0 first:pt-0"
                 >
+                    {/* Ordering still lives in the <ol>; this is just a visual marker. */}
                     <span
-                      className="mt-0.5 shrink-0 font-mono text-[0.75rem] font-medium text-flame-400 tabular-nums"
+                      className="mt-[0.6875rem] size-1.5 shrink-0 rounded-full bg-flame-500"
                       aria-hidden="true"
-                    >
-                      {String(i + 1).padStart(2, "0")}
-                    </span>
+                    />
                   <p className="text-[1.0625rem] leading-[1.7] text-white/75">{step}</p>
                 </Reveal>
               ))}
