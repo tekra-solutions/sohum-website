@@ -1,80 +1,108 @@
 /**
- * Sohum Systems brand mark.
+ * Sohum Systems lockup.
  *
- * Paths are taken verbatim from the supplied brand SVG. The artwork is a
- * two-part rotationally symmetric bird form: one half in the brand orange,
- * one in the brand navy.
+ * The mark is a two-tone S: an orange upper sweep and a navy lower sweep that
+ * cross at the centre, each tapering to a point. Drawn as two closed outlines
+ * rather than strokes so the taper is real rather than a cap effect.
  *
- * Rendering notes:
- *  - The source file packs the symbol (x 286-587, y 0-292) above the wordmark.
- *    We crop the viewBox to the symbol and set the wordmark in live text, so
- *    the lockup stays crisp, searchable, and translatable.
- *  - On dark grounds the navy half would nearly vanish, so `tone="light"`
- *    swaps it for a light slate that keeps the two halves legible.
+ * The wordmark and the TECHNOLOGY | TALENT | TRUST descriptor are live text,
+ * so the lockup stays selectable, searchable and translatable, and no second
+ * raster asset ever has to be kept in sync.
  */
+
+/** Brand values, used by both the mark and the wordmark. */
+const NAVY = "#1b2a5e";
+const ACCENT = "#e8622a";
+
+/** Upper sweep — orange. Tapers from the crossing out to the top-right tip. */
+const S_UPPER =
+  "M108 8C62 8 20 26 12 50 6 68 24 79 50 81 32 75 24 63 31 49 43 27 74 12 108 8Z";
+
+/** Lower sweep — navy. Rotationally symmetric to the upper. */
+const S_LOWER =
+  "M4 100c46 0 88-18 96-42 6-18-12-29-38-31 18 6 26 18 19 32C69 81 38 96 4 100Z";
+
 export function Logo({
   className = "",
   showWordmark = true,
   tone = "dark",
   size = "md",
+  showTagline = true,
 }: {
   className?: string;
   showWordmark?: boolean;
   /** "dark" = for light backgrounds; "light" = for dark backgrounds. */
   tone?: "dark" | "light";
-  /** md = header/footer default; lg = generous, for the footer masthead. */
+  /** md = header default; lg = footer masthead. */
   size?: "md" | "lg";
+  /** The TECHNOLOGY | TALENT | TRUST descriptor. */
+  showTagline?: boolean;
 }) {
-  const navy = tone === "light" ? "#8fa2c4" : "#304368";
-  const wordNavy = tone === "light" ? "text-white" : "text-brand-navy";
-  const markSize = size === "lg" ? "h-[4rem] w-[4.125rem]" : "h-[3.375rem] w-[3.4375rem]";
-  const wordSize = size === "lg" ? "text-[2rem]" : "text-[1.75rem]";
+  const isLight = tone === "light";
+
+  // On dark grounds the navy sweep would disappear, so it becomes white there.
+  const sweep = isLight ? "#ffffff" : NAVY;
+
+  // One proportional scale, stepped down on narrow screens. At full desktop
+  // size the lockup pushed the mobile menu button past the viewport edge, so
+  // phones get a smaller step and tablets up get the intended size.
+  const markSize =
+    size === "lg"
+      ? "w-[3.75rem] sm:w-[4.5rem] lg:w-[5.25rem]"
+      : "w-[3.25rem] sm:w-[4rem] lg:w-[4.5rem]";
+  const wordSize =
+    size === "lg"
+      ? "text-[1.5rem] sm:text-[1.875rem] lg:text-[2.125rem]"
+      : "text-[1.3125rem] sm:text-[1.625rem] lg:text-[1.875rem]";
+  const tagSize =
+    size === "lg"
+      ? "text-[0.5rem] sm:text-[0.625rem] lg:text-[0.6875rem]"
+      : "text-[0.4375rem] sm:text-[0.5625rem] lg:text-[0.625rem]";
 
   return (
     <span className={`inline-flex items-center gap-3 ${className}`}>
       <svg
-        viewBox="286 0 301 292"
-        className={`${markSize} shrink-0`}
+        viewBox="0 0 112 108"
+        className={`${markSize} h-auto shrink-0`}
         fill="none"
         aria-hidden="true"
         focusable="false"
       >
-        {/* Upper sweep — orange outer, navy inner */}
-        <path
-          fill="#f25806"
-          d="m428.93,0c-30.41,8.17-142.92,63.88-142.38,116.97,0,58.55,115.04,50.4,143.46,46.7,0,0-14.78-3.13-14.78-19.7s14.78-20.65,14.78-20.65c-30.39-1.79-84.63,6.87-86.35-35.62,0-44.48,79.59-79.3,85.26-87.7Z"
-        />
-        <path
-          fill={navy}
-          d="m432.65,16.92c-27.2,6.3-63.51,29.24-73.6,56.14-5.03,13.42.9,28.44,14,34.25,22.23,9.85,58.24,5.64,58.24,5.64,0,0-6.46-1.34-6.63-10.42-.17-9.21,6.9-9.07,6.9-9.07-6.25-1.61-46.02,4.6-45.95-22.2.81-27,39.59-48.8,47.03-54.34Z"
-        />
-        {/* Pivot */}
-        <circle fill={navy} cx="435" cy="143.06" r="10.11" />
-        {/* Lower sweep — navy outer, orange inner */}
-        <path
-          fill={navy}
-          d="m444.59,286.98c30.41-8.17,142.92-63.88,142.38-116.97,0-58.55-115.04-50.4-143.46-46.7,0,0,14.78,3.13,14.78,19.7s-14.78,20.65-14.78,20.65c30.39,1.79,84.63-6.87,86.35,35.62,0,44.48-79.59,79.3-85.26,87.7Z"
-        />
-        <path
-          fill="#f25806"
-          d="m440.87,270.06c27.2-6.3,63.51-29.24,73.6-56.14,5.03-13.42-.9-28.44-14-34.25-22.23-9.85-58.24-5.64-58.24-5.64,0,0,6.46,1.34,6.63,10.42.17,9.21-6.9,9.07-6.9,9.07,6.25,1.61,46.02-4.6,45.95,22.2-.81,27-39.59,48.8-47.03,54.34Z"
-        />
+        <path d={S_UPPER} fill={ACCENT} />
+        <path d={S_LOWER} fill={sweep} />
       </svg>
 
       {showWordmark && (
-        <span className="flex flex-col leading-none">
-          {/* "hum" carries the orange exactly as the brand artwork does. */}
+        <span className="flex flex-col gap-[0.3em]">
           <span
-            className={`font-[family-name:var(--font-display)] ${wordSize} font-semibold tracking-[-0.03em] ${wordNavy}`}
+            className={`whitespace-nowrap font-[family-name:var(--font-display)] ${wordSize} font-bold leading-none tracking-[-0.02em] ${
+              isLight ? "text-white" : "text-[#1b2a5e]"
+            }`}
           >
-            So
-            {/* The artwork's orange (#f25806) is 3.4:1 on white — fine for the
-                graphic mark, short of AA for text this size. On light grounds we
-                set the wordmark in flame-600 (4.82:1), which is visually the same
-                colour family; on dark grounds the brighter flame-400 is used. */}
-            <span className={tone === "light" ? "text-flame-400" : "text-flame-600"}>hum</span>{" "}
-            Systems
+            {/* One orange in both tones so the header and footer lockups are
+                identical. WCAG 1.4.3 exempts logotype text from the contrast
+                minimum, and splitting the colour by background made the two
+                lockups visibly different brands. */}
+            <span style={{ color: ACCENT }}>Sohum</span> Systems
           </span>
+
+          {showTagline && (
+            <span
+              className={`flex items-center gap-[0.7em] whitespace-nowrap ${tagSize} font-semibold uppercase leading-none tracking-[0.16em] ${
+                isLight ? "text-white/85" : "text-[#1b2a5e]/85"
+              }`}
+            >
+              <span>Technology</span>
+              <span aria-hidden="true" className="opacity-40">
+                |
+              </span>
+              <span>Talent</span>
+              <span aria-hidden="true" className="opacity-40">
+                |
+              </span>
+              <span>Trust</span>
+            </span>
+          )}
         </span>
       )}
     </span>

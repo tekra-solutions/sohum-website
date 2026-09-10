@@ -98,7 +98,7 @@ export function Header() {
       </a>
 
       <div className="container-page">
-        <div className="flex h-[6.25rem] items-center justify-between gap-6">
+        <div className="flex h-[5.25rem] items-center justify-between gap-4 sm:h-[6.25rem] sm:gap-6 lg:h-[7rem]">
           <Link
             href="/"
             className="rounded transition-opacity hover:opacity-70"
@@ -256,7 +256,7 @@ export function Header() {
       <div
         id="mobile-nav"
         hidden={!mobileOpen}
-        className="fixed inset-x-0 top-[6.25rem] bottom-0 z-40 overflow-y-auto overscroll-contain border-t border-paper-200 bg-white lg:hidden"
+        className="fixed inset-x-0 top-[5.25rem] bottom-0 z-40 sm:top-[6.25rem] lg:top-[7rem] overflow-y-auto overscroll-contain border-t border-paper-200 bg-white lg:hidden"
       >
         <nav className="container-page py-6" aria-label="Mobile">
           <ul className="divide-y divide-paper-200">

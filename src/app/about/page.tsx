@@ -83,7 +83,7 @@ export default function AboutPage() {
       <section className="border-b border-paper-200 bg-white">
         <div className="container-page py-18 sm:py-24">
           <div className="grid gap-12 lg:grid-cols-[0.32fr_0.68fr] lg:gap-16">
-            <Reveal className="lg:sticky lg:top-36 lg:self-start">
+            <Reveal className="lg:sticky lg:top-40 lg:self-start">
               <Eyebrow>Our story</Eyebrow>
               <h2 className="sr-only">Our story</h2>
             </Reveal>
@@ -179,7 +179,7 @@ export default function AboutPage() {
       </section>
 
       {/* ---- Leadership ---- */}
-      <section id="leadership" className="scroll-mt-32 border-b border-paper-200 bg-white">
+      <section id="leadership" className="scroll-mt-36 border-b border-paper-200 bg-white">
         <div className="container-page py-20 sm:py-24">
           <Reveal>
             <SectionHeading

@@ -56,7 +56,7 @@ export default function CapabilitiesPage() {
               >
                 <Reveal>
                   <div className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
-                    <div className="lg:sticky lg:top-36 lg:self-start">
+                    <div className="lg:sticky lg:top-40 lg:self-start">
                       <span aria-hidden="true" className="block h-0.5 w-10 rounded-full bg-flame-500" />
                       <h2 className="mt-5 text-[1.75rem] font-medium leading-tight text-ink-900 sm:text-[2rem]">
                         {pillar.label}
