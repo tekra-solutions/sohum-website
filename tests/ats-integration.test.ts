@@ -847,6 +847,26 @@ describe.skipIf(!enabled)("offer signing attack surface (local only)", () => {
     expect(await db.select().from(offerSignatures).where(eq(offerSignatures.offerId, accepted.id))).toHaveLength(1);
   });
 
+  it("stores the signed document and records its hash, exactly once", async () => {
+    const { db } = await import("@/db");
+    const { offers, offerSignatures, auditLogs } = await import("@/db/schema");
+    const { eq } = await import("drizzle-orm");
+    const [accepted] = await db.select().from(offers).where(eq(offers.status, "ACCEPTED"));
+    const [signature] = await db.select().from(offerSignatures).where(eq(offerSignatures.offerId, accepted.id));
+
+    expect(signature.signedPdfPath).toBeTruthy();
+    // Path is namespaced to the offer and its accepted version, and is not the
+    // unsigned letter's path.
+    expect(signature.signedPdfPath!).toContain(`offers/${accepted.id}/`);
+    expect(signature.signedPdfPath!).toContain("offer-signed-");
+    expect(signature.documentHash).toMatch(/^[0-9a-f]{64}$/);
+
+    const generated = (await db.select().from(auditLogs).where(eq(auditLogs.entityId, accepted.id)))
+      .filter(e => e.action === "SIGNED_PDF_GENERATED");
+    expect(generated).toHaveLength(1);
+    expect(JSON.stringify(generated[0].metadata)).toMatch(/[0-9a-f]{64}/);
+  });
+
   it("records the signature with consent evidence and no token material", async () => {
     const { db } = await import("@/db");
     const { offers, offerSignatures } = await import("@/db/schema");
