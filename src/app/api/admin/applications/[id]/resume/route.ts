@@ -1,3 +1,4 @@
+import { accessibleApplication } from "@/lib/ats/access";
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
@@ -23,6 +24,7 @@ export async function GET(
   }
 
   const { id } = await params;
+  if (!await accessibleApplication(id, admin)) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const file = await db.query.resumeFiles.findFirst({
     where: eq(resumeFiles.applicationId, id),
   });
@@ -38,14 +40,14 @@ export async function GET(
     const blob = await downloadResume(file.storagePath);
     await audit({
       adminId: admin.id,
-      action: "ADMIN_DOWNLOADED_RESUME",
+      action: disposition === "attachment" ? "ADMIN_DOWNLOADED_RESUME" : "ADMIN_VIEWED_RESUME",
       entityType: "application",
       entityId: id,
       metadata: { filename: file.originalFilename, disposition },
     });
 
     // Quote the filename so spaces and commas cannot break the header.
-    const safeName = file.originalFilename.replace(/["\\]/g, "");
+    const safeName = file.originalFilename.replace(/[^\x20-\x7E]|["\\]/g, "_");
     return new NextResponse(blob.stream(), {
       headers: {
         "Content-Type": file.mimeType,

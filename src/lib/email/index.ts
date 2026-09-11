@@ -54,7 +54,7 @@ async function sendViaSmtp(msg: Message) {
 /** Never throws. Email failure must not roll back a submitted application. */
 export async function send(msg: Message): Promise<{ sent: boolean; reason?: string }> {
   if (!isEmailConfigured()) {
-    console.info("[email] not configured; skipping", { to: msg.to, subject: msg.subject });
+    console.info("[email] not configured; skipping");
     return { sent: false, reason: "not_configured" };
   }
   try {
@@ -63,8 +63,6 @@ export async function send(msg: Message): Promise<{ sent: boolean; reason?: stri
     return { sent: true };
   } catch (err) {
     console.error("[email] send failed", {
-      to: msg.to,
-      subject: msg.subject,
       error: err instanceof Error ? err.message : String(err),
     });
     return { sent: false, reason: "send_failed" };

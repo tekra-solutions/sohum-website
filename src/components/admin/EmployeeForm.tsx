@@ -26,7 +26,7 @@ export function EmployeeForm({
   employee,
   managers,
 }: {
-  employee?: Employee;
+  employee?: Partial<Employee>;
   managers: { id: string; employeeId: string; firstName: string; lastName: string; jobTitle: string }[];
 }) {
   const [state, action, pending] = useActionState(saveEmployeeAction, initial);
@@ -34,8 +34,9 @@ export function EmployeeForm({
 
   return (
     <form action={action} className="space-y-6">
-      {employee && <input type="hidden" name="id" value={employee.id} />}
+      {employee?.id && <input type="hidden" name="id" value={employee.id} />}
 
+      {employee?.sourceApplicationId && <input type="hidden" name="sourceApplicationId" value={employee.sourceApplicationId} />}
       <div aria-live="polite">
         {state.message && (
           <div className="flex gap-2.5 rounded-[3px] border border-[#c0392b]/30 bg-[#c0392b]/[0.05] p-3">

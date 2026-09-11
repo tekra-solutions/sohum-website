@@ -2,11 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { jobs } from "@/db/schema";
+import { jobs, recruitingSettings } from "@/db/schema";
 import { jobInputSchema } from "@/lib/validation/schemas";
-import { requireAdmin } from "@/lib/auth/session";
+import { requirePermission } from "@/lib/ats/access";
 import { audit } from "@/lib/audit";
 import { countApplicationsForJob, uniqueSlug } from "@/lib/services/jobs";
 
@@ -27,7 +27,7 @@ export async function saveJobAction(
   _prev: JobFormState,
   formData: FormData,
 ): Promise<JobFormState> {
-  const admin = await requireAdmin();
+  const admin = await requirePermission("manage");
 
   const id = String(formData.get("id") ?? "") || null;
   // Which button was pressed decides the status, not a client-supplied field.
@@ -44,7 +44,9 @@ export async function saveJobAction(
   }
   const v = parsed.data;
 
-  const status = intent === "publish" ? "PUBLISHED" : v.status;
+  const [settings] = await db.select().from(recruitingSettings).limit(1);
+  if (settings?.requireJobApproval && intent === "publish") return { message: "Approval is enabled. Save as a draft, submit for approval, then use Publish on the approved job." };
+  const status: "PUBLISHED" | "DRAFT" = intent === "publish" ? "PUBLISHED" : "DRAFT";
   const slug = await uniqueSlug(v.slug || v.title, id ?? undefined);
 
   const values = {
@@ -122,7 +124,7 @@ export async function saveJobAction(
 
 /** Publish / unpublish / close / archive. */
 export async function setJobStatusAction(formData: FormData) {
-  const admin = await requireAdmin();
+  const admin = await requirePermission("manage");
   const id = String(formData.get("id") ?? "");
   const status = String(formData.get("status") ?? "");
 
@@ -130,9 +132,11 @@ export async function setJobStatusAction(formData: FormData) {
 
   const job = await db.query.jobs.findFirst({
     where: eq(jobs.id, id),
-    columns: { slug: true, publishedAt: true, title: true },
+    columns: { slug: true, publishedAt: true, title: true, status: true },
   });
   if (!job) return;
+  const [settings] = await db.select().from(recruitingSettings).limit(1);
+  if (status === "PUBLISHED" && settings?.requireJobApproval && job.status !== "APPROVED") return;
 
   await db
     .update(jobs)
@@ -141,7 +145,7 @@ export async function setJobStatusAction(formData: FormData) {
       publishedAt: status === "PUBLISHED" ? (job.publishedAt ?? new Date()) : job.publishedAt,
       updatedAt: new Date(),
     })
-    .where(eq(jobs.id, id));
+    .where(and(eq(jobs.id, id), eq(jobs.status, job.status)));
 
   const action =
     status === "PUBLISHED" ? "ADMIN_PUBLISHED_JOB"
@@ -165,7 +169,7 @@ export async function setJobStatusAction(formData: FormData) {
  * RESTRICT; this check exists to give a clear message rather than an error.
  */
 export async function deleteJobAction(formData: FormData) {
-  const admin = await requireAdmin();
+  const admin = await requirePermission("manage");
   const id = String(formData.get("id") ?? "");
   if (!id) return;
 

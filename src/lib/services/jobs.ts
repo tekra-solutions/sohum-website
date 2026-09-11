@@ -1,3 +1,5 @@
+import { requireAdmin } from "@/lib/auth/session";
+import { jobScope, candidateScope } from "@/lib/ats/access";
 import "server-only";
 import { and, asc, count, desc, eq, ilike, ne, or, sql } from "drizzle-orm";
 import { db, isDatabaseConfigured } from "@/db";
@@ -130,7 +132,8 @@ export async function listAdminJobs(opts: {
   status?: string;
   sort?: "newest" | "oldest" | "title";
 }) {
-  const where = [];
+  const admin = await requireAdmin();
+  const where = [jobScope(admin)];
   if (opts.q?.trim()) {
     const term = `%${opts.q.trim()}%`;
     where.push(or(ilike(jobs.title, term), ilike(jobs.department, term))!);
@@ -158,6 +161,7 @@ export async function listAdminJobs(opts: {
   const counts = await db
     .select({ jobId: applications.jobId, n: count() })
     .from(applications)
+    .where(candidateScope(admin))
     .groupBy(applications.jobId);
 
   const byJob = new Map(counts.map((c) => [c.jobId, Number(c.n)]));
@@ -168,8 +172,10 @@ export async function listAdminJobs(opts: {
   }));
 }
 
-export const getJobById = (id: string) =>
-  db.query.jobs.findFirst({ where: eq(jobs.id, id) });
+export async function getJobById(id: string) {
+  const admin = await requireAdmin();
+  return db.query.jobs.findFirst({ where: and(eq(jobs.id, id), jobScope(admin)) });
+}
 
 export async function countApplicationsForJob(jobId: string) {
   const [row] = await db

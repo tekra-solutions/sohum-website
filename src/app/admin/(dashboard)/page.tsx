@@ -1,3 +1,4 @@
+import { RecruitingActivity } from "@/components/admin/RecruitingActivity";
 import Link from "next/link";
 import { ArrowRight, Briefcase, Plus, Users } from "lucide-react";
 import { AdminHeader, EmptyState, StatCard, StatusPill, adminButton, adminButtonSecondary } from "@/components/admin/ui";
@@ -51,15 +52,18 @@ export default async function AdminDashboard() {
           <h2 id="overview" className="sr-only">
             Overview
           </h2>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-7">
             <StatCard label="Open jobs" value={stats.publishedJobs} href="/admin/jobs?status=PUBLISHED" />
             <StatCard label="Applications" value={stats.totalApplications} href="/admin/applications" />
             <StatCard label="New" value={stats.newApplications} href="/admin/applications?status=NEW" tone="accent" />
             <StatCard label="Screening" value={stats.reviewing} href="/admin/applications?status=SCREENING" />
             <StatCard label="Interview" value={stats.interview} href="/admin/applications?status=INTERVIEW" />
+            <StatCard label="Offers" value={stats.offer} href="/admin/applications?status=OFFER" />
             <StatCard label="Hired" value={stats.hired} href="/admin/applications?status=HIRED" />
           </div>
         </section>
+
+        <RecruitingActivity />
 
         {/* ---- Recent applications ---- */}
         <section aria-labelledby="recent">

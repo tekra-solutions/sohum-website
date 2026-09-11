@@ -1,3 +1,4 @@
+import { JobView } from "@/components/careers/JobView";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -110,6 +111,7 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
 
   return (
     <>
+      <JobView id={job.id} />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}

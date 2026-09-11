@@ -1,12 +1,14 @@
 "use server";
 
+import { z } from "zod";
+
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { employees } from "@/db/schema";
+import { employees, applications, auditLogs } from "@/db/schema";
 import { employeeInputSchema } from "@/lib/validation/schemas";
-import { requireAdmin } from "@/lib/auth/session";
+import { requirePermission } from "@/lib/ats/access";
 import { audit } from "@/lib/audit";
 import { formatEmployeeId, workEmailTaken } from "@/lib/services/employees";
 
@@ -21,7 +23,7 @@ export async function saveEmployeeAction(
   _prev: EmployeeFormState,
   formData: FormData,
 ): Promise<EmployeeFormState> {
-  const admin = await requireAdmin();
+  const admin = await requirePermission("employees");
   const id = String(formData.get("id") ?? "") || null;
 
   const parsed = employeeInputSchema.safeParse(Object.fromEntries(formData.entries()));
@@ -34,6 +36,8 @@ export async function saveEmployeeAction(
     return { errors, message: "Please correct the highlighted fields." };
   }
   const v = parsed.data;
+  const sourceApplicationId = String(formData.get("sourceApplicationId") ?? "") || null;
+  if (sourceApplicationId && !z.uuid().safeParse(sourceApplicationId).success) return { message: "Invalid source application." };
 
   if (await workEmailTaken(v.workEmail, id ?? undefined)) {
     return { errors: { workEmail: "Another employee already uses this work email." } };
@@ -69,24 +73,18 @@ export async function saveEmployeeAction(
         metadata: { workEmail: v.workEmail },
       });
     } else {
-      // employeeId is derived from the row's own sequence, so it is unique
-      // without a second round trip or a race between concurrent creates.
-      const [row] = await db
-        .insert(employees)
-        .values({ ...values, employeeId: "PENDING", createdBy: admin.id })
-        .returning({ id: employees.id, sequence: employees.sequence });
-      if (!row) throw new Error("Insert returned no row");
-
-      const employeeId = formatEmployeeId(row.sequence);
-      await db.update(employees).set({ employeeId }).where(eq(employees.id, row.id));
-      employeeUuid = row.id;
-
-      await audit({
-        adminId: admin.id,
-        action: "ADMIN_CREATED_EMPLOYEE",
-        entityType: "employee",
-        entityId: row.id,
-        metadata: { employeeId, workEmail: v.workEmail },
+      await db.transaction(async tx => {
+        if (sourceApplicationId) {
+          const [candidate] = await tx.select().from(applications).where(eq(applications.id, sourceApplicationId)).for("update");
+          if (!candidate || candidate.status !== "HIRED") throw new Error("Candidate must be hired before conversion.");
+        }
+        const [row] = await tx.insert(employees).values({ ...values, sourceApplicationId, employeeId: `P-${crypto.randomUUID().slice(0,24)}`, createdBy: admin.id }).returning({ id: employees.id, sequence: employees.sequence });
+        if (!row) throw new Error("Insert returned no row");
+        const employeeId = formatEmployeeId(row.sequence);
+        await tx.update(employees).set({ employeeId }).where(eq(employees.id, row.id));
+        employeeUuid = row.id;
+        await tx.insert(auditLogs).values({ adminId: admin.id, action: "ADMIN_CREATED_EMPLOYEE", entityType: "employee", entityId: row.id, metadata: { employeeId } });
+        if (sourceApplicationId) await tx.insert(auditLogs).values({ adminId: admin.id, action: "CANDIDATE_CONVERTED_TO_EMPLOYEE", entityType: "application", entityId: sourceApplicationId, metadata: { employeeId: row.id } });
       });
     }
   } catch (err) {
@@ -102,7 +100,7 @@ export async function saveEmployeeAction(
 }
 
 export async function setEmployeeStatusAction(formData: FormData) {
-  const admin = await requireAdmin();
+  const admin = await requirePermission("employees");
   const id = String(formData.get("id") ?? "");
   const status = String(formData.get("status") ?? "");
   if (!id || !["ACTIVE", "ON_LEAVE", "TERMINATED"].includes(status)) return;

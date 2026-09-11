@@ -83,13 +83,13 @@ function ListArea({
   );
 }
 
-export function JobForm({ job }: { job?: Job }) {
+export function JobForm({ job }: { job?: Partial<Job> }) {
   const [state, action, pending] = useActionState(saveJobAction, initial);
   const e = state.errors ?? {};
 
   return (
     <form action={action} className="space-y-6">
-      {job && <input type="hidden" name="id" value={job.id} />}
+      {job?.id && <input type="hidden" name="id" value={job.id} />}
       <input type="hidden" name="status" value={job?.status ?? "DRAFT"} />
 
       <div aria-live="polite">

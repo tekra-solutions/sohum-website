@@ -7,7 +7,7 @@ import { getEmployeeById, managerOptions } from "@/lib/services/employees";
 import { setEmployeeStatusAction } from "@/lib/services/employee-actions";
 import { btnSecondary, t } from "@/components/admin/form";
 import { employmentTypeLabel, formatDateTime, shortDate } from "@/lib/format";
-import { requireAdmin } from "@/lib/auth/session";
+import { requirePermission } from "@/lib/ats/access";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Employee" };
@@ -35,7 +35,7 @@ export default async function EmployeeDetailPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  await requireAdmin();
+  await requirePermission("employees");
   const { id } = await params;
   const sp = await searchParams;
 

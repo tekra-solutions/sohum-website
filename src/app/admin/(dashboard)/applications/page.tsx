@@ -1,3 +1,7 @@
+import { BulkCandidates } from "@/components/admin/BulkCandidates";
+import { recruiterOptions } from "@/lib/ats/data";
+import { permits, sources } from "@/lib/ats/policy";
+import { control } from "@/components/admin/form";
 import Link from "next/link";
 import { Search } from "lucide-react";
 import { AdminHeader, EmptyState, StatusPill, adminButtonSecondary } from "@/components/admin/ui";
@@ -16,7 +20,7 @@ export default async function ApplicationsPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const sp = await searchParams;
   const one = (k: string) => {
     const v = sp[k];
@@ -40,13 +44,15 @@ export default async function ApplicationsPage({
     jobId: one("jobId") ?? "ALL",
     from: one("from"),
     to: one("to"),
-    sort: (one("sort") ?? "newest") as "newest" | "oldest" | "name",
+    sort: (one("sort") ?? "newest") as "newest" | "oldest" | "name" | "name-desc",
     page: Number(one("page") ?? 1),
+    location: one("location"), source: one("source"), minExperience: one("minExperience"), maxExperience: one("maxExperience"), tag: one("tag"), starred: one("starred"), archived: one("archived"),
   };
 
-  const [{ rows, total, page, pageCount }, allJobs] = await Promise.all([
+  const [{ rows, total, page, pageCount }, allJobs, staff] = await Promise.all([
     listApplications(filters),
     listAdminJobs({}),
+    recruiterOptions(),
   ]);
 
   /** Preserves the current filters when moving between pages. */
@@ -71,7 +77,7 @@ export default async function ApplicationsPage({
               <div className="relative">
                 <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-graphite-400" aria-hidden="true" />
                 <input id="q" name="q" type="search" defaultValue={filters.q ?? ""}
-                  placeholder="Name, email or reference"
+                  placeholder="Name, email, phone, job, skills or location"
                   className="w-full rounded-[3px] border border-paper-300 py-2.5 pl-9 pr-3 text-[0.875rem] focus:border-flame-500 focus:outline-none focus:ring-2 focus:ring-flame-500/30" />
               </div>
             </div>
@@ -111,9 +117,20 @@ export default async function ApplicationsPage({
               </button>
             </div>
           </div>
+          <details className="mt-4"><summary className="cursor-pointer text-xs font-medium text-ink-800">Advanced filters</summary><div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <label className="text-xs">Location<input name="location" defaultValue={filters.location} className={control} /></label>
+            <label className="text-xs">Source<select name="source" defaultValue={filters.source ?? ""} className={control}><option value="">All sources</option>{sources.map(source => <option key={source}>{source}</option>)}</select></label>
+            <label className="text-xs">Minimum years experience<input name="minExperience" type="number" min="0" max="60" defaultValue={filters.minExperience} className={control} /></label>
+            <label className="text-xs">Maximum years experience<input name="maxExperience" type="number" min="0" max="60" defaultValue={filters.maxExperience} className={control} /></label>
+            <label className="text-xs">Tag<input name="tag" defaultValue={filters.tag} className={control} /></label>
+            <label className="text-xs">Sort<select name="sort" defaultValue={filters.sort} className={control}><option value="newest">Newest</option><option value="oldest">Oldest</option><option value="name">Name A–Z</option><option value="name-desc">Name Z–A</option></select></label>
+            <label className="flex items-center gap-2 text-xs"><input name="starred" type="checkbox" value="1" defaultChecked={filters.starred === "1"} />Starred by me</label>
+            <label className="flex items-center gap-2 text-xs"><input name="archived" type="checkbox" value="1" defaultChecked={filters.archived === "1"} />Archived applications</label>
+          </div></details>
         </form>
 
         <div className="mt-5">
+          {permits(admin.role, "candidates") && rows.length > 0 && <BulkCandidates rows={rows.map(({ application: a }) => ({ id: a.id, name: `${a.firstName} ${a.lastName}` }))} staff={staff.filter(s => permits(s.role, "candidates"))} canAssign={permits(admin.role, "manage")} />}
           {rows.length === 0 ? (
             <EmptyState title="No applications found" description="Try a different search, filter or date range." />
           ) : (

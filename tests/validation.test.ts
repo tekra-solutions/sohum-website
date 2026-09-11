@@ -158,7 +158,7 @@ describe("admin schemas", () => {
   });
 
   it("only allows known application statuses", () => {
-    expect(statusChangeSchema.safeParse({ status: "REVIEWING" }).success).toBe(true);
+    expect(statusChangeSchema.safeParse({ status: "SCREENING" }).success).toBe(true);
     expect(statusChangeSchema.safeParse({ status: "DELETED" }).success).toBe(false);
   });
 

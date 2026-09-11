@@ -1,3 +1,8 @@
+import { db } from "@/db";
+import { recruitingSettings } from "@/db/schema";
+import { permits } from "@/lib/ats/policy";
+import { configureRecruitingAction } from "@/lib/ats/job-actions";
+import { WorkflowForm, WorkflowField } from "@/components/admin/WorkflowForm";
 import { AdminHeader, StatusPill } from "@/components/admin/ui";
 import { PasswordForm } from "@/components/admin/PasswordForm";
 import { CreateAdminForm } from "@/components/admin/CreateAdminForm";
@@ -21,6 +26,7 @@ const roleLabel: Record<string, string> = {
 
 export default async function SettingsPage() {
   const admin = await requireAdmin();
+  const [recruiting] = permits(admin.role, "settings") ? await db.select().from(recruitingSettings).limit(1) : [];
   const mayManage = canManageAdmins(admin.role);
   const team = mayManage && isDatabaseConfigured() ? await listAdmins() : [];
 
@@ -32,6 +38,7 @@ export default async function SettingsPage() {
 
   return (
     <>
+      {permits(admin.role, "settings") && <a href="/admin/settings/email-templates" className="block px-8 pt-4 text-sm underline">Manage email templates</a>}
       <AdminHeader title="Settings" description="Your profile, admin accounts and system configuration." />
 
       <div className="max-w-3xl space-y-5 p-5 sm:p-6 lg:p-8">
@@ -54,6 +61,7 @@ export default async function SettingsPage() {
           </div>
         </section>
 
+        {permits(admin.role, "settings") && <section className="rounded-[4px] border border-paper-300 bg-white p-5"><h2 className="mb-3 text-sm font-medium">Job approval workflow</h2><WorkflowForm action={configureRecruitingAction} label="Save recruiting settings"><WorkflowField name="requireJobApproval" label="Approval before publication" value={recruiting?.requireJobApproval ? "1" : "0"} options={[{ value: "0", label: "Disabled — preserve direct publication" }, { value: "1", label: "Enabled — jobs must be approved" }]} /></WorkflowForm></section>}
         {mayManage && (
           <>
             <section className="rounded-[4px] border border-paper-300 bg-white p-5">

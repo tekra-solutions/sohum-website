@@ -1,11 +1,11 @@
 import "server-only";
 import { requireAdmin } from "@/lib/auth/session";
-import { candidateScope, requireApplication } from "@/lib/ats/access";
+import { candidateScope, jobScope, requireApplication } from "@/lib/ats/access";
 import { positivePage, stages } from "@/lib/ats/policy";
 import { z } from "zod";
 import { and, count, desc, eq, gte, ilike, or, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { applicationEvents, applications, jobs, resumeFiles, candidateStars } from "@/db/schema";
+import { applicationEvents, applications, jobs, resumeFiles, candidateStars, admins, notifications, jobAssignments } from "@/db/schema";
 import { buildResumePath, deleteResume, uploadResume } from "@/lib/storage/resumes";
 import { serverEnv } from "@/lib/env";
 
@@ -65,7 +65,7 @@ export async function submitApplication(input: {
     // a second round trip or a race between concurrent submissions.
     const [row] = await db
       .insert(applications)
-      .values({ ...input.values, reference: "PENDING" })
+      .values({ ...input.values, status: "NEW", source: input.values.source || "Company Website", reference: `P-${crypto.randomUUID().slice(0,24)}` })
       .returning({ id: applications.id, sequence: applications.sequence });
     if (!row) throw new Error("Insert returned no row");
 
@@ -94,6 +94,10 @@ export async function submitApplication(input: {
       note: "Application submitted",
     });
 
+    try {
+      const recipients = await db.select({ id: admins.id }).from(admins).where(and(eq(admins.isActive, true), sql`(${admins.role} in ('ADMIN','SUPER_ADMIN','RECRUITING_ADMIN') or (${admins.role} = 'HIRING_MANAGER' and exists (select 1 from ${jobAssignments} where ${jobAssignments.jobId} = ${input.values.jobId} and ${jobAssignments.adminId} = ${admins.id})))`));
+      if (recipients.length) await db.insert(notifications).values(recipients.map(r => ({ adminId: r.id, applicationId: row.id, title: "New application received", href: `/admin/applications/${row.id}` })));
+    } catch { console.error("[notifications] new application notification failed"); }
     return { ok: true, reference, applicationId: row.id };
   } catch (err) {
     console.error("[applications] submit failed", {
@@ -238,7 +242,7 @@ export async function dashboardStats() {
       published: sql<number>`count(*) filter (where ${jobs.status} = 'PUBLISHED')::int`,
       draft: sql<number>`count(*) filter (where ${jobs.status} = 'DRAFT')::int`,
     })
-    .from(jobs);
+    .from(jobs).where(jobScope(admin));
 
   const [appRow] = await db
     .select({

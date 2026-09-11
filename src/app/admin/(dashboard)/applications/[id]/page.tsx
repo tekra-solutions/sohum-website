@@ -1,11 +1,10 @@
+import { CandidateWorkspace } from "@/components/admin/CandidateWorkspace";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Download, Eye, FileText, Mail, MapPin, Phone } from "lucide-react";
-import { AdminHeader, StatusPill } from "@/components/admin/ui";
+import { AdminHeader, StatusPill, adminButtonSecondary } from "@/components/admin/ui";
 import { getApplicationDetail } from "@/lib/services/applications";
-import { changeStatusAction, saveNotesAction } from "@/lib/services/application-actions";
 import { applicationStatusLabel, formatDateTime, formatFileSize } from "@/lib/format";
-import { applicationStatuses } from "@/lib/validation/schemas";
 import { requireAdmin } from "@/lib/auth/session";
 import { audit } from "@/lib/audit";
 
@@ -50,7 +49,7 @@ export default async function ApplicationDetailPage({
       <AdminHeader
         title={name}
         description={`${app.job.title} · ${app.reference}`}
-        action={<StatusPill status={app.status} label={applicationStatusLabel[app.status]} />}
+        action={<><StatusPill status={app.status} label={applicationStatusLabel[app.status]} /><a href="#stage" className={adminButtonSecondary}>Change stage</a><a href="#interviews" className={adminButtonSecondary}>Schedule interview</a><a href="#email" className={adminButtonSecondary}>Email candidate</a></>}
       />
 
       <div className="p-5 sm:p-6 lg:p-8">
@@ -103,8 +102,8 @@ export default async function ApplicationDetailPage({
                     </a>
                   </Row>
                 )}
-                <Row label="Work authorized">{app.workAuthorized ? "Yes" : "No"}</Row>
-                <Row label="Needs sponsorship">{app.sponsorshipRequired ? "Yes" : "No"}</Row>
+                <Row label="Work authorized">{app.workAuthorized == null ? "Not provided" : app.workAuthorized ? "Yes" : "No"}</Row>
+                <Row label="Needs sponsorship">{app.sponsorshipRequired == null ? "Not provided" : app.sponsorshipRequired ? "Yes" : "No"}</Row>
                 {app.source && <Row label="Heard about us via">{app.source}</Row>}
                 <Row label="Applied">{formatDateTime(app.createdAt)}</Row>
               </dl>
@@ -122,7 +121,7 @@ export default async function ApplicationDetailPage({
                   </div>
                   <div className="flex gap-2">
                     <a
-                      href={`/api/admin/applications/${app.id}/resume`}
+                      href={`/admin/applications/${app.id}/resume`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-2 rounded-[3px] border border-paper-300 px-4 py-2.5 text-[0.875rem] font-medium text-ink-900 hover:border-ink-500"
@@ -155,80 +154,10 @@ export default async function ApplicationDetailPage({
               </section>
             )}
 
-            {/* ---- Internal notes ---- */}
-            <section className="rounded-[4px] border border-paper-300 bg-white p-6">
-              <h2 className="text-[1.0625rem] font-medium text-ink-900">Internal notes</h2>
-              <p className="mt-1.5 text-[0.875rem] text-graphite-600">Visible to recruiting admins only.</p>
-              <form action={saveNotesAction} className="mt-4">
-                <input type="hidden" name="id" value={app.id} />
-                <label htmlFor="internalNotes" className="sr-only">Internal notes</label>
-                <textarea
-                  id="internalNotes"
-                  name="internalNotes"
-                  rows={5}
-                  defaultValue={app.internalNotes ?? ""}
-                  className="w-full resize-y rounded-[3px] border border-paper-300 px-3.5 py-2.5 text-[0.9375rem] focus:border-flame-500 focus:outline-none focus:ring-2 focus:ring-flame-500/30"
-                />
-                <button type="submit" className="mt-3 rounded-[3px] bg-ink-900 px-5 py-2.5 text-[0.875rem] font-medium text-white hover:bg-ink-700">
-                  Save notes
-                </button>
-              </form>
-            </section>
           </div>
 
           {/* ---------------------------------------------------- side column */}
           <div className="space-y-5">
-            <section className="rounded-[4px] border border-paper-300 bg-white p-6">
-              <h2 className="text-[1.0625rem] font-medium text-ink-900">Status</h2>
-              <form action={changeStatusAction} className="mt-4 space-y-3">
-                <input type="hidden" name="id" value={app.id} />
-                <div>
-                  <label htmlFor="status" className="sr-only">Status</label>
-                  <select
-                    id="status"
-                    name="status"
-                    defaultValue={app.status}
-                    className="w-full rounded-[3px] border border-paper-300 bg-white px-3.5 py-2.5 text-[0.9375rem] focus:border-flame-500 focus:outline-none focus:ring-2 focus:ring-flame-500/30"
-                  >
-                    {applicationStatuses.map((s) => (
-                      <option key={s} value={s}>{applicationStatusLabel[s]}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label htmlFor="note" className="block text-[0.8125rem] text-graphite-600">Note (optional)</label>
-                  <input
-                    id="note"
-                    name="note"
-                    className="mt-1.5 w-full rounded-[3px] border border-paper-300 px-3.5 py-2.5 text-[0.875rem] focus:border-flame-500 focus:outline-none focus:ring-2 focus:ring-flame-500/30"
-                  />
-                </div>
-                <button type="submit" className="w-full rounded-[3px] bg-ink-900 px-5 py-2.5 text-[0.875rem] font-medium text-white hover:bg-ink-700">
-                  Update status
-                </button>
-              </form>
-            </section>
-
-            <section className="rounded-[4px] border border-paper-300 bg-white p-6">
-              <h2 className="text-[1.0625rem] font-medium text-ink-900">Timeline</h2>
-              <ol className="mt-4 space-y-4">
-                {app.events.map((ev) => (
-                  <li key={ev.id} className="flex gap-3">
-                    <span aria-hidden="true" className="mt-1.5 size-2 shrink-0 rounded-full bg-flame-500" />
-                    <div>
-                      <p className="text-[0.875rem] font-medium text-ink-900">
-                        {ev.fromStatus
-                          ? `${applicationStatusLabel[ev.fromStatus]} → ${applicationStatusLabel[ev.toStatus]}`
-                          : applicationStatusLabel[ev.toStatus]}
-                      </p>
-                      <p className="mt-0.5 text-[0.8125rem] text-graphite-600">{formatDateTime(ev.createdAt)}</p>
-                      {ev.note && <p className="mt-1 text-[0.875rem] text-graphite-700">{ev.note}</p>}
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            </section>
-
             <section className="rounded-[4px] border border-paper-300 bg-white p-6">
               <h2 className="text-[1.0625rem] font-medium text-ink-900">Position</h2>
               <p className="mt-3 text-[0.9375rem] font-medium text-ink-900">{app.job.title}</p>
@@ -239,6 +168,7 @@ export default async function ApplicationDetailPage({
             </section>
           </div>
         </div>
+        <CandidateWorkspace id={id} jobTitle={app.job.title} />
       </div>
     </>
   );

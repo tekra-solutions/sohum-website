@@ -1,6 +1,6 @@
 "use server";
 import { revalidatePath } from "next/cache";
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import { admins, applications, applicationEvents, auditLogs, candidateNotes, candidateStars, emailEvents, emailTemplates, interviewFeedback, interviews, notifications, reminders } from "@/db/schema";
@@ -23,6 +23,7 @@ export async function candidateAction(_: ActionState, form: FormData): Promise<A
   const kind = String(form.get("kind") ?? "");
   const id = String(form.get("applicationId") ?? "");
   const { admin } = await requireApplication(id, ["note", "feedback"].includes(kind) ? "feedback" : "candidates");
+  if (!(await rateLimit({ key: `ats-action:${admin.id}`, limit: 120, windowMs: 60_000 })).ok) return { error: "Too many updates. Please wait a minute." };
   const data = Object.fromEntries(form);
   try {
     await db.transaction(async tx => {

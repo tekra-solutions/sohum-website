@@ -5,7 +5,7 @@ import { btn, btnSecondary, control, t } from "@/components/admin/form";
 import { employeeDepartments, employeeStats, listEmployees } from "@/lib/services/employees";
 import { employmentTypeLabel, shortDate } from "@/lib/format";
 import { employmentStatuses } from "@/lib/validation/schemas";
-import { requireAdmin } from "@/lib/auth/session";
+import { requirePermission } from "@/lib/ats/access";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Employees" };
@@ -21,7 +21,7 @@ export default async function EmployeesPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  await requireAdmin();
+  await requirePermission("employees");
   const sp = await searchParams;
   const one = (k: string) => {
     const v = sp[k];

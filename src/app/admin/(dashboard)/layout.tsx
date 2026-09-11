@@ -1,3 +1,4 @@
+import { NotificationPanel } from "@/components/admin/RecruitingActivity";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { AdminNav } from "@/components/admin/AdminNav";
@@ -23,8 +24,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <div className="flex min-h-dvh flex-col bg-paper-100 lg:flex-row">
-      <AdminNav adminName={admin.name} />
-      <main className="min-w-0 flex-1">{children}</main>
+      <AdminNav adminName={admin.name} role={admin.role} />
+      <main className="min-w-0 flex-1"><NotificationPanel />{children}</main>
     </div>
   );
 }

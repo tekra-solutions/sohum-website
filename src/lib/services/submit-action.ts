@@ -125,7 +125,7 @@ export async function submitApplicationAction(
       coverLetter: values.coverLetter || null,
       workAuthorized: values.workAuthorized,
       sponsorshipRequired: values.sponsorshipRequired,
-      source: values.source || null,
+      source: values.source || "Company Website",
     },
     resume: {
       filename: file.name,

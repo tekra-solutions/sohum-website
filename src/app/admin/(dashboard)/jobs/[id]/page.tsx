@@ -1,3 +1,5 @@
+import { JobWorkspace } from "@/components/admin/JobWorkspace";
+import { permits } from "@/lib/ats/policy";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, CheckCircle2, ExternalLink } from "lucide-react";
@@ -18,7 +20,7 @@ export default async function EditJobPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const { id } = await params;
   const sp = await searchParams;
 
@@ -63,7 +65,8 @@ export default async function EditJobPage({
           </div>
         )}
 
-        <div className="mt-5 max-w-3xl space-y-5">
+        <JobWorkspace job={job} />
+        {permits(admin.role, "manage") && <div className="mt-5 max-w-3xl space-y-5">
           <div className="rounded-[4px] border border-paper-300 bg-white p-6 sm:p-8">
             <JobForm job={job} />
           </div>
@@ -91,6 +94,7 @@ export default async function EditJobPage({
                   <button type="submit" className="rounded-[3px] border border-paper-300 px-4 py-2.5 text-[0.875rem] font-medium text-ink-900 hover:border-ink-500">Unpublish</button>
                 </form>
               )}
+              {job.status === "PUBLISHED" && <form action={setJobStatusAction}><input type="hidden" name="id" value={job.id} /><input type="hidden" name="status" value="CLOSED" /><button className="rounded-[3px] border border-paper-300 px-4 py-2.5 text-sm">Close job</button></form>}
               {job.status !== "ARCHIVED" && (
                 <form action={setJobStatusAction}>
                   <input type="hidden" name="id" value={job.id} />
@@ -106,7 +110,7 @@ export default async function EditJobPage({
               )}
             </div>
           </div>
-        </div>
+        </div>}
       </div>
     </>
   );
