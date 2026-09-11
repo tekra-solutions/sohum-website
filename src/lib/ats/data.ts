@@ -1,7 +1,7 @@
 import "server-only";
-import { and, asc, desc, eq, ne, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, lte, ne, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { admins, applications, auditLogs, candidateNotes, candidateStars, emailEvents, emailTemplates, employees, interviewFeedback, interviews, jobs, notifications, recruitingSettings, reminders } from "@/db/schema";
+import { admins, applications, auditLogs, candidateNotes, candidateStars, emailEvents, emailTemplates, employees, interviewFeedback, interviews, jobs, notifications, recruitingSettings, reminders, offers, offerVersions } from "@/db/schema";
 import { requireAdmin } from "@/lib/auth/session";
 import { candidateScope, requireApplication } from "./access";
 import { permits } from "./policy";
@@ -43,12 +43,50 @@ export async function upcomingInterviews() {
     .where(and(candidateScope(admin), sql`${interviews.status} in ('Scheduled', 'Rescheduled')`, sql`${interviews.endsAt} >= now()`))
     .orderBy(asc(interviews.startsAt)).limit(12);
 }
+/**
+ * Unread notifications only. The admin shell renders the notification panel
+ * on every page, so it must not pay for the full actionCenter() fan-out —
+ * that query set belongs to the dashboard, not the chrome.
+ */
+export async function unreadNotifications() {
+  const admin = await requireAdmin();
+  return db.select().from(notifications)
+    .where(and(eq(notifications.adminId, admin.id), sql`${notifications.readAt} is null`,
+      sql`(${notifications.applicationId} is null or exists (select 1 from ${applications} where ${applications.id} = ${notifications.applicationId} and ${candidateScope(admin)}))`))
+    .orderBy(desc(notifications.createdAt)).limit(20);
+}
+
 export async function actionCenter() {
   const admin = await requireAdmin();
-  const [tasks, feedbackDue, alerts] = await Promise.all([
+  const seesOffers = permits(admin.role, "offers");
+  const [tasks, feedbackDue, alerts, offerApprovals, offerExpiring] = await Promise.all([
     db.select({ task: reminders, name: sql<string>`concat(${applications.firstName}, ' ', ${applications.lastName})` }).from(reminders).innerJoin(applications, eq(reminders.applicationId, applications.id)).where(and(candidateScope(admin), eq(reminders.adminId, admin.id), sql`${reminders.completedAt} is null`)).orderBy(asc(reminders.dueAt)).limit(12),
     db.select({ id: applications.id, name: sql<string>`concat(${applications.firstName}, ' ', ${applications.lastName})`, type: interviews.type }).from(interviews).innerJoin(applications, eq(interviews.applicationId, applications.id)).where(and(candidateScope(admin), eq(interviews.status, "Completed"), sql`not exists (select 1 from ${interviewFeedback} where ${interviewFeedback.interviewId} = ${interviews.id})`)).limit(12),
     db.select().from(notifications).where(and(eq(notifications.adminId, admin.id), sql`${notifications.readAt} is null`, sql`(${notifications.applicationId} is null or exists (select 1 from ${applications} where ${applications.id} = ${notifications.applicationId} and ${candidateScope(admin)}))`)).orderBy(desc(notifications.createdAt)).limit(20),
+    // Offers waiting on *this* admin to approve them. Only approvers see
+    // these, so a recruiter is not nagged about an action they cannot take.
+    seesOffers && permits(admin.role, "manage")
+      ? db.select({ id: offers.id, name: sql<string>`concat(${applications.firstName}, ' ', ${applications.lastName})`, job: jobs.title })
+          .from(offers)
+          .innerJoin(applications, eq(offers.applicationId, applications.id))
+          .innerJoin(jobs, eq(applications.jobId, jobs.id))
+          .where(and(candidateScope(admin), eq(offers.status, "PENDING_APPROVAL")))
+          .orderBy(asc(offers.createdAt)).limit(12)
+      : Promise.resolve([]),
+    // Sent offers nearing expiry, so someone follows up before they lapse.
+    seesOffers
+      ? db.select({ id: offers.id, name: sql<string>`concat(${applications.firstName}, ' ', ${applications.lastName})`, expiresAt: offerVersions.expirationDate })
+          .from(offers)
+          .innerJoin(offerVersions, eq(offers.currentVersionId, offerVersions.id))
+          .innerJoin(applications, eq(offers.applicationId, applications.id))
+          .where(and(
+            candidateScope(admin),
+            sql`${offers.status} in ('SENT','VIEWED')`,
+            gte(offerVersions.expirationDate, new Date()),
+            lte(offerVersions.expirationDate, new Date(Date.now() + 3 * 86_400_000)),
+          ))
+          .orderBy(asc(offerVersions.expirationDate)).limit(12)
+      : Promise.resolve([]),
   ]);
-  return { tasks, feedbackDue, alerts };
+  return { tasks, feedbackDue, alerts, offerApprovals, offerExpiring };
 }

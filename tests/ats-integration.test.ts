@@ -40,6 +40,15 @@ describe.skipIf(!enabled)("ATS database integration (local only)", () => {
     if (!["localhost","127.0.0.1"].includes(url.hostname) || !url.pathname.startsWith("/sohum_ats_test_")) throw new Error("Refusing non-test database");
     process.env.DATABASE_URL = url.href; process.env.AUTH_SECRET = "local-integration-test-secret-not-for-production";
   });
+  it("runs against a freshly seeded fixture", async () => {
+    // These tests mutate shared fixture rows in sequence, so a re-run against
+    // an already-used database produces confusing downstream failures (a
+    // candidate found at HIRED when the test expects SCREENING). Fail here
+    // with an actionable message instead of 15 misleading assertion errors.
+    const { getApplicationDetail } = await import("@/lib/services/applications");
+    const app = await getApplicationDetail(appId);
+    expect(app?.status, "fixture already mutated — create a new sohum_ats_test_* database and re-run scripts/setup-ats-test-db.mjs").toBe("SCREENING");
+  });
   it("preserves migrated stages, searches on the server and scopes recruiter access", async () => {
     const { listApplications, getApplicationDetail } = await import("@/lib/services/applications");
     const app = await getApplicationDetail(appId); expect(app?.status).toBe("SCREENING");

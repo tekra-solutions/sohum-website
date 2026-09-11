@@ -5,7 +5,7 @@ import { positivePage, stages } from "@/lib/ats/policy";
 import { z } from "zod";
 import { and, count, desc, eq, gte, ilike, or, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { applicationEvents, applications, jobs, resumeFiles, candidateStars, admins, notifications, jobAssignments } from "@/db/schema";
+import { applicationEvents, applications, jobs, resumeFiles, candidateStars, admins, notifications, jobAssignments, offers } from "@/db/schema";
 import { buildResumePath, deleteResume, uploadResume } from "@/lib/storage/resumes";
 import { serverEnv } from "@/lib/env";
 
@@ -234,6 +234,29 @@ export async function getApplicationDetail(id: string) {
     },
   });
   return row ?? null;
+}
+
+/**
+ * The handful of facts a recruiter needs at a glance on the candidate page:
+ * who owns it, when it arrived, and whether an offer exists. Kept separate
+ * from getApplicationDetail so the heavier relational load is unchanged, and
+ * offer state is only read when the caller is permitted to see it.
+ */
+export async function applicationSummary(id: string, opts: { includeOffer: boolean }) {
+  const [row] = await db
+    .select({ assignedName: admins.name, createdAt: applications.createdAt })
+    .from(applications)
+    .leftJoin(admins, eq(applications.assignedTo, admins.id))
+    .where(eq(applications.id, id))
+    .limit(1);
+  if (!opts.includeOffer) return { ...row, offerStatus: null as string | null };
+  const [offerRow] = await db
+    .select({ status: offers.status })
+    .from(offers)
+    .where(eq(offers.applicationId, id))
+    .orderBy(desc(offers.createdAt))
+    .limit(1);
+  return { ...row, offerStatus: offerRow?.status ?? null };
 }
 
 /** Dashboard counters, computed in one round trip. */

@@ -3,8 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Download, Eye, FileText, Mail, MapPin, Phone } from "lucide-react";
 import { AdminHeader, StatusPill, adminButtonSecondary } from "@/components/admin/ui";
-import { getApplicationDetail } from "@/lib/services/applications";
-import { applicationStatusLabel, formatDateTime, formatFileSize } from "@/lib/format";
+import { getApplicationDetail, applicationSummary } from "@/lib/services/applications";
+import { applicationStatusLabel, offerStatusLabel, formatDateTime, formatFileSize, shortDate } from "@/lib/format";
+import { permits } from "@/lib/ats/policy";
 import { requireAdmin } from "@/lib/auth/session";
 import { audit } from "@/lib/audit";
 
@@ -41,6 +42,8 @@ export default async function ApplicationDetailPage({
     metadata: { reference: app.reference },
   });
 
+  const summary = await applicationSummary(id, { includeOffer: permits(admin.role, "offers") });
+
   const name = `${app.firstName} ${app.lastName}`;
   const locationParts = [app.city, app.state, app.zipCode, app.country].filter(Boolean);
 
@@ -57,6 +60,38 @@ export default async function ApplicationDetailPage({
           <ArrowLeft className="size-4" aria-hidden="true" />
           All applications
         </Link>
+
+        {/* At-a-glance bar: the facts a recruiter needs before reading any
+            card — who owns this candidate, when they applied, and whether an
+            offer is in flight. */}
+        <dl className="mt-4 flex flex-wrap gap-x-8 gap-y-3 rounded-[4px] border border-paper-300 bg-white px-5 py-3.5">
+          <div>
+            <dt className="text-[0.6875rem] uppercase tracking-[0.08em] text-graphite-500">Stage</dt>
+            <dd className="mt-1"><StatusPill status={app.status} label={applicationStatusLabel[app.status]} /></dd>
+          </div>
+          <div>
+            <dt className="text-[0.6875rem] uppercase tracking-[0.08em] text-graphite-500">Assigned recruiter</dt>
+            <dd className="mt-1 text-[0.875rem] text-ink-900">{summary?.assignedName ?? "Unassigned"}</dd>
+          </div>
+          <div>
+            <dt className="text-[0.6875rem] uppercase tracking-[0.08em] text-graphite-500">Applied</dt>
+            <dd className="mt-1 text-[0.875rem] text-ink-900">{shortDate(app.createdAt)}</dd>
+          </div>
+          <div>
+            <dt className="text-[0.6875rem] uppercase tracking-[0.08em] text-graphite-500">Position</dt>
+            <dd className="mt-1 text-[0.875rem] text-ink-900">{app.job.title}</dd>
+          </div>
+          {permits(admin.role, "offers") && (
+            <div>
+              <dt className="text-[0.6875rem] uppercase tracking-[0.08em] text-graphite-500">Offer</dt>
+              <dd className="mt-1">
+                {summary?.offerStatus
+                  ? <StatusPill status={summary.offerStatus} label={offerStatusLabel[summary.offerStatus]} />
+                  : <span className="text-[0.875rem] text-graphite-500">None</span>}
+              </dd>
+            </div>
+          )}
+        </dl>
 
         <div className="mt-5 grid gap-5 lg:grid-cols-[1.5fr_1fr]">
           {/* ---------------------------------------------------- main column */}
