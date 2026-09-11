@@ -94,3 +94,28 @@ describe("formatting", () => {
     expect(relativeTime(new Date(Date.now() - 26 * 60 * 60 * 1000))).toBe("yesterday");
   });
 });
+
+describe("resume storage paths", () => {
+  // The extension is the only part of a storage key derived from a
+  // user-supplied filename, so it must be allowlisted at the boundary rather
+  // than trusted because validateResume() ran earlier.
+  it("only ever appends an allowlisted extension", async () => {
+    const { buildResumePath } = await import("@/lib/storage/resumes");
+    const appId = "30000000-0000-4000-8000-000000000001";
+    for (const name of [
+      "evil.pdf/../../../etc/passwd",
+      "a.pdf?x=1",
+      "no-extension",
+      "..%2Fescape.pdf",
+      "shell.pdf;rm -rf /",
+      "resume.PDF",
+      "cv.docx",
+    ]) {
+      const path = buildResumePath(appId, name);
+      expect(path.startsWith(`applications/${appId}/resume-`), name).toBe(true);
+      expect(path).not.toContain("..");
+      expect(path).not.toContain("?");
+      expect(/\.(pdf|doc|docx|bin)$/.test(path), `${name} -> ${path}`).toBe(true);
+    }
+  });
+});
