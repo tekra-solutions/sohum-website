@@ -316,6 +316,60 @@ describe.skipIf(!enabled)("invoice workflow (local only)", () => {
     expect(copy.secureTokenHash).toBeNull();
   });
 
+  it("cannot overpay via concurrent payments racing on the same balance", async () => {
+    state.id = SUPER; state.role = "SUPER_ADMIN";
+    const { saveInvoiceAction, recordPaymentAction } = await import("@/lib/invoices/actions");
+    const { db } = await import("@/db");
+    const { invoices, invoicePayments, clients: clientsTable } = await import("@/db/schema");
+    const { eq, desc } = await import("drizzle-orm");
+    const [anyClient] = await db.select().from(clientsTable).limit(1);
+
+    await expect(saveInvoiceAction({}, fd({
+      clientId: anyClient.id, invoiceDate: "2026-09-06", dueDate: "2026-10-06", taxRateBasisPoints: "0",
+      itemDescription: ["Race target"], itemQuantity: ["1"], itemRate: ["100"],
+    }))).rejects.toThrow("REDIRECT");
+    const [target] = await db.select().from(invoices).orderBy(desc(invoices.createdAt)).limit(1);
+    await db.update(invoices).set({ status: "SENT" }).where(eq(invoices.id, target.id));
+
+    // Five simultaneous full-balance payments against a $100 invoice. The
+    // row lock must serialise them so exactly one succeeds.
+    const attempts = await Promise.all(Array.from({ length: 5 }, () =>
+      recordPaymentAction({}, fd({
+        invoiceId: target.id, amountCents: "100", paidOn: "2026-09-06", method: "ACH",
+      })).catch(() => ({ error: "threw" })),
+    ));
+    expect(attempts.filter(a => "success" in a && a.success).length).toBe(1);
+
+    const [after] = await db.select().from(invoices).where(eq(invoices.id, target.id));
+    expect(after.amountPaidCents).toBe(10000);
+    expect(after.balanceDueCents).toBe(0);
+    expect(after.status).toBe("PAID");
+    const payments = await db.select().from(invoicePayments).where(eq(invoicePayments.invoiceId, target.id));
+    expect(payments).toHaveLength(1);
+  });
+
+  it("refuses a due date before the invoice date and an invoice with no items", async () => {
+    state.id = SUPER; state.role = "SUPER_ADMIN";
+    const { saveInvoiceAction } = await import("@/lib/invoices/actions");
+    const { db } = await import("@/db");
+    const { clients: clientsTable } = await import("@/db/schema");
+    const [anyClient] = await db.select().from(clientsTable).limit(1);
+
+    expect((await saveInvoiceAction({}, fd({
+      clientId: anyClient.id, invoiceDate: "2026-10-01", dueDate: "2026-09-01", taxRateBasisPoints: "0",
+      itemDescription: ["Backwards dates"], itemQuantity: ["1"], itemRate: ["10"],
+    }))).error).toContain("due date cannot be before");
+
+    expect((await saveInvoiceAction({}, fd({
+      clientId: anyClient.id, invoiceDate: "2026-09-01", dueDate: "2026-10-01", taxRateBasisPoints: "0",
+    }))).error).toContain("at least one line item");
+
+    expect((await saveInvoiceAction({}, fd({
+      clientId: anyClient.id, invoiceDate: "2026-09-01", dueDate: "2026-10-01", taxRateBasisPoints: "0",
+      itemDescription: ["Zero quantity"], itemQuantity: ["0"], itemRate: ["10"],
+    }))).error).toContain("greater than zero");
+  });
+
   it("denies every invoice path to a role without the permission", async () => {
     state.id = RECRUITER; state.role = "RECRUITER";
     const { listInvoices, invoiceDashboard, getInvoiceDetail } = await import("@/lib/invoices/data");

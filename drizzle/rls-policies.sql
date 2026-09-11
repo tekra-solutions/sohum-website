@@ -73,5 +73,7 @@ CREATE POLICY "public can read published jobs"
 --     on conflict (id) do update set public = false;
 --   insert into storage.buckets (id, name, public) values ('offers','offers',false)
 --     on conflict (id) do update set public = false;
+--   insert into storage.buckets (id, name, public) values ('invoices','invoices',false)
+--     on conflict (id) do update set public = false;
 -- No storage policies are granted to anon/authenticated, so objects are
 -- reachable only through server-minted signed URLs.

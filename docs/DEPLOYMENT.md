@@ -40,7 +40,7 @@ Row Level Security.
 
 Supabase -> **Storage -> New bucket**
 
-- Names: `resumes` and `offers`
+- Names: `resumes`, `offers` and `invoices`
 - **Public: OFF** — required. Resumes are private HR data, served only through
   short-lived signed URLs minted server-side.
 
