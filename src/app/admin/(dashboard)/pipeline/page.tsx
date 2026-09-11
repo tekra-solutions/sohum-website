@@ -1,7 +1,7 @@
 import { sql } from "drizzle-orm";
 import { db } from "@/db";
 import { applications, resumeFiles, interviews, employees } from "@/db/schema";
-import { listApplications } from "@/lib/services/applications";
+import { pipelineByStage } from "@/lib/services/applications";
 import { listAdminJobs } from "@/lib/services/jobs";
 import { requireAdmin } from "@/lib/auth/session";
 import { permits, stages } from "@/lib/ats/policy";
@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 export default async function PipelinePage({ searchParams }: { searchParams: Promise<{ jobId?: string }> }) {
   const admin = await requireAdmin();
   const { jobId } = await searchParams;
-  const [jobs, results] = await Promise.all([listAdminJobs({}), Promise.all(stages.map(status => listApplications({ jobId, status, pageSize: 20 })))]);
+  const [jobs, results] = await Promise.all([listAdminJobs({}), pipelineByStage(jobId)]);
   const ids = results.flatMap(r => r.rows.map(r => r.application.id));
   const indicators = ids.length ? await db.select({ id: applications.id, resume: sql<boolean>`exists(select 1 from ${resumeFiles} where ${resumeFiles.applicationId} = ${applications.id})`, interview: sql<boolean>`exists(select 1 from ${interviews} where ${interviews.applicationId} = ${applications.id} and ${interviews.status} in ('Scheduled','Rescheduled'))`, hasEmployee: sql<boolean>`exists(select 1 from ${employees} where ${employees.sourceApplicationId} = ${applications.id})` }).from(applications).where(sql`${applications.id} in (${sql.join(ids.map(id => sql`${id}::uuid`), sql`, `)})`) : [];
   const byId = new Map(indicators.map(row => [row.id, row]));
