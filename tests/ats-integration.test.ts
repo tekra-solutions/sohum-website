@@ -138,6 +138,101 @@ describe.skipIf(!enabled)("ATS database integration (local only)", () => {
   });
 });
 
+describe.skipIf(!enabled)("Workflow edge cases (local only)", () => {
+  beforeAll(() => { state.sendOk = true; });
+
+  it("refuses to schedule an interview for a rejected or hired candidate", async () => {
+    state.id = "10000000-0000-4000-8000-000000000001"; state.role = "SUPER_ADMIN";
+    const { db } = await import("@/db");
+    const { applications, jobs } = await import("@/db/schema");
+    const [job] = await db.select().from(jobs).limit(1);
+    const [rejected] = await db.insert(applications).values({
+      reference: "LOCAL-ATS-REJ", jobId: job.id, firstName: "Rejected", lastName: "Case",
+      email: "rejected.case@sohum.invalid", status: "REJECTED",
+    }).returning();
+
+    const { candidateAction } = await import("@/lib/ats/actions");
+    const f = new FormData();
+    f.set("applicationId", rejected.id); f.set("kind", "interview"); f.set("type", "Technical");
+    f.set("status", "Scheduled");
+    f.set("startsAt", new Date(Date.now() + 86400000).toISOString());
+    f.set("endsAt", new Date(Date.now() + 90000000).toISOString());
+    f.set("timezone", "America/Chicago"); f.set("interviewers", "Test Manager");
+    expect((await candidateAction({}, f)).error).toContain("already rejected");
+  });
+
+  it("refuses an interview whose end precedes its start", async () => {
+    state.id = "10000000-0000-4000-8000-000000000001"; state.role = "SUPER_ADMIN";
+    const { db } = await import("@/db");
+    const { applications, jobs } = await import("@/db/schema");
+    const [job] = await db.select().from(jobs).limit(1);
+    const [active] = await db.insert(applications).values({
+      reference: "LOCAL-ATS-TIME", jobId: job.id, firstName: "Time", lastName: "Case",
+      email: "time.case@sohum.invalid", status: "INTERVIEW",
+    }).returning();
+    const { candidateAction } = await import("@/lib/ats/actions");
+    const f = new FormData();
+    f.set("applicationId", active.id); f.set("kind", "interview"); f.set("type", "Technical");
+    f.set("status", "Scheduled");
+    f.set("startsAt", new Date(Date.now() + 90000000).toISOString());
+    f.set("endsAt", new Date(Date.now() + 86400000).toISOString());
+    f.set("timezone", "America/Chicago"); f.set("interviewers", "Test Manager");
+    expect((await candidateAction({}, f)).error).toBeDefined();
+  });
+
+  it("refuses candidate acceptance of a withdrawn offer", async () => {
+    state.id = "10000000-0000-4000-8000-000000000001"; state.role = "SUPER_ADMIN";
+    const { db } = await import("@/db");
+    const { applications, jobs, offers, offerVersions } = await import("@/db/schema");
+    const { eq } = await import("drizzle-orm");
+    const [job] = await db.select().from(jobs).limit(1);
+    const [app] = await db.insert(applications).values({
+      reference: "LOCAL-ATS-WD", jobId: job.id, firstName: "Withdrawn", lastName: "Case",
+      email: "withdrawn.case@sohum.invalid", status: "OFFER",
+    }).returning();
+    const { hashOfferToken } = await import("@/lib/offers/tokens");
+    const token = "withdrawn-case-token-fixture";
+    const [offer] = await db.insert(offers).values({
+      applicationId: app.id, createdBy: state.id, status: "SENT",
+      secureTokenHash: hashOfferToken(token),
+    }).returning();
+    const [version] = await db.insert(offerVersions).values({
+      offerId: offer.id, versionNumber: 1, createdBy: state.id,
+      jobTitle: "Test", department: "Engineering", location: "Kansas City",
+      employmentType: "FULL_TIME", remoteType: "HYBRID",
+      startDate: new Date(Date.now() + 30 * 86400000),
+      expirationDate: new Date(Date.now() + 7 * 86400000),
+      renderedHtml: "<html></html>",
+    }).returning();
+    await db.update(offers).set({ currentVersionId: version.id }).where(eq(offers.id, offer.id));
+
+    // Verify as the candidate, then withdraw before they accept.
+    const { requestOtpAction, verifyOtpAction, acceptOfferAction } = await import("@/app/offer/[token]/actions");
+    const tf = (extra: Record<string, string> = {}) => {
+      const f = new FormData(); f.set("token", token);
+      for (const [k, v] of Object.entries(extra)) f.set(k, v);
+      return f;
+    };
+    await requestOtpAction({}, tf());
+    const code = state.lastEmail!.text.match(/\b(\d{6})\b/)![1];
+    expect((await verifyOtpAction({}, tf({ code }))).success).toBeDefined();
+
+    const { withdrawOfferAction } = await import("@/lib/offers/actions");
+    const wf = new FormData(); wf.set("offerId", offer.id);
+    expect((await withdrawOfferAction({}, wf)).success).toBeDefined();
+
+    // The withdraw rotates the token hash, so the old link no longer resolves
+    // at all — the candidate sees the uniform "invalid or expired" message.
+    const accept = await acceptOfferAction({}, tf({ legalName: "Withdrawn Case", confirmed: "1" }));
+    expect(accept.error).toBeDefined();
+    expect(accept.success).toBeUndefined();
+    const [after] = await db.select().from(offers).where(eq(offers.id, offer.id));
+    expect(after.status).toBe("WITHDRAWN");
+    const [appAfter] = await db.select().from(applications).where(eq(applications.id, app.id));
+    expect(appAfter.status).toBe("OFFER");
+  });
+});
+
 describe.skipIf(!enabled)("RBAC enforcement (local only)", () => {
   const managerId = "10000000-0000-4000-8000-000000000003";
   const appId2 = "30000000-0000-4000-8000-000000000001";

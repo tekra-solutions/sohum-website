@@ -77,6 +77,13 @@ export async function candidateAction(_: ActionState, form: FormData): Promise<A
         await tx.update(applications).set({ archivedAt: data.restore === "1" ? null : new Date(), updatedAt: new Date() }).where(eq(applications.id, id));
         await record(tx, admin.id, id, data.restore === "1" ? "CANDIDATE_RESTORED" : "CANDIDATE_ARCHIVED");
       } else if (kind === "interview") {
+        // Scheduling against a closed-out candidate is almost always a
+        // mistake (wrong row, stale tab). Updating an existing interview is
+        // still allowed so outcomes can be recorded after the fact.
+        const interviewIdRaw = data.interviewId ? String(data.interviewId) : "";
+        if (!interviewIdRaw && (app.status === "REJECTED" || app.status === "HIRED")) {
+          throw new Error(`${app.firstName} is already ${app.status === "HIRED" ? "hired" : "rejected"}. Move them back to an active stage before scheduling an interview.`);
+        }
         const values = interviewSchema.parse(data);
         const interviewId = data.interviewId ? z.uuid().parse(data.interviewId) : undefined;
         if (interviewId) {
