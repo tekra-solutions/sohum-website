@@ -82,4 +82,17 @@ describe.skipIf(!enabled)("ATS database integration (local only)", () => {
     expect((await db.select().from(employees).where(eq(employees.sourceApplicationId,appId))).length).toBe(1);
     expect((await db.select().from(applications).where(eq(applications.id,appId))).length).toBe(1);
   });
+  it("builds the recruiting report against a real connection (raw sql`` Date params must be stringified, or postgres.js fails to bind them)", async () => {
+    state.role = "SUPER_ADMIN";
+    const { recruitingReport } = await import("@/lib/ats/reports");
+    const report = await recruitingReport(undefined, undefined, "90");
+    expect(report.byStatus.length).toBeGreaterThan(0);
+    expect(report.overTime.length).toBeGreaterThan(0);
+  });
+  it("filters applications by an end date without failing to bind the parameter", async () => {
+    state.role = "SUPER_ADMIN";
+    const { listApplications } = await import("@/lib/services/applications");
+    const result = await listApplications({ to: new Date().toISOString().slice(0,10) });
+    expect(result.total).toBeGreaterThan(0);
+  });
 });

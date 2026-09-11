@@ -11,7 +11,12 @@ export function reportDates(from?: string, to?: string, range?: string) {
 export async function recruitingReport(from?: string, to?: string, range?: string, jobId?: string) {
   const admin = await requirePermission("reports");
   const { start, end } = reportDates(from, to, range);
-  const scope = and(candidateScope(admin), sql`${applications.createdAt} between ${start} and ${end}`, jobId ? eq(applications.jobId, jobId) : undefined);
+  // Raw sql`` templates hand params straight to postgres.js without knowing
+  // the target column type; a bare Date object there fails to bind (it only
+  // works through Drizzle's typed operators like gte/lte). Stringify first.
+  const startIso = start.toISOString();
+  const endIso = end.toISOString();
+  const scope = and(candidateScope(admin), sql`${applications.createdAt} between ${startIso} and ${endIso}`, jobId ? eq(applications.jobId, jobId) : undefined);
   const [byStatus, bySource, byJob, overTime, timing, views, reached] = await Promise.all([
     db.select({ label: applications.status, value: sql<number>`count(*)::int` }).from(applications).where(scope).groupBy(applications.status),
     db.select({ label: sql<string>`coalesce(${applications.source}, 'Company Website')`, value: sql<number>`count(*)::int` }).from(applications).where(scope).groupBy(applications.source),

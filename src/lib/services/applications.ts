@@ -181,7 +181,9 @@ export async function listApplications(f: AdminApplicationFilters) {
   if (f.to && !isNaN(Date.parse(f.to))) {
     const end = new Date(f.to);
     end.setHours(23, 59, 59, 999);
-    where.push(sql`${applications.createdAt} <= ${end}`);
+    // A raw Date fails to bind through a sql`` template (only Drizzle's typed
+    // operators serialize it); stringify before interpolating.
+    where.push(sql`${applications.createdAt} <= ${end.toISOString()}`);
   }
 
   const clause = where.length ? and(...where) : undefined;
