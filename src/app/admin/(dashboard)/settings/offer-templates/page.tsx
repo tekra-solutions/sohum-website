@@ -21,7 +21,7 @@ const categoryOptions = [
 export default async function OfferTemplatesPage() {
   await requirePermission("settings");
   const saved = await db.select().from(offerTemplates).orderBy(asc(offerTemplates.name));
-  const rows = [...saved, { id: "", name: "", category: "CUSTOM" as const, subject: "", bodyHtml: "", isActive: true }];
+  const rows = [...saved, { id: "", name: "", category: "CUSTOM" as const, subject: "", bodyHtml: "", termsHtml: "", acknowledgementsHtml: "", isActive: true }];
 
   return (
     <>
@@ -35,6 +35,11 @@ export default async function OfferTemplatesPage() {
 
         <p className="text-xs text-graphite-600">
           Supported variables: {offerTemplateVariables.map(v => `{{${v}}}`).join(", ")}
+        </p>
+        <p className="text-xs text-graphite-600">
+          The offer document has three pages: the summary and compensation tables are generated from the
+          offer itself, while the prose on each page comes from the fields below. Leaving page 2 or 3 empty
+          is allowed — the document states that no terms were configured rather than supplying its own.
         </p>
 
         {saved.length === 0 && (
@@ -58,7 +63,9 @@ export default async function OfferTemplatesPage() {
                 <Field name="name" label="Template name" value={row.name} required />
                 <Field name="category" label="Category" value={row.category} options={categoryOptions} />
                 <Field name="subject" label="Subject" value={row.subject} required />
-                <Field name="bodyHtml" label="Body (HTML)" value={row.bodyHtml} multiline required />
+                <Field name="bodyHtml" label="Page 1 — Offer summary body (HTML)" value={row.bodyHtml} multiline required />
+                <Field name="termsHtml" label="Page 2 — Employment terms (HTML, optional)" value={row.termsHtml ?? ""} multiline />
+                <Field name="acknowledgementsHtml" label="Page 3 — Acknowledgements (HTML, optional)" value={row.acknowledgementsHtml ?? ""} multiline />
                 <Field
                   name="isActive" label="Status" value={row.isActive ? "1" : "0"}
                   options={[{ value: "1", label: "Active" }, { value: "0", label: "Inactive" }]}

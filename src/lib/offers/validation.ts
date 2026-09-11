@@ -7,6 +7,12 @@ export const offerTemplateSchema = z.object({
   category: z.enum(["FULL_TIME", "CONTRACT", "REMOTE", "INTERNSHIP", "CUSTOM"]),
   subject: z.string().trim().min(1).max(300).refine(v => !/[\r\n]/.test(v)).refine(validateOfferTemplate, "Unknown or invalid variable"),
   bodyHtml: z.string().trim().min(1).max(20000).refine(validateOfferTemplate, "Unknown or invalid variable"),
+  // Pages 2 and 3 of the offer document. Optional: when a template leaves
+  // them empty the document says so rather than substituting invented terms.
+  termsHtml: z.preprocess(v => (typeof v === "string" && v.trim() === "" ? null : v),
+    z.string().trim().max(20000).refine(validateOfferTemplate, "Unknown or invalid variable").nullable().optional()),
+  acknowledgementsHtml: z.preprocess(v => (typeof v === "string" && v.trim() === "" ? null : v),
+    z.string().trim().max(20000).refine(validateOfferTemplate, "Unknown or invalid variable").nullable().optional()),
   isActive: z.boolean(),
 });
 
