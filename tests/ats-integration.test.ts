@@ -84,7 +84,7 @@ describe.skipIf(!enabled)("ATS database integration (local only)", () => {
     const { candidateAction } = await import("@/lib/ats/actions"); const { upcomingInterviews } = await import("@/lib/ats/data");
     const values = { kind:"interview", type:"Technical",status:"Scheduled",startsAt:new Date(Date.now()+86400000).toISOString(),endsAt:new Date(Date.now()+90000000).toISOString(),timezone:"America/Chicago",interviewers:"Test Manager",location:"Video",meetingUrl:"https://meet.example.com/test",notes:"Local fixture" };
     expect((await candidateAction({},form(values))).success).toBeDefined();
-    const upcoming = await upcomingInterviews(); expect(upcoming.some(i => i.interview.applicationId === appId)).toBe(true); const interviewId = upcoming[0].interview.id;
+    const upcoming = await upcomingInterviews(); const mine = upcoming.find(i => i.interview.applicationId === appId); expect(mine).toBeDefined(); const interviewId = mine!.interview.id;
     expect((await candidateAction({},form({...values,interviewId,status:"Rescheduled"}))).success).toBeDefined();
     expect((await candidateAction({},form({...values,interviewId,status:"Completed"}))).success).toBeDefined();
     state.id = "10000000-0000-4000-8000-000000000003"; state.role = "HIRING_MANAGER";
