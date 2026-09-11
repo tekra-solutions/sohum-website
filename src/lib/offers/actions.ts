@@ -11,7 +11,7 @@ import type { AuditAction } from "@/lib/audit";
 import { offerVersionInputSchema } from "./validation";
 import {
   canEditOffer, canSubmitForApproval, canApprove, canRejectOrRequestChanges,
-  canSend, canWithdraw, offerEditConsequence, type OfferStatus,
+  canSend, canWithdraw, offerEditConsequence, offerDeadline, type OfferStatus,
 } from "./policy";
 import { generateOfferToken, hashOfferToken } from "./tokens";
 import { renderOfferHtml } from "./render-html";
@@ -20,6 +20,8 @@ import { renderOfferPdf } from "./pdf";
 import { uploadOfferPdf, buildOfferPdfPath } from "@/lib/storage/offers";
 import { offerSentEmail } from "./email-templates";
 import { send } from "@/lib/email";
+import { serverEnv } from "@/lib/env";
+import type { SessionAdmin } from "@/lib/auth/session";
 import { site, contact } from "@/lib/site";
 
 export type OfferActionState = { error?: string; success?: string };
@@ -32,9 +34,17 @@ async function record(tx: Tx, adminId: string, offerId: string, action: AuditAct
 }
 
 function refresh(offerId?: string, applicationId?: string) {
+  revalidatePath("/admin", "layout");
   revalidatePath("/admin/offers");
   if (offerId) revalidatePath(`/admin/offers/${offerId}`);
   if (applicationId) revalidatePath(`/admin/applications/${applicationId}`);
+}
+
+async function lockOffer(tx: Tx, id: string, admin: SessionAdmin, applicationId: string) {
+  const [app] = await tx.select().from(applications).where(and(eq(applications.id, applicationId), candidateScope(admin))).for("update");
+  if (!app) throw new Error("Candidate is no longer accessible.");
+  const [offer] = await tx.select().from(offers).where(eq(offers.id, id)).for("update");
+  return { app, offer };
 }
 
 type VersionInput = z.infer<typeof offerVersionInputSchema>;
@@ -61,6 +71,7 @@ async function buildRenderedHtml(tx: Tx, app: typeof applications.$inferSelect, 
   let templateBodyHtml = "<p>Terms as described above.</p>";
   if (v.templateId) {
     const [template] = await tx.select().from(offerTemplates).where(eq(offerTemplates.id, v.templateId));
+    if (!template || !template.isActive) throw new Error("Choose an active offer template.");
     if (template) {
       templateBodyHtml = renderOfferTemplate(template.bodyHtml, {
         candidate_name: `${app.firstName} ${app.lastName}`,
@@ -90,7 +101,7 @@ async function buildRenderedHtml(tx: Tx, app: typeof applications.$inferSelect, 
 
 export async function createOfferAction(_: OfferActionState, form: FormData): Promise<OfferActionState> {
   const applicationId = String(form.get("applicationId") ?? "");
-  const { admin, app } = await requireApplication(applicationId, "candidates");
+  const { admin, app } = await requireApplication(applicationId, "offers");
   if (app.status !== "OFFER") return { error: "This candidate is not at the offer stage." };
 
   const parsed = offerVersionInputSchema.safeParse(Object.fromEntries(form));
@@ -102,6 +113,7 @@ export async function createOfferAction(_: OfferActionState, form: FormData): Pr
     offerId = await db.transaction(async tx => {
       const [locked] = await tx.select().from(applications).where(and(eq(applications.id, applicationId), candidateScope(admin))).for("update");
       if (!locked) throw new Error("Candidate is no longer accessible.");
+      if (locked.status !== "OFFER" || locked.archivedAt) throw new Error("Candidate must be active and at the Offer stage.");
 
       const existingActive = await tx.select({ id: offers.id }).from(offers).where(and(
         eq(offers.applicationId, applicationId),
@@ -133,7 +145,7 @@ export async function createOfferAction(_: OfferActionState, form: FormData): Pr
 
 export async function updateOfferAction(_: OfferActionState, form: FormData): Promise<OfferActionState> {
   const offerId = String(form.get("offerId") ?? "");
-  const { admin, offer, application } = await requireOffer(offerId, "candidates");
+  const { admin, offer, application } = await requireOffer(offerId, "offers");
   if (!canEditOffer(offer.status as OfferStatus)) return { error: "This offer can no longer be edited." };
 
   const parsed = offerVersionInputSchema.safeParse(Object.fromEntries(form));
@@ -142,13 +154,14 @@ export async function updateOfferAction(_: OfferActionState, form: FormData): Pr
 
   try {
     await db.transaction(async tx => {
-      const [locked] = await tx.select().from(offers).where(eq(offers.id, offerId)).for("update");
+      const { offer: locked, app: liveApplication } = await lockOffer(tx, offerId, admin, application.id);
+    if (liveApplication.status !== "OFFER" || liveApplication.archivedAt) throw new Error("Candidate is no longer at the Offer stage.");
       if (!locked || !canEditOffer(locked.status as OfferStatus)) throw new Error("This offer can no longer be edited.");
 
       const versions = await tx.select({ n: offerVersions.versionNumber }).from(offerVersions).where(eq(offerVersions.offerId, offerId));
       const nextVersion = Math.max(...versions.map(r => r.n)) + 1;
 
-      const renderedHtml = await buildRenderedHtml(tx, application, v);
+      const renderedHtml = await buildRenderedHtml(tx, liveApplication, v);
       const [version] = await tx.insert(offerVersions).values({
         offerId, versionNumber: nextVersion, createdBy: admin.id, renderedHtml,
         ...versionColumns(v),
@@ -157,8 +170,8 @@ export async function updateOfferAction(_: OfferActionState, form: FormData): Pr
       const consequence = offerEditConsequence(locked.status as OfferStatus);
       const patch: Partial<typeof offers.$inferInsert> = {
         currentVersionId: version!.id,
-        status: consequence.nextStatus,
-        templateId: v.templateId ?? locked.templateId,
+        status: consequence.nextStatus, approvedBy: null, approvedAt: null, updatedAt: new Date(),
+        templateId: v.templateId ?? null,
       };
       if (consequence.rotateToken) {
         patch.secureTokenHash = hashOfferToken(generateOfferToken());
@@ -176,11 +189,13 @@ export async function updateOfferAction(_: OfferActionState, form: FormData): Pr
 
 export async function submitOfferForApprovalAction(_: OfferActionState, form: FormData): Promise<OfferActionState> {
   const offerId = String(form.get("offerId") ?? "");
-  const { admin, offer, application } = await requireOffer(offerId, "candidates");
+  const { admin, offer, application } = await requireOffer(offerId, "offers");
   if (!canSubmitForApproval(offer.status as OfferStatus)) return { error: "Only a draft offer can be submitted for approval." };
 
+  try {
   await db.transaction(async tx => {
-    const [locked] = await tx.select().from(offers).where(eq(offers.id, offerId)).for("update");
+    const { offer: locked, app: liveApplication } = await lockOffer(tx, offerId, admin, application.id);
+    if (liveApplication.status !== "OFFER" || liveApplication.archivedAt) throw new Error("Candidate is no longer at the Offer stage.");
     if (!locked || !canSubmitForApproval(locked.status as OfferStatus)) throw new Error("Only a draft offer can be submitted for approval.");
     await tx.update(offers).set({ status: "PENDING_APPROVAL" }).where(eq(offers.id, offerId));
     await record(tx, admin.id, offerId, "OFFER_SUBMITTED_FOR_APPROVAL", { applicationId: application.id });
@@ -188,6 +203,9 @@ export async function submitOfferForApprovalAction(_: OfferActionState, form: Fo
     const approvers = await tx.select({ id: admins.id }).from(admins).where(and(eq(admins.isActive, true), notInArray(admins.role, ["RECRUITER", "HIRING_MANAGER"])));
     if (approvers.length) await tx.insert(notifications).values(approvers.map(a => ({ adminId: a.id, title: "Offer awaiting approval", href: `/admin/offers/${offerId}` })));
   });
+  } catch (err) {
+    return { error: err instanceof Error && !("query" in err) ? err.message : "Could not save this offer. Please refresh and try again." };
+  }
   refresh(offerId, application.id);
   return { success: "Submitted for approval." };
 }
@@ -197,12 +215,17 @@ export async function approveOfferAction(_: OfferActionState, form: FormData): P
   const { admin, offer, application } = await requireOffer(offerId, "manage");
   if (!canApprove(offer.status as OfferStatus)) return { error: "Only an offer pending approval can be approved." };
 
+  try {
   await db.transaction(async tx => {
-    const [locked] = await tx.select().from(offers).where(eq(offers.id, offerId)).for("update");
+    const { offer: locked, app: liveApplication } = await lockOffer(tx, offerId, admin, application.id);
+    if (liveApplication.status !== "OFFER" || liveApplication.archivedAt) throw new Error("Candidate is no longer at the Offer stage.");
     if (!locked || !canApprove(locked.status as OfferStatus)) throw new Error("Only an offer pending approval can be approved.");
     await tx.update(offers).set({ status: "APPROVED", approvedBy: admin.id, approvedAt: new Date() }).where(eq(offers.id, offerId));
     await record(tx, admin.id, offerId, "OFFER_APPROVED", { applicationId: application.id });
   });
+  } catch (err) {
+    return { error: err instanceof Error && !("query" in err) ? err.message : "Could not save this offer. Please refresh and try again." };
+  }
   refresh(offerId, application.id);
   return { success: "Offer approved." };
 }
@@ -212,18 +235,25 @@ async function rejectOrRequestChanges(form: FormData, note: string): Promise<Off
   const { admin, offer, application } = await requireOffer(offerId, "manage");
   if (!canRejectOrRequestChanges(offer.status as OfferStatus)) return { error: "Only an offer pending approval can be sent back." };
 
+  try {
   await db.transaction(async tx => {
-    const [locked] = await tx.select().from(offers).where(eq(offers.id, offerId)).for("update");
+    const { offer: locked, app: liveApplication } = await lockOffer(tx, offerId, admin, application.id);
+    if (liveApplication.status !== "OFFER" || liveApplication.archivedAt) throw new Error("Candidate is no longer at the Offer stage.");
     if (!locked || !canRejectOrRequestChanges(locked.status as OfferStatus)) throw new Error("Only an offer pending approval can be sent back.");
-    await tx.update(offers).set({ status: "DRAFT" }).where(eq(offers.id, offerId));
+    await tx.update(offers).set({ status: "DRAFT", approvedBy: null, approvedAt: null, updatedAt: new Date() }).where(eq(offers.id, offerId));
     await record(tx, admin.id, offerId, "OFFER_REJECTED", { applicationId: application.id, note });
   });
+  } catch (err) {
+    return { error: err instanceof Error && !("query" in err) ? err.message : "Could not save this offer. Please refresh and try again." };
+  }
   refresh(offerId, application.id);
   return { success: "Returned to draft." };
 }
 
 export async function rejectOfferAction(_: OfferActionState, form: FormData): Promise<OfferActionState> {
-  return rejectOrRequestChanges(form, String(form.get("note") ?? "Rejected."));
+  const note = z.string().trim().max(1000).safeParse(form.get("note") ?? "Rejected.");
+  if (!note.success) return { error: "Keep the reason under 1,000 characters." };
+  return rejectOrRequestChanges(form, note.data);
 }
 
 export async function requestOfferChangesAction(_: OfferActionState, form: FormData): Promise<OfferActionState> {
@@ -234,12 +264,14 @@ export async function requestOfferChangesAction(_: OfferActionState, form: FormD
 
 export async function sendOfferAction(_: OfferActionState, form: FormData): Promise<OfferActionState> {
   const offerId = String(form.get("offerId") ?? "");
-  const { admin, offer, application } = await requireOffer(offerId, "candidates");
+  const { admin, offer, application } = await requireOffer(offerId, "offers");
   if (!canSend(offer.status as OfferStatus)) return { error: "Only an approved offer can be sent." };
 
   const [version] = await db.select().from(offerVersions).where(eq(offerVersions.id, offer.currentVersionId!));
   if (!version) return { error: "This offer has no content to send." };
 
+  const deadline = offerDeadline(version.expirationDate);
+  if (deadline <= new Date()) return { error: "This offer has expired. Update the dates and obtain approval again." };
   let pdf: Buffer;
   try {
     pdf = await renderOfferPdf(version.renderedHtml);
@@ -257,34 +289,35 @@ export async function sendOfferAction(_: OfferActionState, form: FormData): Prom
 
   const token = generateOfferToken();
   const tokenHash = hashOfferToken(token);
-  const tokenExpiresAt = new Date(version.expirationDate.getTime() + 5 * 86_400_000);
-
+  const tokenExpiresAt = new Date(deadline.getTime() + 5 * 86_400_000);
+  const message = offerSentEmail({ firstName: application.firstName, jobTitle: version.jobTitle,
+    offerUrl: `${serverEnv().appUrl.replace(/\/$/, "")}/offer/${token}`, expirationDate: version.expirationDate });
+  let delivered = false;
   try {
     await db.transaction(async tx => {
-      const [locked] = await tx.select().from(offers).where(eq(offers.id, offerId)).for("update");
-      if (!locked || !canSend(locked.status as OfferStatus)) throw new Error("Only an approved offer can be sent.");
+      const { offer: locked, app } = await lockOffer(tx, offerId, admin, application.id);
+      if (!locked || !canSend(locked.status as OfferStatus) || locked.currentVersionId !== version.id)
+        throw new Error("This offer changed while preparing the PDF. Review the current version before sending.");
+      if (app.status !== "OFFER" || app.archivedAt) throw new Error("Candidate must be active and at the Offer stage.");
+      if (deadline <= new Date()) throw new Error("This offer has expired.");
       await tx.update(offerVersions).set({ pdfStoragePath: path }).where(eq(offerVersions.id, version.id));
-      await record(tx, admin.id, offerId, "OFFER_PDF_GENERATED", { applicationId: application.id, versionNumber: version.versionNumber });
-      await tx.update(offers).set({ status: "SENT", sentAt: new Date(), secureTokenHash: tokenHash, tokenExpiresAt }).where(eq(offers.id, offerId));
-      await record(tx, admin.id, offerId, "OFFER_SENT", { applicationId: application.id });
+      await record(tx, admin.id, offerId, "OFFER_PDF_GENERATED", { applicationId: app.id, versionNumber: version.versionNumber });
+      // The row lock serializes duplicate clicks. A failed send leaves approval
+      // intact and no live token, so the administrator can safely retry.
+      const result = await send({ to: app.email, ...message });
+      delivered = result.sent;
+      if (!result.sent) {
+        await tx.insert(auditLogs).values({ adminId: admin.id, entityType: "offer", entityId: offerId, action: "OFFER_EMAIL_FAILED", metadata: { applicationId: app.id, reason: result.reason ?? "send_failed" } });
+        return;
+      }
+      await tx.update(offers).set({ status: "SENT", sentAt: new Date(), viewedAt: null, secureTokenHash: tokenHash, tokenExpiresAt, updatedAt: new Date() }).where(eq(offers.id, offerId));
+      await record(tx, admin.id, offerId, "OFFER_SENT", { applicationId: app.id, versionId: version.id });
     });
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Could not send this offer." };
+    return { error: delivered ? "The email provider accepted the message, but recording the result failed. Check delivery before attempting another send." : err instanceof Error && !("query" in err) ? err.message : "Could not send the offer. Please try again." };
   }
-
-  const message = offerSentEmail({
-    firstName: application.firstName,
-    jobTitle: version.jobTitle,
-    offerUrl: `${site.url.replace(/\/$/, "")}/offer/${token}`,
-    expirationDate: version.expirationDate,
-  });
-  const result = await send({ to: application.email, ...message });
-  if (!result.sent) {
-    console.error("[offers] send email failed", { offerId, reason: result.reason });
-  }
-
   refresh(offerId, application.id);
-  return { success: result.sent ? "Offer sent." : "Offer marked sent, but the email could not be delivered. Share the link manually." };
+  return delivered ? { success: "Offer sent." } : { error: "Email was not sent. The offer remains approved; check email configuration and retry." };
 }
 
 export async function withdrawOfferAction(_: OfferActionState, form: FormData): Promise<OfferActionState> {
@@ -292,8 +325,9 @@ export async function withdrawOfferAction(_: OfferActionState, form: FormData): 
   const { admin, offer, application } = await requireOffer(offerId, "manage");
   if (!canWithdraw(offer.status as OfferStatus)) return { error: "This offer cannot be withdrawn." };
 
+  try {
   await db.transaction(async tx => {
-    const [locked] = await tx.select().from(offers).where(eq(offers.id, offerId)).for("update");
+    const { offer: locked } = await lockOffer(tx, offerId, admin, application.id);
     if (!locked || !canWithdraw(locked.status as OfferStatus)) throw new Error("This offer cannot be withdrawn.");
     // Kill the token immediately (don't wait for lazy expiration) so a
     // withdrawn offer's old link 404s right away.
@@ -304,6 +338,9 @@ export async function withdrawOfferAction(_: OfferActionState, form: FormData): 
     }).where(eq(offers.id, offerId));
     await record(tx, admin.id, offerId, "OFFER_WITHDRAWN", { applicationId: application.id });
   });
+  } catch (err) {
+    return { error: err instanceof Error && !("query" in err) ? err.message : "Could not save this offer. Please refresh and try again." };
+  }
   refresh(offerId, application.id);
   return { success: "Offer withdrawn." };
 }

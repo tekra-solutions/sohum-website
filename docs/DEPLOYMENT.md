@@ -1,7 +1,7 @@
 # Deployment & setup
 
 The recruitment platform needs a Postgres database, a private storage bucket,
-and (optionally) an email provider. Roughly 15 minutes end to end.
+and an email provider for candidate offer verification. Use Node.js 22 (`nvm use`).
 
 ## 1. Create the Supabase project
 
@@ -40,7 +40,7 @@ Row Level Security.
 
 Supabase -> **Storage -> New bucket**
 
-- Name: `resumes`
+- Names: `resumes` and `offers`
 - **Public: OFF** — required. Resumes are private HR data, served only through
   short-lived signed URLs minted server-side.
 
@@ -55,10 +55,10 @@ credential exists anywhere in the codebase.
 
 Sign in at `/admin/login`.
 
-## 6. Email (optional)
+## 6. Email
 
 Set `RESEND_API_KEY` **or** the `SMTP_*` variables, plus `EMAIL_FROM` and
-`ADMIN_EMAIL`. For SMTP also run `npm i nodemailer`.
+`ADMIN_EMAIL`. SMTP support is included. Offer delivery and candidate OTP verification require a configured provider.
 
 If neither is configured, sends are logged and skipped — applications still
 submit successfully. Verify your sending domain before going live.
@@ -77,9 +77,17 @@ npm run build   # verify locally first
 
 - **Jobs with applications are archived, never deleted.** The foreign key is
   `ON DELETE RESTRICT`, so the database refuses to orphan an application.
-- **Rate limiting is in-memory**, so on serverless each instance counts
-  separately. It throttles casual abuse. For stricter guarantees swap
-  `src/lib/rate-limit/index.ts` for a shared store (Upstash Redis); the
-  interface is already async.
+- **Rate limiting uses atomic PostgreSQL counters**, shared across serverless instances.
+  Expired buckets are reaped opportunistically on a small fraction of requests, so the
+  table stays bounded without a scheduled job.
+- **Migration 0004 is required before deploying this revision.** It adds shared throttles,
+  prevents multiple active offers for one application, and makes offer version content and accepted signatures immutable.
+  If the unique index reports existing duplicate active offers, resolve those records explicitly before retrying; the migration does not discard HR data.
+- **Resume uploads are limited to 4 MB** to leave multipart overhead under
+  [Vercel's request limit](https://vercel.com/docs/errors/function_payload_too_large).
+- **Offer PDFs use bundled Linux Chromium on Vercel.** Local previews detect Chrome,
+  or use `CHROME_EXECUTABLE_PATH`. Keep the Node.js runtime at 22.x.
+- Verify a real provider delivery, OTP and private-storage download in the deployment environment;
+  integration tests deliberately use mock email/storage adapters.
 - **Audit log** records admin logins, job mutations, status changes and resume
   downloads in `audit_logs`.

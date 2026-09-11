@@ -4,6 +4,8 @@ import { db } from "@/db";
 import { offers, offerVersions, applications, jobs, admins } from "@/db/schema";
 import { candidateScope, requirePermission } from "@/lib/ats/access";
 import { positivePage } from "@/lib/ats/policy";
+import { z } from "zod";
+import { offerDeadline } from "./policy";
 import { hashOfferToken } from "./tokens";
 
 /**
@@ -22,7 +24,9 @@ export async function resolveOfferToken(token: string) {
     .innerJoin(applications, eq(offers.applicationId, applications.id))
     .where(eq(offers.secureTokenHash, hashOfferToken(token)))
     .limit(1);
-  return row ?? null;
+  if (!row || !["SENT", "VIEWED", "ACCEPTED", "DECLINED"].includes(row.offer.status)
+    || !row.offer.tokenExpiresAt || row.offer.tokenExpiresAt <= new Date()) return null;
+  return row;
 }
 
 /** The latest non-superseded offer for an application, with its current
@@ -63,8 +67,9 @@ export async function listOffers(f: OfferListFilters) {
   if (f.status && (offerStatusValues as readonly string[]).includes(f.status)) {
     where.push(eq(offers.status, f.status as (typeof offerStatusValues)[number]));
   }
-  if (f.jobId) where.push(eq(applications.jobId, f.jobId));
-  if (f.recruiterId) where.push(eq(offers.createdBy, f.recruiterId));
+  if (f.status === "AWAITING_RESPONSE") where.push(or(eq(offers.status, "SENT"), eq(offers.status, "VIEWED"))!);
+  if (f.jobId && z.uuid().safeParse(f.jobId).success) where.push(eq(applications.jobId, f.jobId));
+  if (f.recruiterId && z.uuid().safeParse(f.recruiterId).success) where.push(eq(offers.createdBy, f.recruiterId));
   // Dates come in as calendar-day strings from a filter form; coerce to Date
   // then hand Drizzle's typed operators the ISO string, never a bare Date —
   // a raw sql`` template with a Date object fails to bind (see the fix
@@ -72,7 +77,7 @@ export async function listOffers(f: OfferListFilters) {
   if (f.from && !isNaN(Date.parse(f.from))) where.push(gte(offers.createdAt, new Date(f.from)));
   if (f.to && !isNaN(Date.parse(f.to))) {
     const end = new Date(f.to);
-    end.setHours(23, 59, 59, 999);
+    end.setUTCHours(23, 59, 59, 999);
     where.push(lte(offers.createdAt, end));
   }
   if (f.q?.trim()) {
@@ -128,8 +133,10 @@ export async function offerDashboardMetrics() {
  * staff — never emailed to candidates. Uses typed date operators throughout,
  * never a raw sql`` template with a bare Date. */
 export async function offersExpiringSoon(days = 3) {
+  const admin = await requirePermission("offers");
   const now = new Date();
   const horizon = new Date(now.getTime() + days * 86_400_000);
+  const today = new Date(now); today.setUTCHours(0, 0, 0, 0);
   return db
     .select({ offer: offers, version: offerVersions, application: applications, jobTitle: jobs.title })
     .from(offers)
@@ -137,9 +144,10 @@ export async function offersExpiringSoon(days = 3) {
     .innerJoin(applications, eq(offers.applicationId, applications.id))
     .innerJoin(jobs, eq(applications.jobId, jobs.id))
     .where(and(
+      candidateScope(admin),
       notInArray(offers.status, ["ACCEPTED", "DECLINED", "EXPIRED", "WITHDRAWN"]),
       or(eq(offers.status, "SENT"), eq(offers.status, "VIEWED")),
-      gte(offerVersions.expirationDate, now),
+      gte(offerVersions.expirationDate, today),
       lte(offerVersions.expirationDate, horizon),
     ));
 }
@@ -149,18 +157,20 @@ export async function offersExpiringSoon(days = 3) {
 export async function sweepExpiredOffers() {
   const now = new Date();
   const overdue = await db
-    .select({ id: offers.id, applicationId: offers.applicationId })
+    .select({ id: offers.id, applicationId: offers.applicationId, versionId: offers.currentVersionId, expirationDate: offerVersions.expirationDate })
     .from(offers)
     .innerJoin(offerVersions, eq(offers.currentVersionId, offerVersions.id))
     .where(and(
       or(eq(offers.status, "SENT"), eq(offers.status, "VIEWED")),
       lte(offerVersions.expirationDate, now),
-    ));
+    )).orderBy(offerVersions.expirationDate).limit(500);
   if (!overdue.length) return;
   const { auditLogs } = await import("@/db/schema");
   await db.transaction(async tx => {
     for (const row of overdue) {
-      await tx.update(offers).set({ status: "EXPIRED" }).where(eq(offers.id, row.id));
+      if (offerDeadline(row.expirationDate) > now) continue;
+      const changed = await tx.update(offers).set({ status: "EXPIRED", updatedAt: now }).where(and(eq(offers.id, row.id), eq(offers.currentVersionId, row.versionId!), or(eq(offers.status, "SENT"), eq(offers.status, "VIEWED")))).returning({ id: offers.id });
+      if (!changed.length) continue;
       await tx.insert(auditLogs).values({ action: "OFFER_EXPIRED", entityType: "offer", entityId: row.id, metadata: { applicationId: row.applicationId } });
     }
   });

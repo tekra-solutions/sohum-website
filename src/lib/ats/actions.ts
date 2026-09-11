@@ -1,9 +1,9 @@
 "use server";
 import { revalidatePath } from "next/cache";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, notInArray } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { admins, applications, applicationEvents, auditLogs, candidateNotes, candidateStars, emailEvents, emailTemplates, employees, interviewFeedback, interviews, notifications, reminders } from "@/db/schema";
+import { admins, applications, applicationEvents, auditLogs, candidateNotes, candidateStars, emailEvents, emailTemplates, employees, interviewFeedback, interviews, notifications, reminders, offers } from "@/db/schema";
 import { canTransition } from "./transitions";
 import { requireApplication, requirePermission, candidateScope } from "./access";
 import { requireAdmin } from "@/lib/auth/session";
@@ -42,6 +42,10 @@ export async function candidateAction(_: ActionState, form: FormData): Promise<A
           allowDirectHire: data.allowDirectHire === "1" && permits(admin.role, "manage"),
         });
         if (!verdict.ok) throw new Error(verdict.reason);
+        if (app.status === "OFFER") {
+          const [liveOffer] = await tx.select({ id: offers.id }).from(offers).where(and(eq(offers.applicationId, app.id), notInArray(offers.status, ["DECLINED", "WITHDRAWN", "EXPIRED"])));
+          if (liveOffer) throw new Error("Withdraw the active offer before changing the candidate stage.");
+        }
         await tx.update(applications).set({ status, updatedAt: new Date() }).where(eq(applications.id, id));
         await tx.insert(applicationEvents).values({ applicationId: id, fromStatus: app.status, toStatus: status, changedBy: admin.id });
         await record(tx, admin.id, id, "ADMIN_CHANGED_APPLICATION_STATUS", { from: app.status, to: status });
@@ -186,6 +190,10 @@ export async function bulkCandidateAction(_: ActionState, form: FormData): Promi
       }
       for (const app of rows) {
         if (kind === "status" && status.success && status.data !== app.status) {
+          if (app.status === "OFFER") {
+            const [liveOffer] = await tx.select({ id: offers.id }).from(offers).where(and(eq(offers.applicationId, app.id), notInArray(offers.status, ["DECLINED", "WITHDRAWN", "EXPIRED"])));
+            if (liveOffer) throw new Error("Withdraw active offers before changing candidate stages.");
+          }
           await tx.update(applications).set({ status: status.data, updatedAt: new Date() }).where(eq(applications.id, app.id));
           await tx.insert(applicationEvents).values({ applicationId: app.id, fromStatus: app.status, toStatus: status.data, changedBy: admin.id });
           await record(tx, admin.id, app.id, "ADMIN_CHANGED_APPLICATION_STATUS", { from: app.status, to: status.data, bulk: true });

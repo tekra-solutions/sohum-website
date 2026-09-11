@@ -81,7 +81,7 @@ export default async function AdminDashboard() {
           <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
             <StatCard label="Pending approval" value={offerMetrics.pendingApproval} href="/admin/offers?status=PENDING_APPROVAL" />
             <StatCard label="Sent" value={offerMetrics.sent} href="/admin/offers?status=SENT" />
-            <StatCard label="Awaiting response" value={offerMetrics.awaitingResponse} href="/admin/offers?status=SENT" />
+            <StatCard label="Awaiting response" value={offerMetrics.awaitingResponse} href="/admin/offers?status=AWAITING_RESPONSE" />
             <StatCard label="Accepted" value={offerMetrics.accepted} href="/admin/offers?status=ACCEPTED" tone="accent" />
             <StatCard label="Declined" value={offerMetrics.declined} href="/admin/offers?status=DECLINED" />
           </div>

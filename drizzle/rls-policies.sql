@@ -35,6 +35,7 @@ ALTER TABLE recruiting_settings  ENABLE ROW LEVEL SECURITY;
 -- the same feature. The candidate-facing /offer/[token] route reads all four
 -- exclusively through the service-role connection — never a Supabase
 -- anon/authenticated client — so none of them gets a permissive policy either.
+ALTER TABLE rate_limit_buckets     ENABLE ROW LEVEL SECURITY;
 ALTER TABLE offer_templates       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE offers                ENABLE ROW LEVEL SECURITY;
 ALTER TABLE offer_versions        ENABLE ROW LEVEL SECURITY;

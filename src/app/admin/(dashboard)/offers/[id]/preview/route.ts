@@ -19,6 +19,6 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   if (!version) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   return new NextResponse(version.renderedHtml, {
-    headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "private, no-store" },
+    headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "private, no-store", "Content-Security-Policy": "sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'", "Referrer-Policy": "no-referrer" },
   });
 }

@@ -1,3 +1,4 @@
+import { sanitizeOfferBody } from "./sanitize";
 /**
  * Builds the full, standalone, printable HTML document for an offer letter.
  *
@@ -109,7 +110,17 @@ export function renderOfferHtml(input: OfferHtmlInput): string {
   }
   .signature { margin-top: 40px; }
   .signature .line { border-top: 1px solid #1b2a5e; width: 3.2in; margin-top: 40px; padding-top: 4px; font-size: 11px; color: #5b6a80; }
-  .footer { margin-top: 32px; font-size: 10px; color: #8a95a8; border-top: 1px solid #e7ebf1; padding-top: 10px; }
+  h2 { break-after: avoid; }
+  tr, .signature, .disclaimer { break-inside: avoid; }
+  td, .body-copy { overflow-wrap: anywhere; }
+  @media print {
+    body { padding: 0; line-height: 1.45; }
+    table.kv td { padding: 4px 0; }
+    .company-address, .candidate-block { margin-bottom: 16px; }
+    .signature { margin-top: 24px; }
+    .disclaimer { margin-top: 20px; }
+  }
+  .footer { margin-top: 20px; font-size: 10px; color: #8a95a8; border-top: 1px solid #e7ebf1; padding-top: 10px; }
 </style>
 </head>
 <body>
@@ -131,7 +142,7 @@ export function renderOfferHtml(input: OfferHtmlInput): string {
   <table class="kv">${compensation}</table>
 
   <h2>Terms</h2>
-  <div class="body-copy">${input.templateBodyHtml}</div>
+  <div class="body-copy">${sanitizeOfferBody(input.templateBodyHtml)}</div>
 
   <div class="signature">
     <h2>Acceptance</h2>

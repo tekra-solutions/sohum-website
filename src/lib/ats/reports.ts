@@ -1,4 +1,5 @@
 import "server-only";
+import { z } from "zod";
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { applications, applicationEvents, jobs, jobViews } from "@/db/schema";
@@ -10,6 +11,7 @@ export function reportDates(from?: string, to?: string, range?: string) {
 }
 export async function recruitingReport(from?: string, to?: string, range?: string, jobId?: string) {
   const admin = await requirePermission("reports");
+  if (jobId && !z.uuid().safeParse(jobId).success) jobId = undefined;
   const { start, end } = reportDates(from, to, range);
   // Raw sql`` templates hand params straight to postgres.js without knowing
   // the target column type; a bare Date object there fails to bind (it only

@@ -36,95 +36,44 @@ export type SubmitResult =
   | { ok: true; reference: string; applicationId: string }
   | { ok: false; error: string; code: "JOB_UNAVAILABLE" | "UPLOAD_FAILED" | "DB_FAILED" };
 
-/**
- * Submits an application.
- *
- * Ordering matters: the row is inserted first so the resume path can be keyed
- * by a real application id, then the file is uploaded, then metadata is
- * attached. If the upload or metadata write fails we delete both the row and
- * any uploaded object, so a half-finished application is never left behind.
- */
+/** Upload privately first, then publish the complete application atomically. */
 export async function submitApplication(input: {
   values: typeof applications.$inferInsert;
   resume: { filename: string; mimeType: string; size: number; bytes: ArrayBuffer };
 }): Promise<SubmitResult> {
-  // The job must still be open at submission time, not just when the page loaded.
-  const job = await db.query.jobs.findFirst({
-    where: and(eq(jobs.id, input.values.jobId), eq(jobs.status, "PUBLISHED" as const)),
-    columns: { id: true, title: true },
-  });
-  if (!job) {
-    return { ok: false, error: "This position is no longer accepting applications.", code: "JOB_UNAVAILABLE" };
-  }
-
-  let applicationId: string | undefined;
-  let storagePath: string | undefined;
-
+  const applicationId = crypto.randomUUID();
+  const storagePath = buildResumePath(applicationId, input.resume.filename);
+  let uploaded = false;
   try {
-    // Reference is derived from the row's sequence, so it is unique without
-    // a second round trip or a race between concurrent submissions.
-    const [row] = await db
-      .insert(applications)
-      .values({ ...input.values, status: "NEW", source: input.values.source || "Company Website", reference: `P-${crypto.randomUUID().slice(0,24)}` })
-      .returning({ id: applications.id, sequence: applications.sequence });
-    if (!row) throw new Error("Insert returned no row");
-
-    applicationId = row.id;
-    const reference = formatReference(row.sequence);
-    await db.update(applications).set({ reference }).where(eq(applications.id, row.id));
-
-    storagePath = buildResumePath(row.id, input.resume.filename);
-    await uploadResume({
-      path: storagePath,
-      body: input.resume.bytes,
-      contentType: input.resume.mimeType,
+    await uploadResume({ path: storagePath, body: input.resume.bytes, contentType: input.resume.mimeType });
+    uploaded = true;
+    const reference = await db.transaction(async tx => {
+      // Closing a job and receiving an application serialize on the job row.
+      const [job] = await tx.select({ status: jobs.status }).from(jobs)
+        .where(eq(jobs.id, input.values.jobId)).for("share");
+      if (!job || job.status !== "PUBLISHED") throw new Error("JOB_UNAVAILABLE");
+      const [row] = await tx.insert(applications).values({ ...input.values, id: applicationId,
+        status: "NEW", source: input.values.source || "Company Website",
+        reference: `P-${applicationId.slice(0,24)}` }).returning({ sequence: applications.sequence });
+      const reference = formatReference(row.sequence);
+      await tx.update(applications).set({ reference }).where(eq(applications.id, applicationId));
+      await tx.insert(resumeFiles).values({ applicationId, originalFilename: input.resume.filename,
+        storagePath, mimeType: input.resume.mimeType, fileSize: input.resume.size });
+      await tx.insert(applicationEvents).values({ applicationId, toStatus: "NEW", note: "Application submitted" });
+      return reference;
     });
-
-    await db.insert(resumeFiles).values({
-      applicationId: row.id,
-      originalFilename: input.resume.filename,
-      storagePath,
-      mimeType: input.resume.mimeType,
-      fileSize: input.resume.size,
-    });
-
-    await db.insert(applicationEvents).values({
-      applicationId: row.id,
-      toStatus: "NEW",
-      note: "Application submitted",
-    });
-
     try {
       const recipients = await db.select({ id: admins.id }).from(admins).where(and(eq(admins.isActive, true), sql`(${admins.role} in ('ADMIN','SUPER_ADMIN','RECRUITING_ADMIN') or (${admins.role} = 'HIRING_MANAGER' and exists (select 1 from ${jobAssignments} where ${jobAssignments.jobId} = ${input.values.jobId} and ${jobAssignments.adminId} = ${admins.id})))`));
-      if (recipients.length) await db.insert(notifications).values(recipients.map(r => ({ adminId: r.id, applicationId: row.id, title: "New application received", href: `/admin/applications/${row.id}` })));
+      if (recipients.length) await db.insert(notifications).values(recipients.map(r => ({ adminId: r.id, applicationId, title: "New application received", href: `/admin/applications/${applicationId}` })));
     } catch { console.error("[notifications] new application notification failed"); }
-    return { ok: true, reference, applicationId: row.id };
+    return { ok: true, reference, applicationId };
   } catch (err) {
-    console.error("[applications] submit failed", {
-      jobId: input.values.jobId,
-      error: err instanceof Error ? err.message : String(err),
-    });
-
-    // Roll back in reverse order. Both steps are best-effort; failing to clean
-    // up must not mask the original error.
-    if (storagePath) await deleteResume(storagePath);
-    if (applicationId) {
-      try {
-        await db.delete(applications).where(eq(applications.id, applicationId));
-      } catch (cleanupErr) {
-        console.error("[applications] rollback failed", {
-          applicationId,
-          error: cleanupErr instanceof Error ? cleanupErr.message : String(cleanupErr),
-        });
-      }
+    await deleteResume(storagePath);
+    if (err instanceof Error && err.message === "JOB_UNAVAILABLE") {
+      return { ok: false, code: "JOB_UNAVAILABLE", error: "This position is no longer accepting applications." };
     }
-
-    const code = storagePath ? "UPLOAD_FAILED" : "DB_FAILED";
-    return {
-      ok: false,
-      code,
-      error: "We could not submit your application. Please try again in a moment.",
-    };
+    console.error("[applications] submit failed", { jobId: input.values.jobId, phase: uploaded ? "database" : "upload" });
+    return { ok: false, code: uploaded ? "DB_FAILED" : "UPLOAD_FAILED", error: "We could not submit your application. Please try again in a moment." };
   }
 }
 
@@ -180,7 +129,7 @@ export async function listApplications(f: AdminApplicationFilters) {
   if (f.from && !isNaN(Date.parse(f.from))) where.push(gte(applications.createdAt, new Date(f.from)));
   if (f.to && !isNaN(Date.parse(f.to))) {
     const end = new Date(f.to);
-    end.setHours(23, 59, 59, 999);
+    end.setUTCHours(23, 59, 59, 999);
     // A raw Date fails to bind through a sql`` template (only Drizzle's typed
     // operators serialize it); stringify before interpolating.
     where.push(sql`${applications.createdAt} <= ${end.toISOString()}`);

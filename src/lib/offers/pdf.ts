@@ -16,7 +16,7 @@ import puppeteer from "puppeteer-core";
  * production always uses the bundled binary.
  */
 async function resolveLaunchOptions() {
-  if (process.env.NODE_ENV === "production") {
+  if (process.platform === "linux" && !process.env.CHROME_EXECUTABLE_PATH) {
     return { args: chromium.args, executablePath: await chromium.executablePath(), headless: true };
   }
   const candidates = [
@@ -38,7 +38,11 @@ export async function renderOfferPdf(html: string): Promise<Buffer> {
   const browser = await puppeteer.launch(await resolveLaunchOptions());
   try {
     const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: "load" });
+    await page.setJavaScriptEnabled(false);
+    await page.setRequestInterception(true);
+    page.on("request", request => { void request.abort(); });
+    page.setDefaultNavigationTimeout(15_000);
+    await page.setContent(html, { waitUntil: "load", timeout: 15_000 });
     const pdf = await page.pdf({
       format: "Letter",
       printBackground: true,

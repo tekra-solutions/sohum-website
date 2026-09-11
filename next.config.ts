@@ -4,6 +4,8 @@ const nextConfig: NextConfig = {
   // Pin the workspace root: a package-lock.json in the parent directory would
   // otherwise be picked up and emit a warning during build.
   turbopack: { root: __dirname },
+  serverExternalPackages: ["@sparticuz/chromium", "puppeteer-core"],
+  outputFileTracingIncludes: { "/admin/offers/*": ["./node_modules/@sparticuz/chromium/bin/**"] },
   poweredByHeader: false,
   compress: true,
   productionBrowserSourceMaps: false,
@@ -11,6 +13,7 @@ const nextConfig: NextConfig = {
     formats: ["image/avif", "image/webp"],
   },
   experimental: {
+    serverActions: { bodySizeLimit: "4.5mb" },
     // Ensures icon imports stay per-icon rather than pulling the barrel file.
     optimizePackageImports: ["lucide-react"],
   },
@@ -26,6 +29,7 @@ const nextConfig: NextConfig = {
           { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
         ],
       },
+      { source: "/offer/:path*", headers: [{ key: "Referrer-Policy", value: "no-referrer" }, { key: "X-Robots-Tag", value: "noindex, nofollow" }] },
     ];
   },
 };

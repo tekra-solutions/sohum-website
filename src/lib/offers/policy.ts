@@ -66,3 +66,10 @@ export function canCandidateAct(status: OfferStatus) {
 export function offerHasActiveLifecycle(status: Offer["status"]) {
   return !isTerminalOfferStatus(status as OfferStatus);
 }
+
+/** Expiration is a calendar date; the entire displayed UTC date is valid. */
+export function offerDeadline(date: Date): Date {
+  const deadline = new Date(date);
+  deadline.setUTCHours(23, 59, 59, 999);
+  return deadline;
+}

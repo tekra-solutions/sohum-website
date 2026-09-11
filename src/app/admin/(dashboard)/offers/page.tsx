@@ -59,20 +59,21 @@ export default async function OffersPage({
     <>
       <AdminHeader title="Offers" description={`${total} offer${total === 1 ? "" : "s"}.`} />
       <div className="space-y-5 p-5 sm:p-6 lg:p-8">
-        <form className="grid gap-3 rounded-[4px] border border-paper-300 bg-white p-4 sm:grid-cols-[1fr_auto_auto_auto_auto]">
+        <form className="grid gap-3 rounded-[4px] border border-paper-300 bg-white p-4 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_auto_auto_auto_auto]">
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-graphite-400" aria-hidden="true" />
-            <input name="q" type="search" defaultValue={filters.q} placeholder="Candidate, email or job title" className={`${control} pl-9`} />
+            <input aria-label="Search offers" name="q" type="search" defaultValue={filters.q} placeholder="Candidate, email or job title" className={`${control} pl-9`} />
           </div>
-          <select name="status" defaultValue={filters.status} className={control}>
+          <select aria-label="Offer status" name="status" defaultValue={filters.status} className={control}>
             <option value="ALL">All statuses</option>
+            <option value="AWAITING_RESPONSE">Awaiting response</option>
             {offerStatuses.map(s => <option key={s} value={s}>{offerStatusLabel[s]}</option>)}
           </select>
-          <select name="jobId" defaultValue={filters.jobId ?? ""} className={control}>
+          <select aria-label="Job" name="jobId" defaultValue={filters.jobId ?? ""} className={control}>
             <option value="">All jobs</option>
             {jobs.map(j => <option key={j.id} value={j.id}>{j.title}</option>)}
           </select>
-          <select name="recruiterId" defaultValue={filters.recruiterId ?? ""} className={control}>
+          <select aria-label="Recruiter" name="recruiterId" defaultValue={filters.recruiterId ?? ""} className={control}>
             <option value="">All recruiters</option>
             {staff.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
           </select>
@@ -103,10 +104,10 @@ export default async function OffersPage({
                     <td className="p-3 tabular-nums text-graphite-700">
                       {version?.annualSalaryCents != null ? formatCurrency(version.annualSalaryCents) : version?.hourlyRateCents != null ? `${formatCurrency(version.hourlyRateCents)}/hr` : "—"}
                     </td>
-                    <td className="p-3 text-graphite-600">{version ? shortDate(version.startDate) : "—"}</td>
+                    <td className="p-3 text-graphite-600">{version ? version.startDate.toLocaleDateString("en-US", { timeZone: "UTC" }) : "—"}</td>
                     <td className="p-3"><StatusPill status={offer.status} label={offerStatusLabel[offer.status]} /></td>
                     <td className="p-3 text-graphite-500">{shortDate(offer.createdAt)}</td>
-                    <td className="p-3 text-graphite-500">{version ? shortDate(version.expirationDate) : "—"}</td>
+                    <td className="p-3 text-graphite-500">{version ? version.expirationDate.toLocaleDateString("en-US", { timeZone: "UTC" }) : "—"}</td>
                     <td className="p-3 text-graphite-500">{creatorName ?? "—"}</td>
                   </tr>
                 ))}

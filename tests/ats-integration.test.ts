@@ -194,7 +194,7 @@ describe.skipIf(!enabled)("Workflow edge cases (local only)", () => {
     const token = "withdrawn-case-token-fixture";
     const [offer] = await db.insert(offers).values({
       applicationId: app.id, createdBy: state.id, status: "SENT",
-      secureTokenHash: hashOfferToken(token),
+      secureTokenHash: hashOfferToken(token), tokenExpiresAt: new Date(Date.now() + 12 * 86400000),
     }).returning();
     const [version] = await db.insert(offerVersions).values({
       offerId: offer.id, versionNumber: 1, createdBy: state.id,
@@ -523,5 +523,40 @@ describe.skipIf(!enabled)("Offer workflow (local only)", () => {
     await expect(sweepExpiredOffers()).resolves.not.toThrow();
     const [swept] = await db.select().from(offers).where(eq(offers.id, expireOffer.id));
     expect(swept.status).toBe("EXPIRED");
+  });
+});
+
+describe.skipIf(!enabled)("production security regressions", () => {
+  it("shares rate limits atomically across concurrent requests", async () => {
+    const { rateLimit } = await import("@/lib/rate-limit");
+    const key = `concurrent-test:${crypto.randomUUID()}`;
+    const results = await Promise.all(Array.from({ length: 12 }, () => rateLimit({ key, limit: 3, windowMs: 60000 })));
+    expect(results.filter(r => r.ok)).toHaveLength(3);
+  });
+  it("enforces version immutability and active-offer uniqueness in PostgreSQL", async () => {
+    const { db } = await import("@/db");
+    const { offers, offerVersions } = await import("@/db/schema");
+    const { eq } = await import("drizzle-orm");
+    const [accepted] = await db.select().from(offers).where(eq(offers.status, "ACCEPTED"));
+    expect(accepted).toBeDefined();
+    await expect(db.update(offerVersions).set({ renderedHtml: "tampered" }).where(eq(offerVersions.id, accepted.acceptedVersionId!))).rejects.toThrow();
+    await expect(db.update(offerVersions).set({ pdfStoragePath: "tampered.pdf" }).where(eq(offerVersions.id, accepted.acceptedVersionId!))).rejects.toThrow();
+    await expect(db.update(offers).set({ signedLegalName: "tampered" }).where(eq(offers.id, accepted.id))).rejects.toThrow();
+    await expect(db.insert(offers).values({ applicationId: accepted.applicationId, createdBy: accepted.createdBy, secureTokenHash: crypto.randomUUID() })).rejects.toThrow();
+  });
+  it("denies expired token resolution and PDF access even with a valid candidate session", async () => {
+    const { db } = await import("@/db");
+    const { offers } = await import("@/db/schema");
+    const { eq } = await import("drizzle-orm");
+    const { hashOfferToken } = await import("@/lib/offers/tokens");
+    const { resolveOfferToken } = await import("@/lib/offers/data");
+    const { createOfferSession } = await import("@/lib/offers/candidate-session");
+    const { GET } = await import("@/app/offer/[token]/pdf/route");
+    const [offer] = await db.select().from(offers).where(eq(offers.status, "DECLINED"));
+    const token = "expired-security-regression-token";
+    await db.update(offers).set({ secureTokenHash: hashOfferToken(token), tokenExpiresAt: new Date(0) }).where(eq(offers.id, offer.id));
+    await createOfferSession(offer.id, hashOfferToken(token));
+    expect(await resolveOfferToken(token)).toBeNull();
+    expect((await GET(new Request(`http://localhost/offer/${token}/pdf`), { params: Promise.resolve({ token }) })).status).toBe(404);
   });
 });

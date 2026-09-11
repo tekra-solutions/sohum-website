@@ -1,12 +1,8 @@
-/**
- * Rate limiting for the public application endpoint.
- *
- * In-memory fixed window. This is honest about its limits: on serverless each
- * instance keeps its own counter, so it throttles casual abuse rather than a
- * determined distributed attack. The interface is deliberately async so a
- * shared store (Upstash, Redis) can be dropped in without touching callers.
- */
+/** Shared, atomic throttling in PostgreSQL; memory fallback for offline tests. */
 import "server-only";
+import { createHash } from "node:crypto";
+import { sql } from "drizzle-orm";
+import { db } from "@/db";
 
 type Entry = { count: number; resetAt: number };
 
@@ -23,6 +19,36 @@ export async function rateLimit(opts: {
   limit: number;
   windowMs: number;
 }): Promise<{ ok: boolean; remaining: number; retryAfterSeconds: number }> {
+  if (process.env.DATABASE_URL || process.env.NODE_ENV === "production") {
+    try {
+      const hash = createHash("sha256").update(opts.key).digest("hex");
+      const rows = await db.execute<{ count: number; retry: number }>(sql`
+        insert into rate_limit_buckets (key_hash, count, reset_at)
+        values (${hash}, 1, now() + ${opts.windowMs} * interval '1 millisecond')
+        on conflict (key_hash) do update set
+          count = case when rate_limit_buckets.reset_at <= now() then 1
+            else least(rate_limit_buckets.count + 1, ${opts.limit + 1}) end,
+          reset_at = case when rate_limit_buckets.reset_at <= now()
+            then now() + ${opts.windowMs} * interval '1 millisecond' else rate_limit_buckets.reset_at end
+        returning count, greatest(1, ceil(extract(epoch from (reset_at - now()))))::int as retry
+      `);
+      const row = rows[0];
+      // Buckets are never revisited once their window lapses, so without this
+      // the table grows by one permanent row per unique key — and on the
+      // public careers routes the key includes the visitor's IP. Reap on a
+      // small fraction of calls rather than on a schedule (there is no cron
+      // here); the reset_at index makes it cheap, and it is fire-and-forget
+      // so a failed sweep never affects the throttle decision.
+      if (Math.random() < 0.01) {
+        void db.execute(sql`delete from rate_limit_buckets where reset_at <= now() - interval '1 hour'`)
+          .catch(() => { /* best effort: stale rows are harmless, a throw here is not */ });
+      }
+      return { ok: row.count <= opts.limit, remaining: Math.max(0, opts.limit - row.count), retryAfterSeconds: row.count > opts.limit ? row.retry : 0 };
+    } catch {
+      console.error("[rate-limit] shared throttle unavailable");
+      return { ok: false, remaining: 0, retryAfterSeconds: 60 };
+    }
+  }
   const now = Date.now();
   sweep(now);
 
@@ -47,6 +73,6 @@ export async function rateLimit(opts: {
 /** Best-effort client IP from proxy headers. */
 export function clientIp(headers: Headers): string {
   const fwd = headers.get("x-forwarded-for");
-  if (fwd) return fwd.split(",")[0]!.trim();
-  return headers.get("x-real-ip") ?? "unknown";
+  if (fwd) return fwd.split(",")[0]!.trim().slice(0, 64);
+  return (headers.get("x-real-ip") ?? "unknown").slice(0, 64);
 }
