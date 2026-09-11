@@ -26,6 +26,8 @@ await db`insert into admins(id,name,email,password_hash,role) values('10000000-0
 await db`update applications set assigned_to = '10000000-0000-4000-8000-000000000002',city='Kansas City',years_experience=8,skills='Playwright, Java' where id='30000000-0000-4000-8000-000000000001'`;
 await db`insert into job_assignments(job_id,admin_id) values('20000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000003')`;
 await db`insert into applications(id,reference,job_id,first_name,last_name,email,status) values('30000000-0000-4000-8000-000000000002','LOCAL-ATS-2','20000000-0000-4000-8000-000000000001','Private','Unassigned','unassigned@sohum.invalid','NEW')`;
+await db.unsafe(readFileSync("drizzle/0003_quiet_radioactive_man.sql","utf8"));
+await db`insert into offer_templates(id,name,category,subject,body_html) values('40000000-0000-4000-8000-000000000001','Full-Time Employee','FULL_TIME','Employment Offer — {{job_title}} — Sohum Systems','<p>Sample content — requires legal review before use.</p><p>We are pleased to offer {{candidate_first_name}} the position of {{job_title}} at {{company_name}}.</p>')`;
 await db.unsafe(readFileSync("drizzle/rls-policies.sql","utf8"));
-console.log("Local test database created; legacy stage migration and RLS applied.");
+console.log("Local test database created; legacy stage migration, offer schema and RLS applied.");
 await db.end();

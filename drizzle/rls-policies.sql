@@ -30,6 +30,16 @@ ALTER TABLE job_templates        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE job_views            ENABLE ROW LEVEL SECURITY;
 ALTER TABLE recruiting_settings  ENABLE ROW LEVEL SECURITY;
 
+-- Offer letter management. offers/offer_versions hold compensation and
+-- signature data; offer_templates and offer_otp_codes are support tables for
+-- the same feature. The candidate-facing /offer/[token] route reads all four
+-- exclusively through the service-role connection — never a Supabase
+-- anon/authenticated client — so none of them gets a permissive policy either.
+ALTER TABLE offer_templates       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE offers                ENABLE ROW LEVEL SECURITY;
+ALTER TABLE offer_versions        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE offer_otp_codes       ENABLE ROW LEVEL SECURITY;
+
 -- Default deny: with RLS enabled and no permissive policy, anon and
 -- authenticated roles can do nothing. The service role bypasses RLS entirely,
 -- which is how the server reads and writes.
@@ -42,13 +52,16 @@ CREATE POLICY "public can read published jobs"
   USING (status = 'PUBLISHED');
 
 -- Applications, resumes, events, admins, employees, audit logs and every
--- applicant tracking table above have NO permissive policy on purpose.
--- Employee rows and recruiter notes are PII and must never be readable with the
--- anon key. Only the service role touches them. Job views are written by the
--- server on behalf of visitors, so they need no anon policy either.
+-- applicant tracking and offer-management table above have NO permissive
+-- policy on purpose. Employee rows, recruiter notes and offer compensation
+-- are PII and must never be readable with the anon key. Only the service role
+-- touches them. Job views are written by the server on behalf of visitors, so
+-- they need no anon policy either.
 
--- Storage: the resumes bucket must be private. Create it with
+-- Storage: the resumes and offers buckets must both be private. Create them with
 --   insert into storage.buckets (id, name, public) values ('resumes','resumes',false)
+--     on conflict (id) do update set public = false;
+--   insert into storage.buckets (id, name, public) values ('offers','offers',false)
 --     on conflict (id) do update set public = false;
 -- No storage policies are granted to anon/authenticated, so objects are
 -- reachable only through server-minted signed URLs.
