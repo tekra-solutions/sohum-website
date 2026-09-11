@@ -80,6 +80,16 @@ const statusTones: Record<string, string> = {
   PUBLISHED: "border-[#1e7a4d]/30 bg-[#1e7a4d]/10 text-[#1e7a4d]",
   CLOSED: "border-paper-300 bg-paper-100 text-graphite-600",
   ARCHIVED: "border-paper-300 bg-transparent text-graphite-500",
+  // Offer statuses. DRAFT/PENDING_APPROVAL/APPROVED are shared with jobs
+  // above. The rest reuse existing tones rather than introducing new colors
+  // — this codebase deliberately has no alarming "red" status pill, so
+  // terminal non-hire outcomes share the neutral grey used by REJECTED.
+  SENT: "border-[#0a6d92]/30 bg-[#0a6d92]/10 text-[#0a6d92]",
+  VIEWED: "border-[#0a6d92]/30 bg-[#0a6d92]/10 text-[#0a6d92]",
+  ACCEPTED: "border-[#1e7a4d]/30 bg-[#1e7a4d]/10 text-[#1e7a4d]",
+  DECLINED: "border-paper-300 bg-paper-100 text-graphite-600",
+  EXPIRED: "border-paper-300 bg-paper-100 text-graphite-600",
+  WITHDRAWN: "border-paper-300 bg-transparent text-graphite-500",
 };
 
 export function StatusPill({ status, label }: { status: string; label?: string }) {

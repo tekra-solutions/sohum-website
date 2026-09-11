@@ -41,6 +41,18 @@ export const applicationStatusLabel: Record<string, string> = {
   HIRED: "Hired",
 };
 
+export const offerStatusLabel: Record<string, string> = {
+  DRAFT: "Draft",
+  PENDING_APPROVAL: "Pending approval",
+  APPROVED: "Approved",
+  SENT: "Sent",
+  VIEWED: "Viewed",
+  ACCEPTED: "Accepted",
+  DECLINED: "Declined",
+  EXPIRED: "Expired",
+  WITHDRAWN: "Withdrawn",
+};
+
 /** "2 hours ago", "yesterday", "3 days ago" — for dashboard density. */
 export function relativeTime(date: Date | string) {
   const d = typeof date === "string" ? new Date(date) : date;
@@ -79,4 +91,13 @@ export function formatFileSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/** Cents -> "$145,000". Offer compensation is stored as integer cents. */
+export function formatCurrency(cents: number) {
+  return (cents / 100).toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  });
 }

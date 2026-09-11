@@ -7,33 +7,10 @@
  * short-lived signed URL.
  */
 import "server-only";
-import { createClient } from "@supabase/supabase-js";
-import WebSocket from "ws";
 import { serverEnv, isStorageConfigured } from "@/lib/env";
+import { storageClient as admin, StorageError } from "@/lib/storage/client";
 
-function admin() {
-  const env = serverEnv();
-  if (!env.supabaseUrl || !env.supabaseServiceRoleKey) {
-    throw new StorageError(
-      "Storage is not configured. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.",
-    );
-  }
-  return createClient(env.supabaseUrl, env.supabaseServiceRoleKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-    // supabase-js eagerly constructs a realtime client even though we only use
-    // Storage. On Node < 22 (Vercel's default runtime) that constructor throws
-    // without a WebSocket implementation supplied, so every call here — upload,
-    // download, signed URL — would crash. `ws` is never actually connected.
-    realtime: { transport: WebSocket as unknown as typeof globalThis.WebSocket },
-  });
-}
-
-export class StorageError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "StorageError";
-  }
-}
+export { StorageError };
 
 /** Server-generated path; the client never chooses where a file lands. */
 export function buildResumePath(applicationId: string, originalName: string) {
