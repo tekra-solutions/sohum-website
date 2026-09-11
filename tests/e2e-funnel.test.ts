@@ -13,6 +13,13 @@ vi.mock("next/headers", () => ({
 vi.mock("@/lib/offers/pdf", () => ({ renderOfferPdf: vi.fn(async () => Buffer.from("%PDF-e2e")) }));
 vi.mock("@/lib/storage/offers", () => ({ buildOfferPdfPath: (o: string, v: number) => `offers/${o}/v${v}.pdf`, uploadOfferPdf: vi.fn(async () => {}), downloadOfferPdf: vi.fn(async () => new Blob([Buffer.from("%PDF")])), isStorageConfigured: () => true }));
 
+vi.mock("@/lib/storage/resumes", () => ({
+  buildResumePath: (id: string) => `applications/${id}/resume.pdf`,
+  uploadResume: vi.fn(async () => {}), deleteResume: vi.fn(async () => {}),
+}));
+const form = (v: Record<string, string>) => { const d = new FormData(); for (const [k, x] of Object.entries(v)) d.set(k, x); return d; };
+const futureDate = (days: number) => new Date(Date.now() + days * 86400000).toISOString().slice(0, 10);
+
 const enabled = Boolean(process.env.ATS_TEST_DATABASE_URL);
 const SUPER = "10000000-0000-4000-8000-000000000001";
 const REC = "10000000-0000-4000-8000-000000000002";
@@ -22,18 +29,38 @@ describe.skipIf(!enabled)("full recruiting funnel end to end (local only)", () =
 
   it("walks job -> apply -> funnel -> offer -> accept -> hired -> employee with a full audit trail", async () => {
     const { db } = await import("@/db");
-    const { applications, jobs, offers, auditLogs, employees, applicationEvents } = await import("@/db/schema");
+    const { applications, jobs, offers, auditLogs, employees, applicationEvents, interviews, interviewFeedback, resumeFiles } = await import("@/db/schema");
     const { eq } = await import("drizzle-orm");
 
-    // 1-5. A published job already exists in the fixture.
-    const [job] = await db.select().from(jobs).limit(1);
-    expect(job.status).toBe("PUBLISHED");
+    const { saveJobAction, setJobStatusAction } = await import("@/lib/services/job-actions");
+    const { configureRecruitingAction, jobWorkflowAction } = await import("@/lib/ats/job-actions");
+    expect((await configureRecruitingAction({}, form({ requireJobApproval: "1" }))).success).toBeDefined();
+    await expect(saveJobAction({}, form({
+      title: "Funnel Engineer", slug: "funnel-engineer", department: "Engineering", location: "Kansas City",
+      employmentType: "FULL_TIME", remoteType: "HYBRID", experienceLevel: "SENIOR",
+      description: "Build and verify reliable recruiting software.", responsibilities: "Testing",
+      qualifications: "Engineering", preferredQualifications: "", skills: "TypeScript", intent: "draft",
+    }))).rejects.toThrow("REDIRECT");
+    const [job] = await db.select().from(jobs).where(eq(jobs.slug, "funnel-engineer"));
+    expect(job.status).toBe("DRAFT");
+    await setJobStatusAction(form({ id: job.id, status: "PUBLISHED" }));
+    expect((await db.select().from(jobs).where(eq(jobs.id, job.id)))[0].status).toBe("DRAFT");
+    for (const status of ["PENDING_APPROVAL", "APPROVED"]) {
+      expect((await jobWorkflowAction({}, form({ jobId: job.id, kind: "approval", status }))).success).toBeDefined();
+    }
+    await setJobStatusAction(form({ id: job.id, status: "PUBLISHED" }));
+    expect((await db.select().from(jobs).where(eq(jobs.id, job.id)))[0].status).toBe("PUBLISHED");
 
-    // 6. Public application arrives at NEW.
-    const [app] = await db.insert(applications).values({
-      reference: "E2E-1", jobId: job.id, firstName: "Ada", lastName: "Lovelace",
-      email: "ada@sohum.invalid", status: "NEW",
-    }).returning();
+    const { submitApplicationAction } = await import("@/lib/services/submit-action");
+    const applicationForm = form({ jobId: job.id, firstName: "Ada", lastName: "Lovelace",
+      email: "ada@sohum.invalid", workAuthorized: "yes", sponsorshipRequired: "no" });
+    applicationForm.set("resume", new File(["%PDF-1.4\nLocal test resume"], "resume.pdf", { type: "application/pdf" }));
+    const submitted = await submitApplicationAction({ ok: false }, applicationForm);
+    expect(submitted.ok, JSON.stringify(submitted)).toBe(true);
+    const [app] = await db.select().from(applications).where(eq(applications.reference, submitted.reference!));
+    expect(app.status).toBe("NEW");
+    expect((await db.select().from(resumeFiles).where(eq(resumeFiles.applicationId, app.id))).length).toBe(1);
+    expect((await submitApplicationAction({ ok: false }, applicationForm)).duplicateWarning).toBeDefined();
 
     const { candidateAction } = await import("@/lib/ats/actions");
     const f = (v: Record<string, string>) => { const d = new FormData(); d.set("applicationId", app.id); for (const [k, x] of Object.entries(v)) d.set(k, x); return d; };
@@ -46,7 +73,7 @@ describe.skipIf(!enabled)("full recruiting funnel end to end (local only)", () =
     expect((await candidateAction({}, f({ kind: "note", note: "Strong systems background" }))).success).toBeDefined();
 
     // 11-12, 17. Walk the funnel one stage at a time.
-    for (const s of ["SCREENING", "SHORTLISTED", "INTERVIEW", "OFFER"]) {
+    for (const s of ["SCREENING", "SHORTLISTED", "INTERVIEW"]) {
       expect((await candidateAction({}, f({ kind: "status", status: s }))).success, s).toBeDefined();
     }
 
@@ -58,13 +85,22 @@ describe.skipIf(!enabled)("full recruiting funnel end to end (local only)", () =
       timezone: "America/Chicago", interviewers: "Test Manager",
     }))).success).toBeDefined();
 
+    const [interview] = await db.select().from(interviews).where(eq(interviews.applicationId, app.id));
+    expect((await candidateAction({}, f({ kind: "interview", interviewId: interview.id,
+      type: "Technical", status: "Completed", startsAt: interview.startsAt.toISOString(),
+      endsAt: interview.endsAt.toISOString(), timezone: "America/Chicago", interviewers: "Test Manager" }))).success).toBeDefined();
+    expect((await candidateAction({}, f({ kind: "feedback", interviewId: interview.id, rating: "5",
+      technical: "5", communication: "4", teamFit: "5", recommendation: "Strong Hire", comments: "Excellent evidence." }))).success).toBeDefined();
+    expect((await db.select().from(interviewFeedback).where(eq(interviewFeedback.interviewId, interview.id))).length).toBe(1);
+    expect((await candidateAction({}, f({ kind: "status", status: "OFFER" }))).success).toBeDefined();
+
     // 18. Offer.
     const { createOfferAction, submitOfferForApprovalAction, approveOfferAction, sendOfferAction } = await import("@/lib/offers/actions");
     const of = (v: Record<string, string>) => { const d = new FormData(); for (const [k, x] of Object.entries(v)) d.set(k, x); return d; };
     await expect(createOfferAction({}, of({
       applicationId: app.id, jobTitle: "Principal Engineer", department: "Engineering",
       location: "Kansas City", employmentType: "FULL_TIME", remoteType: "HYBRID",
-      startDate: "2026-11-02", expirationDate: "2026-10-20",
+      startDate: futureDate(45), expirationDate: futureDate(14), templateId: "", hourlyRateCents: "",
       annualSalaryCents: "165000",
     }))).rejects.toThrow("REDIRECT");
     const [offer] = await db.select().from(offers).where(eq(offers.applicationId, app.id));
@@ -78,8 +114,18 @@ describe.skipIf(!enabled)("full recruiting funnel end to end (local only)", () =
     expect((await approveOfferAction({}, of({ offerId: offer.id }))).success).toBeDefined();
 
     // 21-22. PDF + send.
+    state.sendOk = false;
+    expect((await sendOfferAction({}, of({ offerId: offer.id }))).error).toContain("remains approved");
+    expect((await db.select().from(offers).where(eq(offers.id, offer.id)))[0].status).toBe("APPROVED");
+    state.sendOk = true;
     expect((await sendOfferAction({}, of({ offerId: offer.id }))).success).toBe("Offer sent.");
     const token = state.lastEmail!.text.match(/\/offer\/([A-Za-z0-9_-]+)/)![1];
+    const { send } = await import("@/lib/email");
+    const sendCount = vi.mocked(send).mock.calls.length;
+    expect((await sendOfferAction({}, of({ offerId: offer.id }))).error).toBeDefined();
+    expect(vi.mocked(send).mock.calls.length).toBe(sendCount);
+    expect((await candidateAction({}, f({ kind: "status", status: "REJECTED" }))).error).toContain("Withdraw");
+
 
     // 23-24. Candidate verifies and accepts.
     const { requestOtpAction, verifyOtpAction, acceptOfferAction } = await import("@/app/offer/[token]/actions");
@@ -102,7 +148,7 @@ describe.skipIf(!enabled)("full recruiting funnel end to end (local only)", () =
       sourceApplicationId: app.id, firstName: "Ada", lastName: "Lovelace",
       workEmail: "ada.lovelace@sohumsystems.com", personalEmail: "ada@sohum.invalid", phone: "",
       jobTitle: "Principal Engineer", department: "Engineering", location: "Kansas City",
-      employmentType: "FULL_TIME", status: "ACTIVE", managerId: "", startDate: "2026-11-02", endDate: "", notes: "",
+      employmentType: "FULL_TIME", status: "ACTIVE", managerId: "", startDate: futureDate(45), endDate: "", notes: "",
     }))).rejects.toThrow("REDIRECT");
     expect((await db.select().from(employees).where(eq(employees.sourceApplicationId, app.id))).length).toBe(1);
 

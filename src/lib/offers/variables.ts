@@ -1,3 +1,5 @@
+import { escapeHtml } from "@/lib/ats/policy";
+import { sanitizeOfferBody } from "./sanitize";
 /**
  * Offer template variables — structurally identical to ats/policy.ts's
  * validateTemplate/renderTemplate, but against a separate, larger allowlist.
@@ -33,8 +35,8 @@ export function validateOfferTemplate(text: string) {
 
 export function renderOfferTemplate(text: string, values: Record<string, string>) {
   if (!validateOfferTemplate(text)) throw new Error("Unsupported template variable.");
-  return text.replace(/{{\s*([^{}]+?)\s*}}/g, (_, key: string) => {
+  return sanitizeOfferBody(text.replace(/{{\s*([^{}]+?)\s*}}/g, (_, key: string) => {
     if (!values[key]) throw new Error(`Complete ${key.replaceAll("_", " ")} before generating this offer.`);
-    return values[key];
-  });
+    return escapeHtml(values[key]);
+  }));
 }

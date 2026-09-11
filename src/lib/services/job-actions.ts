@@ -2,13 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { jobs, recruitingSettings } from "@/db/schema";
+import { jobs, recruitingSettings, auditLogs, applications } from "@/db/schema";
 import { jobInputSchema } from "@/lib/validation/schemas";
 import { requirePermission } from "@/lib/ats/access";
-import { audit } from "@/lib/audit";
-import { countApplicationsForJob, uniqueSlug } from "@/lib/services/jobs";
+import { z } from "zod";
+import { uniqueSlug } from "@/lib/services/jobs";
 
 export type JobFormState = {
   errors?: Record<string, string>;
@@ -30,6 +30,7 @@ export async function saveJobAction(
   const admin = await requirePermission("manage");
 
   const id = String(formData.get("id") ?? "") || null;
+  if (id && !z.uuid().safeParse(id).success) return { message: "Invalid job." };
   // Which button was pressed decides the status, not a client-supplied field.
   const intent = String(formData.get("intent") ?? "draft");
 
@@ -70,51 +71,30 @@ export async function saveJobAction(
 
   let jobId = id;
   try {
-    if (id) {
-      const existing = await db.query.jobs.findFirst({
-        where: eq(jobs.id, id),
-        columns: { publishedAt: true },
-      });
-      await db
-        .update(jobs)
-        .set({
-          ...values,
-          // Stamp publishedAt the first time a job goes live, then leave it.
-          publishedAt:
-            status === "PUBLISHED" ? (existing?.publishedAt ?? new Date()) : existing?.publishedAt ?? null,
-        })
-        .where(eq(jobs.id, id));
-
-      await audit({
-        adminId: admin.id,
-        action: intent === "publish" ? "ADMIN_PUBLISHED_JOB" : "ADMIN_UPDATED_JOB",
-        entityType: "job",
-        entityId: id,
-        metadata: { title: v.title, status },
-      });
-    } else {
-      const [row] = await db
-        .insert(jobs)
-        .values({
-          ...values,
-          createdBy: admin.id,
-          publishedAt: status === "PUBLISHED" ? new Date() : null,
-        })
-        .returning({ id: jobs.id });
-      jobId = row!.id;
-
-      await audit({
-        adminId: admin.id,
-        action: "ADMIN_CREATED_JOB",
-        entityType: "job",
-        entityId: jobId,
-        metadata: { title: v.title, status },
-      });
-    }
-  } catch (err) {
-    console.error("[jobs] save failed", {
-      error: err instanceof Error ? err.message : String(err),
+    await db.transaction(async tx => {
+      const [currentSettings] = await tx.select().from(recruitingSettings).limit(1).for("share");
+      if (currentSettings?.requireJobApproval && status === "PUBLISHED") throw new Error("Save a draft and obtain approval before publishing.");
+      if (id) {
+        const [existing] = await tx.select().from(jobs).where(eq(jobs.id, id)).for("update");
+        if (!existing) throw new Error("Job not found.");
+        await tx.update(jobs).set({ ...values,
+          publishedAt: status === "PUBLISHED" ? existing.publishedAt ?? new Date() : existing.publishedAt,
+        }).where(eq(jobs.id, id));
+        await tx.insert(auditLogs).values({ adminId: admin.id,
+          action: intent === "publish" ? "ADMIN_PUBLISHED_JOB" : "ADMIN_UPDATED_JOB",
+          entityType: "job", entityId: id, metadata: { title: v.title, status } });
+      } else {
+        const [row] = await tx.insert(jobs).values({ ...values, createdBy: admin.id,
+          publishedAt: status === "PUBLISHED" ? new Date() : null }).returning({ id: jobs.id });
+        jobId = row.id;
+        await tx.insert(auditLogs).values({ adminId: admin.id, action: "ADMIN_CREATED_JOB",
+          entityType: "job", entityId: jobId, metadata: { title: v.title, status } });
+      }
     });
+  } catch (err) {
+    // Log the cause so failures are diagnosable; the user-facing message
+    // stays generic so no backend detail leaks to the browser.
+    console.error("[jobs] save failed", { error: err instanceof Error ? err.message : String(err) });
     return { message: "Could not save this job. Please try again." };
   }
 
@@ -128,39 +108,21 @@ export async function setJobStatusAction(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   const status = String(formData.get("status") ?? "");
 
-  if (!id || !["DRAFT", "PUBLISHED", "CLOSED", "ARCHIVED"].includes(status)) return;
-
-  const job = await db.query.jobs.findFirst({
-    where: eq(jobs.id, id),
-    columns: { slug: true, publishedAt: true, title: true, status: true },
+  if (!z.uuid().safeParse(id).success || !["DRAFT", "PUBLISHED", "CLOSED", "ARCHIVED"].includes(status)) return;
+  const slug = await db.transaction(async tx => {
+    const [settings] = await tx.select().from(recruitingSettings).limit(1).for("share");
+    const [job] = await tx.select().from(jobs).where(eq(jobs.id, id)).for("update");
+    if (!job || job.status === status) return null;
+    if (status === "PUBLISHED" && settings?.requireJobApproval && job.status !== "APPROVED") return null;
+    await tx.update(jobs).set({ status: status as "PUBLISHED",
+      publishedAt: status === "PUBLISHED" ? job.publishedAt ?? new Date() : job.publishedAt,
+      updatedAt: new Date() }).where(eq(jobs.id, id));
+    await tx.insert(auditLogs).values({ adminId: admin.id,
+      action: status === "PUBLISHED" ? "ADMIN_PUBLISHED_JOB" : status === "ARCHIVED" ? "ADMIN_ARCHIVED_JOB" : "ADMIN_UNPUBLISHED_JOB",
+      entityType: "job", entityId: id, metadata: { title: job.title, status } });
+    return job.slug;
   });
-  if (!job) return;
-  const [settings] = await db.select().from(recruitingSettings).limit(1);
-  if (status === "PUBLISHED" && settings?.requireJobApproval && job.status !== "APPROVED") return;
-
-  await db
-    .update(jobs)
-    .set({
-      status: status as "PUBLISHED",
-      publishedAt: status === "PUBLISHED" ? (job.publishedAt ?? new Date()) : job.publishedAt,
-      updatedAt: new Date(),
-    })
-    .where(and(eq(jobs.id, id), eq(jobs.status, job.status)));
-
-  const action =
-    status === "PUBLISHED" ? "ADMIN_PUBLISHED_JOB"
-    : status === "ARCHIVED" ? "ADMIN_ARCHIVED_JOB"
-    : "ADMIN_UNPUBLISHED_JOB";
-
-  await audit({
-    adminId: admin.id,
-    action,
-    entityType: "job",
-    entityId: id,
-    metadata: { title: job.title, status },
-  });
-
-  revalidateJob(job.slug);
+  if (slug) revalidateJob(slug);
 }
 
 /**
@@ -171,38 +133,18 @@ export async function setJobStatusAction(formData: FormData) {
 export async function deleteJobAction(formData: FormData) {
   const admin = await requirePermission("manage");
   const id = String(formData.get("id") ?? "");
-  if (!id) return;
-
-  const job = await db.query.jobs.findFirst({
-    where: eq(jobs.id, id),
-    columns: { slug: true, title: true },
+  if (!z.uuid().safeParse(id).success) return;
+  const slug = await db.transaction(async tx => {
+    const [job] = await tx.select().from(jobs).where(eq(jobs.id, id)).for("update");
+    if (!job) return null;
+    const existing = await tx.select({ id: applications.id }).from(applications).where(eq(applications.jobId, id)).limit(1);
+    if (existing.length) await tx.update(jobs).set({ status: "ARCHIVED", updatedAt: new Date() }).where(eq(jobs.id, id));
+    else await tx.delete(jobs).where(eq(jobs.id, id));
+    await tx.insert(auditLogs).values({ adminId: admin.id,
+      action: existing.length ? "ADMIN_ARCHIVED_JOB" : "ADMIN_DELETED_JOB",
+      entityType: "job", entityId: id, metadata: { title: job.title } });
+    return job.slug;
   });
-  if (!job) return;
-
-  const applicationCount = await countApplicationsForJob(id);
-  if (applicationCount > 0) {
-    await db
-      .update(jobs)
-      .set({ status: "ARCHIVED", updatedAt: new Date() })
-      .where(eq(jobs.id, id));
-    await audit({
-      adminId: admin.id,
-      action: "ADMIN_ARCHIVED_JOB",
-      entityType: "job",
-      entityId: id,
-      metadata: { title: job.title, reason: "delete_blocked_by_applications", applicationCount },
-    });
-  } else {
-    await db.delete(jobs).where(eq(jobs.id, id));
-    await audit({
-      adminId: admin.id,
-      action: "ADMIN_DELETED_JOB",
-      entityType: "job",
-      entityId: id,
-      metadata: { title: job.title },
-    });
-  }
-
-  revalidateJob(job.slug);
+  if (slug) revalidateJob(slug);
   redirect("/admin/jobs");
 }

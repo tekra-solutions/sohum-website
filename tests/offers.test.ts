@@ -112,3 +112,27 @@ describe("offer status presentation", () => {
     for (const status of offerStatuses) expect(labelSection, `label for ${status}`).toContain(`${status}:`);
   });
 });
+
+describe("offer security regressions", () => {
+  it("escapes candidate variables and removes executable markup and external resources", () => {
+    const html = renderOfferTemplate('<p>{{candidate_name}}</p><script>alert(1)</script><img src="http://169.254.169.254/latest/meta-data"><iframe src="file:///etc/passwd"></iframe><svg onload="alert(1)"></svg>', { candidate_name: '<img src=x onerror=alert(1)>' });
+    expect(html).toContain("&lt;img");
+    expect(html).not.toMatch(/<script|<img|<iframe|<svg|169\.254/);
+  });
+  it("treats the expiration date as the entire displayed UTC day", async () => {
+    const { offerDeadline } = await import("@/lib/offers/policy");
+    expect(offerDeadline(new Date("2026-10-20T00:00:00Z")).toISOString()).toBe("2026-10-20T23:59:59.999Z");
+  });
+  it("accepts empty optional form fields without inserting zero compensation", async () => {
+    const { offerVersionInputSchema, declineSchema } = await import("@/lib/offers/validation");
+    const values = offerVersionInputSchema.parse({ templateId: "", jobTitle: "Engineer", department: "Engineering",
+      location: "Kansas City", employmentType: "FULL_TIME", remoteType: "HYBRID",
+      startDate: "2099-11-01", expirationDate: "2099-10-01", annualSalaryCents: "165000", hourlyRateCents: "", bonusCents: "" });
+    expect(values.annualSalaryCents).toBe(16500000);
+    expect(values.hourlyRateCents).toBeUndefined();
+    expect(values.bonusCents).toBeUndefined();
+    expect(values.templateId).toBeUndefined();
+    expect(declineSchema.safeParse({ reason: "", note: "" }).success).toBe(true);
+    expect(offerVersionInputSchema.safeParse({ ...values, annualSalaryCents: "21474836.48" }).success).toBe(false);
+  });
+});

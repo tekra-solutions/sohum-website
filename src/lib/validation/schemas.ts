@@ -5,7 +5,7 @@
  */
 import { z } from "zod";
 
-export const MAX_RESUME_BYTES = 10 * 1024 * 1024; // 10 MB
+export const MAX_RESUME_BYTES = 4 * 1024 * 1024; // Keep multipart requests below Vercel’s 4.5 MB limit.
 
 export const ALLOWED_RESUME_MIME = [
   "application/pdf",
@@ -214,7 +214,7 @@ export function validateResume(file: { name: string; type: string; size: number 
     return { ok: false as const, error: "That file type is not supported." };
   }
   if (file.size > MAX_RESUME_BYTES) {
-    return { ok: false as const, error: "Resume must be 10 MB or smaller." };
+    return { ok: false as const, error: "Resume must be 4 MB or smaller." };
   }
   if (file.size === 0) {
     return { ok: false as const, error: "That file appears to be empty." };

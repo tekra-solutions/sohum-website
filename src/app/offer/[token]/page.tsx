@@ -1,10 +1,10 @@
 import { notFound } from "next/navigation";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { offers, offerVersions, auditLogs } from "@/db/schema";
 import { resolveOfferToken as resolveToken } from "@/lib/offers/data";
 import { hasVerifiedOfferSession } from "@/lib/offers/candidate-session";
-import { canCandidateAct } from "@/lib/offers/policy";
+import { canCandidateAct, offerDeadline } from "@/lib/offers/policy";
 import { formatCurrency, shortDate } from "@/lib/format";
 import { OtpForm } from "@/components/offer/OtpForm";
 import { AcceptForm } from "@/components/offer/AcceptForm";
@@ -28,19 +28,18 @@ export default async function CandidateOfferPage({ params }: { params: Promise<{
   // recorded — this is a real, one-time transition, done here rather than
   // in a server action so it fires exactly once per genuine page load.
   if (row.offer.status === "SENT") {
-    await db.update(offers).set({ status: "VIEWED", viewedAt: new Date() }).where(eq(offers.id, row.offer.id));
-    await db.insert(auditLogs).values({
-      adminId: null, action: "OFFER_VIEWED", entityType: "offer", entityId: row.offer.id,
-      metadata: { applicationId: row.application.id, actor: "candidate" },
+    await db.transaction(async tx => {
+      const changed = await tx.update(offers).set({ status: "VIEWED", viewedAt: new Date(), updatedAt: new Date() }).where(and(eq(offers.id, row.offer.id), eq(offers.status, "SENT"), eq(offers.secureTokenHash, row.offer.secureTokenHash))).returning({ id: offers.id });
+      if (changed.length) await tx.insert(auditLogs).values({ action: "OFFER_VIEWED", entityType: "offer", entityId: row.offer.id, metadata: { applicationId: row.application.id, actor: "candidate" } });
     });
-    row.offer.status = "VIEWED";
   }
 
   if (!row.offer.currentVersionId) notFound();
   const [version] = await db.select().from(offerVersions).where(eq(offerVersions.id, row.offer.currentVersionId));
   if (!version) notFound();
 
-  const actionable = canCandidateAct(row.offer.status as "SENT" | "VIEWED");
+  const expired = offerDeadline(version.expirationDate) <= new Date();
+  const actionable = !expired && !row.application.archivedAt && row.application.status === "OFFER" && canCandidateAct(row.offer.status as "SENT" | "VIEWED");
   const accepted = row.offer.status === "ACCEPTED";
   const declined = row.offer.status === "DECLINED";
 
@@ -63,8 +62,8 @@ export default async function CandidateOfferPage({ params }: { params: Promise<{
             ["Location", version.location],
             version.annualSalaryCents != null ? ["Annual salary", formatCurrency(version.annualSalaryCents)] : null,
             version.hourlyRateCents != null ? ["Hourly rate", `${formatCurrency(version.hourlyRateCents)}/hr`] : null,
-            ["Start date", shortDate(version.startDate)],
-            ["Offer expires", shortDate(version.expirationDate)],
+            ["Start date", version.startDate.toLocaleDateString("en-US", { timeZone: "UTC" })],
+            ["Offer expires", version.expirationDate.toLocaleDateString("en-US", { timeZone: "UTC" })],
           ].filter((row): row is [string, string] => row !== null).map(([k, v]) => (
             <div key={k} className="flex justify-between gap-4 border-b border-paper-200 pb-2 last:border-0">
               <dt className="text-[0.6875rem] text-graphite-500">{k}</dt>
@@ -92,6 +91,7 @@ export default async function CandidateOfferPage({ params }: { params: Promise<{
         </div>
       )}
 
+      {expired && !accepted && !declined && <p role="status" className="text-sm text-graphite-700">This offer has expired. Contact your recruiter for next steps.</p>}
       {actionable && (
         <>
           <AcceptForm token={token} />

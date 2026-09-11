@@ -1,5 +1,6 @@
 "use server";
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { offerTemplates, auditLogs } from "@/db/schema";
@@ -13,6 +14,7 @@ export async function saveOfferTemplateAction(_: ActionState, form: FormData): P
   const parsed = offerTemplateSchema.safeParse({ ...Object.fromEntries(form), isActive: form.get("isActive") === "1" });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message };
   const id = String(form.get("id") ?? "");
+  if (id && !z.uuid().safeParse(id).success) return { error: "Invalid template." };
   try {
     await db.transaction(async tx => {
       if (id) await tx.update(offerTemplates).set({ ...parsed.data, updatedAt: new Date() }).where(eq(offerTemplates.id, id));

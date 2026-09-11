@@ -18,6 +18,7 @@ async function sendViaResend(msg: Message) {
   const env = serverEnv();
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
+    signal: AbortSignal.timeout(15_000),
     headers: {
       Authorization: `Bearer ${env.resendApiKey}`,
       "Content-Type": "application/json",
@@ -34,16 +35,11 @@ async function sendViaResend(msg: Message) {
 }
 
 async function sendViaSmtp(msg: Message) {
-  // Imported lazily and by computed specifier so SMTP support stays optional:
-  // the package need not be installed unless SMTP_HOST is actually set.
-  const moduleName = "nodemailer";
-  const nodemailer = await import(/* webpackIgnore: true */ moduleName).catch(() => null);
-  if (!nodemailer) {
-    throw new Error("SMTP is configured but nodemailer is not installed. Run: npm i nodemailer");
-  }
+  const nodemailer = await import("nodemailer");
   const env = serverEnv();
   const transport = (nodemailer.default ?? nodemailer).createTransport({
     host: env.smtpHost,
+    connectionTimeout: 10_000, greetingTimeout: 10_000, socketTimeout: 15_000,
     port: Number(env.smtpPort),
     secure: Number(env.smtpPort) === 465,
     auth: env.smtpUser ? { user: env.smtpUser, pass: env.smtpPassword } : undefined,
@@ -61,10 +57,8 @@ export async function send(msg: Message): Promise<{ sent: boolean; reason?: stri
     if (process.env.RESEND_API_KEY) await sendViaResend(msg);
     else await sendViaSmtp(msg);
     return { sent: true };
-  } catch (err) {
-    console.error("[email] send failed", {
-      error: err instanceof Error ? err.message : String(err),
-    });
+  } catch {
+    console.error("[email] send failed");
     return { sent: false, reason: "send_failed" };
   }
 }

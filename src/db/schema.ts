@@ -477,6 +477,7 @@ export const offers = pgTable("offers", {
   ...timestamps(),
 }, t => [
   index("offers_application_idx").on(t.applicationId),
+  uniqueIndex("offers_one_active_application_idx").on(t.applicationId).where(sql`${t.status} not in ('DECLINED', 'WITHDRAWN', 'EXPIRED')`),
   uniqueIndex("offers_token_hash_idx").on(t.secureTokenHash),
   index("offers_status_idx").on(t.status),
   index("offers_created_idx").on(t.createdAt),
@@ -573,3 +574,10 @@ export type NewOffer = typeof offers.$inferInsert;
 export type OfferVersion = typeof offerVersions.$inferSelect;
 export type NewOfferVersion = typeof offerVersions.$inferInsert;
 export type OfferTemplate = typeof offerTemplates.$inferSelect;
+
+/** Shared throttles survive serverless instance restarts. Keys are hashed. */
+export const rateLimitBuckets = pgTable("rate_limit_buckets", {
+  keyHash: text("key_hash").primaryKey(),
+  count: integer("count").notNull(),
+  resetAt: timestamp("reset_at", { withTimezone: true }).notNull(),
+}, t => [index("rate_limit_reset_idx").on(t.resetAt)]);

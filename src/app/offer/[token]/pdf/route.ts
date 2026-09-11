@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { offers, offerVersions, applications } from "@/db/schema";
-import { hashOfferToken } from "@/lib/offers/tokens";
+import { offerVersions } from "@/db/schema";
+import { resolveOfferToken } from "@/lib/offers/data";
 import { hasVerifiedOfferSession } from "@/lib/offers/candidate-session";
 import { downloadOfferPdf } from "@/lib/storage/offers";
 import { audit } from "@/lib/audit";
@@ -16,12 +16,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ tok
   const { token } = await params;
   if (!token || token.length > 512) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const [row] = await db
-    .select({ offer: offers, application: applications })
-    .from(offers)
-    .innerJoin(applications, eq(offers.applicationId, applications.id))
-    .where(eq(offers.secureTokenHash, hashOfferToken(token)))
-    .limit(1);
+  const row = await resolveOfferToken(token);
   if (!row) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   if (!(await hasVerifiedOfferSession(row.offer.id, row.offer.secureTokenHash))) {

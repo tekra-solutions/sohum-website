@@ -7,6 +7,7 @@ import { offers, applications } from "@/db/schema";
 import { candidateScope } from "@/lib/ats/access";
 import { requirePermission } from "@/lib/ats/access";
 import { requireAdmin, type SessionAdmin } from "@/lib/auth/session";
+import { permits } from "@/lib/ats/policy";
 import type { Permission } from "@/lib/ats/policy";
 
 /**
@@ -15,6 +16,7 @@ import type { Permission } from "@/lib/ats/policy";
  * existing candidateScope() against that joined row.
  */
 export async function accessibleOffer(offerId: string, admin: SessionAdmin) {
+  if (!permits(admin.role, "offers")) return null;
   if (!z.uuid().safeParse(offerId).success) return null;
   const [row] = await db
     .select({ offer: offers, application: applications })

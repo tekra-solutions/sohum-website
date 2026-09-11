@@ -37,7 +37,7 @@ export async function createOfferSession(offerId: string, tokenHash: string) {
 
 export async function destroyOfferSession() {
   const jar = await cookies();
-  jar.delete(COOKIE);
+  jar.set(COOKIE, "", { path: "/offer", maxAge: 0, httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax" });
 }
 
 /**

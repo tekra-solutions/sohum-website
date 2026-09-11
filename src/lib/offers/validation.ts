@@ -14,9 +14,8 @@ export const offerTemplateSchema = z.object({
  * Dollars in from the form, cents out for storage — the schema does the
  * conversion so every caller works in cents from here on.
  */
-const dollarsToCents = z.coerce.number().nonnegative().max(100_000_000)
-  .transform(dollars => Math.round(dollars * 100))
-  .optional();
+const dollarsToCents = z.preprocess(v => v === "" || v === null ? undefined : v,
+  z.coerce.number().nonnegative().max(21_474_836.47).transform(dollars => Math.round(dollars * 100)).optional());
 
 export const offerVersionInputSchema = z.object({
   jobTitle: z.string().trim().min(1).max(200),
@@ -39,7 +38,7 @@ export const offerVersionInputSchema = z.object({
   workLocation: z.string().trim().max(300).optional(),
   additionalTerms: z.string().trim().max(4000).optional(),
 
-  templateId: z.uuid().optional(),
+  templateId: z.preprocess(v => v === "" || v === null ? undefined : v, z.uuid().optional()),
 }).refine(v => v.expirationDate > new Date(0) && v.expirationDate <= v.startDate, {
   message: "The offer must expire on or before the start date — a candidate cannot still be deciding after starting.",
   path: ["expirationDate"],
@@ -54,7 +53,7 @@ export const declineReasons = [
 ] as const;
 
 export const declineSchema = z.object({
-  reason: z.enum(declineReasons).optional(),
+  reason: z.preprocess(v => v === "" ? undefined : v, z.enum(declineReasons).optional()),
   note: z.string().trim().max(1000).optional(),
 });
 
