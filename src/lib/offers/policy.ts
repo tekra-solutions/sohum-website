@@ -73,3 +73,34 @@ export function offerDeadline(date: Date): Date {
   deadline.setUTCHours(23, 59, 59, 999);
   return deadline;
 }
+
+/**
+ * The consent a candidate affirms before signing electronically. Stored
+ * verbatim with each signature so the record shows exactly what was agreed
+ * to even if this wording is later revised.
+ *
+ * This is configurable company/legal language, not a legal guarantee: that
+ * the system supports electronic signatures does not by itself make a given
+ * offer process compliant. Company counsel should review this text and the
+ * offer templates before use.
+ */
+export const ESIGN_CONSENT_TEXT =
+  "I consent to use an electronic signature and acknowledge that my electronic signature is intended to have the same effect as my handwritten signature.";
+
+/**
+ * Human-readable reference printed on the document and in its page footer.
+ *
+ * Derived from data the offer already has rather than a new sequence column:
+ * the creation year plus the first segment of the offer's UUID, which is
+ * unique in practice and stable for the life of the offer. It identifies a
+ * document in correspondence; it is not a secret and carries no token.
+ */
+export function offerReferenceFor(
+  offer: { id: string; createdAt: Date | null },
+  version?: { versionNumber: number } | null,
+) {
+  const year = (offer.createdAt ?? new Date()).getUTCFullYear();
+  const short = offer.id.split("-")[0]?.toUpperCase() ?? "";
+  const base = `OFFER-${year}-${short}`;
+  return version ? `${base}-V${version.versionNumber}` : base;
+}

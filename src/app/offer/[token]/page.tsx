@@ -4,7 +4,7 @@ import { db } from "@/db";
 import { offers, offerVersions, auditLogs } from "@/db/schema";
 import { resolveOfferToken as resolveToken } from "@/lib/offers/data";
 import { hasVerifiedOfferSession } from "@/lib/offers/candidate-session";
-import { canCandidateAct, offerDeadline } from "@/lib/offers/policy";
+import { canCandidateAct, offerDeadline, offerReferenceFor, ESIGN_CONSENT_TEXT } from "@/lib/offers/policy";
 import { formatCurrency, shortDate } from "@/lib/format";
 import { OtpForm } from "@/components/offer/OtpForm";
 import { AcceptForm } from "@/components/offer/AcceptForm";
@@ -20,6 +20,21 @@ export default async function CandidateOfferPage({ params }: { params: Promise<{
   // withdrawn, and expired are all indistinguishable to the caller so a
   // guess reveals nothing about which case it is.
   if (!row) notFound();
+
+  // The link resolved: record that it was opened, before any verification.
+  // Written once per offer — a refresh or a second visit is not a new event,
+  // and repeating it would flood the audit trail.
+  {
+    const [seen] = await db.select({ id: auditLogs.id }).from(auditLogs)
+      .where(and(eq(auditLogs.entityType, "offer"), eq(auditLogs.entityId, row.offer.id), eq(auditLogs.action, "OFFER_LINK_OPENED")))
+      .limit(1);
+    if (!seen) {
+      await db.insert(auditLogs).values({
+        adminId: null, action: "OFFER_LINK_OPENED", entityType: "offer", entityId: row.offer.id,
+        metadata: { applicationId: row.application.id, actor: "candidate" },
+      });
+    }
+  }
 
   const verified = await hasVerifiedOfferSession(row.offer.id, row.offer.secureTokenHash);
   if (!verified) return <OtpForm token={token} />;
@@ -94,7 +109,21 @@ export default async function CandidateOfferPage({ params }: { params: Promise<{
       {expired && !accepted && !declined && <p role="status" className="text-sm text-graphite-700">This offer has expired. Contact your recruiter for next steps.</p>}
       {actionable && (
         <>
-          <AcceptForm token={token} />
+          <AcceptForm
+            token={token}
+            consentText={ESIGN_CONSENT_TEXT}
+            summary={{
+              jobTitle: version.jobTitle,
+              startDate: version.startDate.toLocaleDateString("en-US", { timeZone: "UTC" }),
+              compensation:
+                version.annualSalaryCents != null
+                  ? `${formatCurrency(version.annualSalaryCents)} annually`
+                  : version.hourlyRateCents != null
+                    ? `${formatCurrency(version.hourlyRateCents)}/hr`
+                    : null,
+              versionLabel: offerReferenceFor(row.offer, version),
+            }}
+          />
           <DeclineForm token={token} />
         </>
       )}

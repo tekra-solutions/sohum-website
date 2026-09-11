@@ -528,6 +528,15 @@ export const offerVersions = pgTable("offer_versions", {
   // change an already-issued or already-accepted document.
   renderedHtml: text("rendered_html").notNull(),
   pdfStoragePath: text("pdf_storage_path"),
+  // The template-resolved body/terms/acknowledgement fragments this version
+  // was built from. Frozen alongside renderedHtml so the signed document can
+  // be re-rendered (same content, plus the signature block) without consulting
+  // offer_templates, whose rows may have changed since the offer was sent.
+  // Nullable: versions created before signing existed have no copy, and the
+  // signed renderer falls back to the frozen renderedHtml for those.
+  templateBodyHtml: text("template_body_html"),
+  templateTermsHtml: text("template_terms_html"),
+  templateAcknowledgementsHtml: text("template_acknowledgements_html"),
 
   createdBy: uuid("created_by").notNull().references(() => admins.id, { onDelete: "restrict" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

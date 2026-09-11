@@ -98,7 +98,7 @@ async function buildRenderedHtml(tx: Tx, app: typeof applications.$inferSelect, 
       if (template.acknowledgementsHtml?.trim()) templateAcknowledgementsHtml = renderOfferTemplate(template.acknowledgementsHtml, variables);
     }
   }
-  return renderOfferHtml({
+  const renderedHtml = renderOfferHtml({
     candidateName: `${app.firstName} ${app.lastName}`,
     candidateEmail: app.email,
     candidateAddress: [app.address, [app.city, app.state, app.zipCode].filter(Boolean).join(", ")].filter(Boolean).join("\n") || null,
@@ -108,6 +108,9 @@ async function buildRenderedHtml(tx: Tx, app: typeof applications.$inferSelect, 
     offerVersionNumber: versionNumber ?? null,
     ...versionColumns(v),
   });
+  // The fragments are frozen with the version so the signed document can be
+  // re-rendered later from this row alone, without re-reading offer_templates.
+  return { renderedHtml, templateBodyHtml, templateTermsHtml, templateAcknowledgementsHtml };
 }
 
 export async function createOfferAction(_: OfferActionState, form: FormData): Promise<OfferActionState> {
@@ -137,9 +140,9 @@ export async function createOfferAction(_: OfferActionState, form: FormData): Pr
         secureTokenHash: hashOfferToken(generateOfferToken()),
       }).returning();
 
-      const renderedHtml = await buildRenderedHtml(tx, locked, v, 1);
+      const rendered = await buildRenderedHtml(tx, locked, v, 1);
       const [version] = await tx.insert(offerVersions).values({
-        offerId: offer!.id, versionNumber: 1, createdBy: admin.id, renderedHtml,
+        offerId: offer!.id, versionNumber: 1, createdBy: admin.id, ...rendered,
         ...versionColumns(v),
       }).returning();
 
@@ -172,9 +175,9 @@ export async function updateOfferAction(_: OfferActionState, form: FormData): Pr
       const versions = await tx.select({ n: offerVersions.versionNumber }).from(offerVersions).where(eq(offerVersions.offerId, offerId));
       const nextVersion = Math.max(...versions.map(r => r.n)) + 1;
 
-      const renderedHtml = await buildRenderedHtml(tx, liveApplication, v, nextVersion);
+      const rendered = await buildRenderedHtml(tx, liveApplication, v, nextVersion);
       const [version] = await tx.insert(offerVersions).values({
-        offerId, versionNumber: nextVersion, createdBy: admin.id, renderedHtml,
+        offerId, versionNumber: nextVersion, createdBy: admin.id, ...rendered,
         ...versionColumns(v),
       }).returning();
 

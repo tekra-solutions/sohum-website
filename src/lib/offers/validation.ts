@@ -60,4 +60,20 @@ export const declineSchema = z.object({
 export const acceptSchema = z.object({
   legalName: z.string().trim().min(1).max(200),
   confirmed: z.literal("1", { message: "You must confirm acceptance to continue" }),
+  // Consent to sign electronically is recorded separately from the acceptance
+  // itself: it is what the signature's validity rests on, so it is its own
+  // deliberate checkbox rather than being implied by accepting.
+  esignConsent: z.literal("1", {
+    message: "You must consent to use an electronic signature to continue",
+  }),
+  /** The typed signature, which must match the legal name the candidate entered. */
+  signature: z.string().trim().min(1, "Type your full legal name to sign").max(200),
+}).refine(v => normalizeName(v.signature) === normalizeName(v.legalName), {
+  message: "Your typed signature must match your full legal name",
+  path: ["signature"],
 });
+
+/** Compare names ignoring case and internal whitespace runs, nothing more. */
+function normalizeName(value: string) {
+  return value.trim().toLowerCase().replace(/\s+/g, " ");
+}

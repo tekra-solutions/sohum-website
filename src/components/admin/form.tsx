@@ -54,14 +54,20 @@ function Shell({
 
 export function Field({
   name, label, type = "text", required, defaultValue, placeholder,
-  autoComplete, hint, error, className, inputMode,
+  autoComplete, hint, error, className, inputMode, value, onChange, disabled,
 }: {
   name: string; label: string; type?: string; required?: boolean;
   defaultValue?: string | number | null; placeholder?: string;
   autoComplete?: string; hint?: string; error?: string; className?: string;
   inputMode?: "text" | "numeric" | "tel" | "email" | "url";
+  /** Supplying `value` + `onChange` makes the input controlled; omitting both
+   *  leaves it uncontrolled with `defaultValue`, as every existing caller uses. */
+  value?: string;
+  onChange?: React.ChangeEventHandler<HTMLInputElement>;
+  disabled?: boolean;
 }) {
   const id = `f-${name}`;
+  const controlled = value !== undefined;
   return (
     <Shell id={id} label={label} required={required} hint={hint} error={error} className={className}>
       <input
@@ -70,13 +76,14 @@ export function Field({
         type={type}
         required={required}
         inputMode={inputMode}
-        defaultValue={defaultValue ?? ""}
+        disabled={disabled}
+        {...(controlled ? { value, onChange } : { defaultValue: defaultValue ?? "" })}
         placeholder={placeholder}
         autoComplete={autoComplete}
         aria-required={required || undefined}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${id}-error` : hint ? `${id}-hint` : undefined}
-        className={`${control} ${borderFor(error)}`}
+        className={`${control} ${borderFor(error)} disabled:cursor-not-allowed disabled:opacity-55`}
       />
     </Shell>
   );
