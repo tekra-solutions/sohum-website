@@ -601,6 +601,81 @@ describe.skipIf(!enabled)("production security regressions", () => {
   });
 });
 
+describe.skipIf(!enabled)("job reference numbers (local only)", () => {
+  const form = (values: Record<string, string>) => {
+    const f = new FormData();
+    for (const [k, v] of Object.entries(values)) f.set(k, v);
+    return f;
+  };
+
+  it("assigns a unique 6-digit number that does not start at 1", async () => {
+    state.id = "10000000-0000-4000-8000-000000000001"; state.role = "SUPER_ADMIN";
+    const { db } = await import("@/db");
+    const { jobs } = await import("@/db/schema");
+    const rows = await db.select({ reference: jobs.reference }).from(jobs);
+    expect(rows.length).toBeGreaterThan(0);
+    for (const r of rows) {
+      expect(String(r.reference)).toMatch(/^\d{6}$/);
+      // A serial starting at 1 would leak how many jobs exist.
+      expect(r.reference).toBeGreaterThan(100000);
+    }
+    expect(new Set(rows.map(r => r.reference)).size).toBe(rows.length);
+  });
+
+  it("keeps numbers unique when jobs are created concurrently", async () => {
+    state.id = "10000000-0000-4000-8000-000000000001"; state.role = "SUPER_ADMIN";
+    const { db } = await import("@/db");
+    const { jobs } = await import("@/db/schema");
+    const { inArray } = await import("drizzle-orm");
+    const { saveJobAction } = await import("@/lib/services/job-actions");
+
+    const slugs = Array.from({ length: 8 }, (_, i) => `concurrent-ref-${i}-${crypto.randomUUID().slice(0, 6)}`);
+    await Promise.all(slugs.map(slug =>
+      // The action redirects on success, which surfaces as a thrown REDIRECT.
+      saveJobAction({}, form({
+        title: `Concurrent ${slug}`, slug, department: "Engineering", location: "Kansas City",
+        employmentType: "FULL_TIME", remoteType: "HYBRID", experienceLevel: "MID",
+        description: "Concurrency check for reference allocation.",
+        responsibilities: "", qualifications: "", preferredQualifications: "", skills: "",
+        intent: "draft",
+      })).catch(() => {}),
+    ));
+
+    const created = await db.select({ reference: jobs.reference }).from(jobs).where(inArray(jobs.slug, slugs));
+    expect(created).toHaveLength(slugs.length);
+    expect(new Set(created.map(r => r.reference)).size).toBe(slugs.length);
+  });
+
+  it("resolves a job by its number and still by its UUID", async () => {
+    state.id = "10000000-0000-4000-8000-000000000001"; state.role = "SUPER_ADMIN";
+    const { db } = await import("@/db");
+    const { jobs } = await import("@/db/schema");
+    const { getJobById } = await import("@/lib/services/jobs");
+    const [job] = await db.select().from(jobs).limit(1);
+
+    expect((await getJobById(String(job.reference)))?.id).toBe(job.id);
+    // Links saved before references existed must keep working.
+    expect((await getJobById(job.id))?.id).toBe(job.id);
+    // Garbage resolves to nothing rather than raising a type error.
+    expect(await getJobById("not-an-id")).toBeUndefined();
+    expect(await getJobById("999999")).toBeUndefined();
+  });
+
+  it("finds a job by number from the admin search", async () => {
+    state.id = "10000000-0000-4000-8000-000000000001"; state.role = "SUPER_ADMIN";
+    const { db } = await import("@/db");
+    const { jobs } = await import("@/db/schema");
+    const { listAdminJobs } = await import("@/lib/services/jobs");
+    const [job] = await db.select().from(jobs).limit(1);
+
+    expect((await listAdminJobs({ q: String(job.reference) })).map(j => j.id)).toContain(job.id);
+    // A partial number works as a prefix.
+    expect((await listAdminJobs({ q: String(job.reference).slice(0, 4) })).map(j => j.id)).toContain(job.id);
+    // Title search still works and is not broken by the numeric branch.
+    expect((await listAdminJobs({ q: job.title.slice(0, 6) })).map(j => j.id)).toContain(job.id);
+  });
+});
+
 describe.skipIf(!enabled)("offer signing attack surface (local only)", () => {
   const form = (values: Record<string, string>) => {
     const f = new FormData();

@@ -90,6 +90,8 @@ export async function saveJobAction(
   };
 
   let jobId = id;
+  // Captured so the post-save redirect can use the short reference in the URL.
+  let jobReference: number | null = null;
   try {
     await db.transaction(async tx => {
       const [currentSettings] = await tx.select().from(recruitingSettings).limit(1).for("share");
@@ -97,6 +99,7 @@ export async function saveJobAction(
       if (id) {
         const [existing] = await tx.select().from(jobs).where(eq(jobs.id, id)).for("update");
         if (!existing) throw new Error("Job not found.");
+        jobReference = existing.reference;
         await tx.update(jobs).set({ ...values,
           publishedAt: status === "PUBLISHED" ? existing.publishedAt ?? new Date() : existing.publishedAt,
         }).where(eq(jobs.id, id));
@@ -105,8 +108,10 @@ export async function saveJobAction(
           entityType: "job", entityId: id, metadata: { title: v.title, status } });
       } else {
         const [row] = await tx.insert(jobs).values({ ...values, createdBy: admin.id,
-          publishedAt: status === "PUBLISHED" ? new Date() : null }).returning({ id: jobs.id });
+          publishedAt: status === "PUBLISHED" ? new Date() : null })
+          .returning({ id: jobs.id, reference: jobs.reference });
         jobId = row.id;
+        jobReference = row.reference;
         await tx.insert(auditLogs).values({ adminId: admin.id, action: "ADMIN_CREATED_JOB",
           entityType: "job", entityId: jobId, metadata: { title: v.title, status } });
       }
@@ -119,7 +124,7 @@ export async function saveJobAction(
   }
 
   revalidateJob(slug);
-  redirect(`/admin/jobs/${jobId}?saved=1`);
+  redirect(`/admin/jobs/${jobReference ?? jobId}?saved=1`);
 }
 
 /** Publish / unpublish / close / archive. */

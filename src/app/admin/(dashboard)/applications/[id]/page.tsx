@@ -197,7 +197,7 @@ export default async function ApplicationDetailPage({
               <h2 className="text-[1.0625rem] font-medium text-ink-900">Position</h2>
               <p className="mt-3 text-[0.9375rem] font-medium text-ink-900">{app.job.title}</p>
               <p className="mt-1 text-[0.875rem] text-graphite-600">{app.job.department} · {app.job.location}</p>
-              <Link href={`/admin/jobs/${app.job.id}`} className="mt-4 inline-block text-[0.875rem] font-medium text-ink-900 underline decoration-paper-300 underline-offset-4 hover:decoration-flame-500">
+              <Link href={`/admin/jobs/${app.job.reference}`} className="mt-4 inline-block text-[0.875rem] font-medium text-ink-900 underline decoration-paper-300 underline-offset-4 hover:decoration-flame-500">
                 Open job
               </Link>
             </section>

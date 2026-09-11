@@ -90,6 +90,14 @@ export const jobs = pgTable(
   "jobs",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    /**
+     * Short human-facing job number, e.g. 501283. Quoted in conversation,
+     * searched in the admin list and used in admin URLs, where it replaces the
+     * UUID. Backed by a Postgres sequence starting at a non-obvious offset, so
+     * the number does not begin at 1 or disclose how many jobs exist. The UUID
+     * remains the primary key and every foreign key still points at it.
+     */
+    reference: integer("reference").notNull().default(sql`nextval('job_reference_seq')`),
     title: varchar("title", { length: 200 }).notNull(),
     slug: varchar("slug", { length: 220 }).notNull(),
     department: varchar("department", { length: 120 }).notNull(),
@@ -116,6 +124,7 @@ export const jobs = pgTable(
   },
   (t) => [
     uniqueIndex("jobs_slug_idx").on(t.slug),
+    uniqueIndex("jobs_reference_idx").on(t.reference),
     index("jobs_status_idx").on(t.status),
     index("jobs_published_at_idx").on(t.publishedAt),
   ],

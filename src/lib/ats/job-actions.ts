@@ -41,7 +41,7 @@ export async function jobWorkflowAction(_: ActionState, form: FormData): Promise
         await tx.update(jobs).set({ status, updatedAt: new Date() }).where(eq(jobs.id, job.id));
         if (status === "PENDING_APPROVAL") {
           const recipients = await tx.select({ id: admins.id }).from(admins).where(and(eq(admins.isActive, true), eq(admins.role, "SUPER_ADMIN")));
-          if (recipients.length) await tx.insert(notifications).values(recipients.map(r => ({ adminId: r.id, title: "Job approval required", href: `/admin/jobs/${job.id}` })));
+          if (recipients.length) await tx.insert(notifications).values(recipients.map(r => ({ adminId: r.id, title: "Job approval required", href: `/admin/jobs/${job.reference}` })));
         }
       } else throw new Error("Unsupported job action.");
       await tx.insert(auditLogs).values({ adminId: admin.id, action: `JOB_${kind.toUpperCase().replaceAll("-", "_")}`, entityType: "job", entityId: job.id });

@@ -40,7 +40,7 @@ export default async function EditJobPage({
     <>
       <AdminHeader
         title={job.title}
-        description={`${job.department} · ${job.location}`}
+        description={`Job #${job.reference} · ${job.department} · ${job.location}`}
         action={
           <>
             <StatusPill status={job.status} label={jobStatusLabel[job.status]} />

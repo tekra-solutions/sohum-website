@@ -135,8 +135,16 @@ export async function listAdminJobs(opts: {
   const admin = await requireAdmin();
   const where = [jobScope(admin)];
   if (opts.q?.trim()) {
-    const term = `%${opts.q.trim()}%`;
-    where.push(or(ilike(jobs.title, term), ilike(jobs.department, term))!);
+    const raw = opts.q.trim();
+    const term = `%${raw}%`;
+    // The job number is an integer, so it is cast to text to be matched as a
+    // prefix — typing "5012" finds 501283. An exact number is matched as an
+    // equality too, so pasting a full reference always lands on that job.
+    const clauses = [ilike(jobs.title, term), ilike(jobs.department, term)];
+    if (/^\d+$/.test(raw)) {
+      clauses.push(sql`${jobs.reference}::text like ${`${raw}%`}`);
+    }
+    where.push(or(...clauses)!);
   }
   if (opts.status && opts.status !== "ALL") {
     where.push(eq(jobs.status, opts.status as "DRAFT"));
@@ -172,9 +180,27 @@ export async function listAdminJobs(opts: {
   }));
 }
 
+/**
+ * Resolves a job by its short reference (e.g. "501283") or its UUID.
+ *
+ * Admin URLs use the reference, but UUIDs still resolve so links saved before
+ * references existed — bookmarks, notification hrefs, pasted links — keep
+ * working. The two forms are told apart by shape rather than tried in turn:
+ * comparing a UUID against an integer column is a Postgres type error, not a
+ * miss, so a combined OR would throw instead of returning nothing.
+ */
+export function jobIdentifier(value: string) {
+  const trimmed = value.trim();
+  if (/^\d{1,9}$/.test(trimmed)) return eq(jobs.reference, Number(trimmed));
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(trimmed)) return eq(jobs.id, trimmed);
+  return null;
+}
+
 export async function getJobById(id: string) {
   const admin = await requireAdmin();
-  return db.query.jobs.findFirst({ where: and(eq(jobs.id, id), jobScope(admin)) });
+  const match = jobIdentifier(id);
+  if (!match) return undefined;
+  return db.query.jobs.findFirst({ where: and(match, jobScope(admin)) });
 }
 
 export async function countApplicationsForJob(jobId: string) {

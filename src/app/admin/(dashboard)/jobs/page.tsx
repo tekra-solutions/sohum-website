@@ -61,7 +61,7 @@ export default async function AdminJobsPage({
                 <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-graphite-400" aria-hidden="true" />
                 <input
                   id="q" name="q" type="search" defaultValue={q}
-                  placeholder="Search title or department"
+                  placeholder="Search job number, title or department"
                   className="w-full rounded-[3px] border border-paper-300 bg-white py-2.5 pl-9 pr-3 text-[0.875rem] focus:border-flame-500 focus:outline-none focus:ring-2 focus:ring-flame-500/30"
                 />
               </div>
@@ -117,7 +117,8 @@ export default async function AdminJobsPage({
                     {rows.map((j) => (
                       <tr key={j.id} className="border-b border-paper-200 last:border-0">
                         <th scope="row" className="px-3 py-2.5 text-[0.75rem] font-medium text-ink-900">
-                          <Link href={`/admin/jobs/${j.id}`} className="hover:underline underline-offset-4">{j.title}</Link>
+                          <Link href={`/admin/jobs/${j.reference}`} className="hover:underline underline-offset-4">{j.title}</Link>
+                          <span className="mt-0.5 block font-normal tabular-nums text-[0.6875rem] text-graphite-500">#{j.reference}</span>
                         </th>
                         <td className="px-3 py-2.5 text-[0.8125rem] text-graphite-600">{j.department}</td>
                         <td className="px-3 py-2.5 text-[0.8125rem] text-graphite-600">{j.location}</td>
@@ -140,7 +141,7 @@ export default async function AdminJobsPage({
                                 <ExternalLink className="size-4" aria-hidden="true" />
                               </Link>
                             )}
-                            <Link href={`/admin/jobs/${j.id}`} className="rounded p-1.5 text-graphite-500 hover:bg-paper-100 hover:text-ink-900" aria-label={`Edit ${j.title}`}>
+                            <Link href={`/admin/jobs/${j.reference}`} className="rounded p-1.5 text-graphite-500 hover:bg-paper-100 hover:text-ink-900" aria-label={`Edit ${j.title}`}>
                               <Pencil className="size-4" aria-hidden="true" />
                             </Link>
                           </div>
@@ -156,17 +157,19 @@ export default async function AdminJobsPage({
                 {rows.map((j) => (
                   <li key={j.id} className="rounded-[4px] border border-paper-300 bg-white p-4">
                     <div className="flex items-start justify-between gap-3">
-                      <Link href={`/admin/jobs/${j.id}`} className="text-[0.75rem] font-medium text-ink-900">{j.title}</Link>
+                      <Link href={`/admin/jobs/${j.reference}`} className="text-[0.75rem] font-medium text-ink-900">{j.title}</Link>
                       <StatusPill status={j.status} label={jobStatusLabel[j.status]} />
                     </div>
-                    <p className="mt-1 text-[0.75rem] text-graphite-600">{j.department} · {j.location}</p>
+                    <p className="mt-1 text-[0.75rem] text-graphite-600">
+                      <span className="tabular-nums text-graphite-500">#{j.reference}</span> · {j.department} · {j.location}
+                    </p>
                     <div className="mt-3 flex items-center justify-between border-t border-paper-200 pt-3">
                       <span className="text-[0.75rem] text-graphite-600">
                         {j.applicationCount} application{j.applicationCount === 1 ? "" : "s"}
                       </span>
                       <div className="flex gap-2">
                         {needsApproval && j.status !== "PUBLISHED" && j.status !== "APPROVED" ? (
-                          <Link href={`/admin/jobs/${j.id}`} className="rounded border border-paper-300 px-3 py-1.5 text-[0.75rem] font-medium text-ink-900">
+                          <Link href={`/admin/jobs/${j.reference}`} className="rounded border border-paper-300 px-3 py-1.5 text-[0.75rem] font-medium text-ink-900">
                             Review
                           </Link>
                         ) : (
@@ -178,7 +181,7 @@ export default async function AdminJobsPage({
                             </button>
                           </form>
                         )}
-                        <Link href={`/admin/jobs/${j.id}`} className="rounded border border-paper-300 px-3 py-1.5 text-[0.75rem] font-medium text-ink-900">Edit</Link>
+                        <Link href={`/admin/jobs/${j.reference}`} className="rounded border border-paper-300 px-3 py-1.5 text-[0.75rem] font-medium text-ink-900">Edit</Link>
                       </div>
                     </div>
                   </li>
