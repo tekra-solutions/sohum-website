@@ -12,6 +12,7 @@ ALTER TABLE applications        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE resume_files        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE application_events  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_logs          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE employees           ENABLE ROW LEVEL SECURITY;
 
 -- Default deny: with RLS enabled and no permissive policy, anon and
 -- authenticated roles can do nothing. The service role bypasses RLS entirely,
@@ -24,8 +25,9 @@ CREATE POLICY "public can read published jobs"
   TO anon, authenticated
   USING (status = 'PUBLISHED');
 
--- Applications, resumes, events, admins and audit logs have NO permissive
--- policy on purpose. Only the service role touches them.
+-- Applications, resumes, events, admins, employees and audit logs have NO
+-- permissive policy on purpose. Employee rows are staff PII and must never be
+-- readable with the anon key. Only the service role touches them.
 
 -- Storage: the resumes bucket must be private. Create it with
 --   insert into storage.buckets (id, name, public) values ('resumes','resumes',false)

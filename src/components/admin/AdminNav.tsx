@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Briefcase, LayoutDashboard, LogOut, Menu, Settings, Users, X } from "lucide-react";
+import { Briefcase, IdCard, LayoutDashboard, LogOut, Menu, Settings, Users, X } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { logoutAction } from "@/lib/services/auth-actions";
 
@@ -11,6 +11,7 @@ const items = [
   { href: "/admin", label: "Dashboard", Icon: LayoutDashboard, exact: true },
   { href: "/admin/jobs", label: "Jobs", Icon: Briefcase },
   { href: "/admin/applications", label: "Applications", Icon: Users },
+  { href: "/admin/employees", label: "Employees", Icon: IdCard },
   { href: "/admin/settings", label: "Settings", Icon: Settings },
 ];
 

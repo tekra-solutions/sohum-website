@@ -10,6 +10,7 @@
  */
 import { relations, sql } from "drizzle-orm";
 import {
+  type AnyPgColumn,
   bigserial,
   boolean,
   index,
@@ -26,9 +27,9 @@ import {
 
 /* ------------------------------------------------------------------ enums */
 
-export const adminRoleEnum = pgEnum("admin_role", ["ADMIN", "RECRUITER", "SUPER_ADMIN"]);
+export const adminRoleEnum = pgEnum("admin_role", ["ADMIN", "RECRUITER", "SUPER_ADMIN", "RECRUITING_ADMIN", "HIRING_MANAGER"]);
 
-export const jobStatusEnum = pgEnum("job_status", ["DRAFT", "PUBLISHED", "CLOSED", "ARCHIVED"]);
+export const jobStatusEnum = pgEnum("job_status", ["DRAFT", "PENDING_APPROVAL", "APPROVED", "PUBLISHED", "CLOSED", "ARCHIVED"]);
 
 export const employmentTypeEnum = pgEnum("employment_type", [
   "FULL_TIME",
@@ -48,9 +49,16 @@ export const experienceLevelEnum = pgEnum("experience_level", [
   "PRINCIPAL",
 ]);
 
+export const employmentStatusEnum = pgEnum("employment_status", [
+  "ACTIVE",
+  "ON_LEAVE",
+  "TERMINATED",
+]);
+
 export const applicationStatusEnum = pgEnum("application_status", [
   "NEW",
-  "REVIEWING",
+  "SCREENING",
+  "OFFER",
   "SHORTLISTED",
   "INTERVIEW",
   "REJECTED",
@@ -112,6 +120,50 @@ export const jobs = pgTable(
   ],
 );
 
+/* -------------------------------------------------------------- employees */
+
+export const employees = pgTable(
+  "employees",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    /** Human-facing identifier, e.g. SOH-EMP-0042. Generated from `sequence`. */
+    employeeId: varchar("employee_id", { length: 32 }).notNull(),
+    /** Monotonic counter behind employeeId; assigned by Postgres. */
+    sequence: bigserial("sequence", { mode: "number" }).notNull(),
+
+    firstName: varchar("first_name", { length: 120 }).notNull(),
+    lastName: varchar("last_name", { length: 120 }).notNull(),
+    workEmail: varchar("work_email", { length: 255 }).notNull(),
+    personalEmail: varchar("personal_email", { length: 255 }),
+    phone: varchar("phone", { length: 40 }),
+
+    jobTitle: varchar("job_title", { length: 160 }).notNull(),
+    department: varchar("department", { length: 120 }).notNull(),
+    location: varchar("location", { length: 160 }),
+    employmentType: employmentTypeEnum("employment_type").notNull().default("FULL_TIME"),
+    status: employmentStatusEnum("status").notNull().default("ACTIVE"),
+
+    managerId: uuid("manager_id"),
+    startDate: timestamp("start_date", { withTimezone: true }),
+    endDate: timestamp("end_date", { withTimezone: true }),
+
+    /** Set when the employee was hired through an application. */
+    sourceApplicationId: uuid("source_application_id").references((): AnyPgColumn => applications.id, { onDelete: "restrict" }),
+
+    notes: text("notes"),
+    createdBy: uuid("created_by").references(() => admins.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("employees_source_application_idx").on(t.sourceApplicationId),
+    uniqueIndex("employees_employee_id_idx").on(t.employeeId),
+    uniqueIndex("employees_work_email_lower_idx").on(sql`lower(${t.workEmail})`),
+    index("employees_status_idx").on(t.status),
+    index("employees_department_idx").on(t.department),
+  ],
+);
+
 /* ----------------------------------------------------------- applications */
 
 export const applications = pgTable(
@@ -150,12 +202,18 @@ export const applications = pgTable(
     status: applicationStatusEnum("status").notNull().default("NEW"),
     source: varchar("source", { length: 160 }),
     internalNotes: text("internal_notes"),
+    skills: text("skills").notNull().default(""),
+    tags: jsonb("tags").$type<string[]>().notNull().default([]),
+    assignedTo: uuid("assigned_to").references(() => admins.id, { onDelete: "set null" }),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
 
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     uniqueIndex("applications_reference_idx").on(t.reference),
+    index("applications_assigned_idx").on(t.assignedTo),
+    index("applications_source_idx").on(t.source),
     index("applications_job_idx").on(t.jobId),
     index("applications_status_idx").on(t.status),
     index("applications_created_idx").on(t.createdAt),
@@ -250,8 +308,111 @@ export const applicationEventsRelations = relations(applicationEvents, ({ one })
   admin: one(admins, { fields: [applicationEvents.changedBy], references: [admins.id] }),
 }));
 
+export const employeesRelations = relations(employees, ({ one }) => ({
+  // Self-reference for the reporting line. Declared via a callback so the
+  // table can reference itself without a circular initialisation error.
+  manager: one(employees, {
+    fields: [employees.managerId],
+    references: [employees.id],
+    relationName: "employee_manager",
+  }),
+  creator: one(admins, { fields: [employees.createdBy], references: [admins.id] }),
+}));
+
+export type Employee = typeof employees.$inferSelect;
+export type NewEmployee = typeof employees.$inferInsert;
 export type Job = typeof jobs.$inferSelect;
 export type NewJob = typeof jobs.$inferInsert;
 export type Application = typeof applications.$inferSelect;
 export type ResumeFile = typeof resumeFiles.$inferSelect;
 export type Admin = typeof admins.$inferSelect;
+
+/* ATS extensions reuse the existing application and audit records. */
+const timestamps = () => ({
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+export const candidateNotes = pgTable("candidate_notes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  applicationId: uuid("application_id").notNull().references(() => applications.id, { onDelete: "restrict" }),
+  note: text("note").notNull(),
+  createdBy: uuid("created_by").notNull().references(() => admins.id, { onDelete: "restrict" }),
+  ...timestamps(),
+}, t => [index("candidate_notes_application_idx").on(t.applicationId)]);
+export const candidateStars = pgTable("candidate_stars", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  applicationId: uuid("application_id").notNull().references(() => applications.id, { onDelete: "cascade" }),
+  adminId: uuid("admin_id").notNull().references(() => admins.id, { onDelete: "cascade" }),
+}, t => [uniqueIndex("candidate_stars_owner_idx").on(t.adminId, t.applicationId)]);
+export const jobAssignments = pgTable("job_assignments", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  jobId: uuid("job_id").notNull().references(() => jobs.id, { onDelete: "cascade" }),
+  adminId: uuid("admin_id").notNull().references(() => admins.id, { onDelete: "cascade" }),
+}, t => [uniqueIndex("job_assignments_owner_idx").on(t.adminId, t.jobId)]);
+export const interviews = pgTable("interviews", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  applicationId: uuid("application_id").notNull().references(() => applications.id, { onDelete: "restrict" }),
+  type: varchar("type", { length: 40 }).notNull(),
+  status: varchar("status", { length: 30 }).notNull().default("Scheduled"),
+  startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
+  endsAt: timestamp("ends_at", { withTimezone: true }).notNull(),
+  timezone: varchar("timezone", { length: 80 }).notNull().default("America/Chicago"),
+  interviewers: text("interviewers").notNull(),
+  location: varchar("location", { length: 300 }),
+  meetingUrl: varchar("meeting_url", { length: 500 }),
+  notes: text("notes"),
+  createdBy: uuid("created_by").notNull().references(() => admins.id, { onDelete: "restrict" }),
+  ...timestamps(),
+}, t => [index("interviews_application_idx").on(t.applicationId), index("interviews_schedule_idx").on(t.status, t.startsAt)]);
+export const interviewFeedback = pgTable("interview_feedback", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  interviewId: uuid("interview_id").notNull().references(() => interviews.id, { onDelete: "restrict" }),
+  createdBy: uuid("created_by").notNull().references(() => admins.id, { onDelete: "restrict" }),
+  rating: integer("rating").notNull(), technical: integer("technical").notNull(),
+  communication: integer("communication").notNull(), teamFit: integer("team_fit").notNull(),
+  recommendation: varchar("recommendation", { length: 30 }).notNull(),
+  comments: text("comments"), ...timestamps(),
+}, t => [uniqueIndex("feedback_interviewer_idx").on(t.interviewId, t.createdBy)]);
+export const emailTemplates = pgTable("email_templates", {
+  id: uuid("id").primaryKey().defaultRandom(), name: varchar("name", { length: 120 }).notNull(),
+  subject: varchar("subject", { length: 300 }).notNull(), body: text("body").notNull(),
+  isActive: boolean("is_active").notNull().default(true), ...timestamps(),
+}, t => [uniqueIndex("email_template_name_idx").on(t.name)]);
+export const emailEvents = pgTable("email_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  applicationId: uuid("application_id").notNull().references(() => applications.id, { onDelete: "restrict" }),
+  createdBy: uuid("created_by").notNull().references(() => admins.id, { onDelete: "restrict" }),
+  subject: varchar("subject", { length: 300 }).notNull(), templateName: varchar("template_name", { length: 120 }),
+  status: varchar("status", { length: 30 }).notNull().default("Pending"),
+  requestKey: uuid("request_key").notNull(), ...timestamps(),
+}, t => [uniqueIndex("email_request_idx").on(t.requestKey), index("email_application_idx").on(t.applicationId)]);
+export const notifications = pgTable("notifications", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  adminId: uuid("admin_id").notNull().references(() => admins.id, { onDelete: "cascade" }),
+  applicationId: uuid("application_id").references(() => applications.id, { onDelete: "cascade" }),
+  title: varchar("title", { length: 200 }).notNull(),
+  href: varchar("href", { length: 300 }).notNull(),
+  readAt: timestamp("read_at", { withTimezone: true }), ...timestamps(),
+}, t => [index("notifications_owner_idx").on(t.adminId, t.readAt, t.createdAt)]);
+export const reminders = pgTable("reminders", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  adminId: uuid("admin_id").notNull().references(() => admins.id, { onDelete: "cascade" }),
+  applicationId: uuid("application_id").notNull().references(() => applications.id, { onDelete: "restrict" }),
+  title: varchar("title", { length: 200 }).notNull(),
+  dueAt: timestamp("due_at", { withTimezone: true }).notNull(),
+  completedAt: timestamp("completed_at", { withTimezone: true }), ...timestamps(),
+}, t => [index("reminders_due_idx").on(t.adminId, t.dueAt)]);
+export const recruitingSettings = pgTable("recruiting_settings", {
+  id: integer("id").primaryKey().default(1),
+  requireJobApproval: boolean("require_job_approval").notNull().default(false),
+});
+export const jobTemplates = pgTable("job_templates", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: varchar("name", { length: 120 }).notNull(),
+  content: jsonb("content").$type<Partial<NewJob>>().notNull(), ...timestamps(),
+}, t => [uniqueIndex("job_template_name_idx").on(t.name)]);
+export const jobViews = pgTable("job_views", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  jobId: uuid("job_id").notNull().references(() => jobs.id, { onDelete: "cascade" }),
+  day: varchar("day", { length: 10 }).notNull(), views: integer("views").notNull().default(0),
+}, t => [uniqueIndex("job_views_day_idx").on(t.jobId, t.day)]);

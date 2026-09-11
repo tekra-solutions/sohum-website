@@ -35,7 +35,7 @@ export default async function AdminDashboard() {
         action={
           <>
             <Link href="/admin/jobs/new" className={adminButton}>
-              <Plus className="size-4" aria-hidden="true" />
+              <Plus className="size-3.5" aria-hidden="true" />
               Create job
             </Link>
             <Link href="/admin/applications" className={adminButtonSecondary}>
@@ -55,7 +55,7 @@ export default async function AdminDashboard() {
             <StatCard label="Open jobs" value={stats.publishedJobs} href="/admin/jobs?status=PUBLISHED" />
             <StatCard label="Applications" value={stats.totalApplications} href="/admin/applications" />
             <StatCard label="New" value={stats.newApplications} href="/admin/applications?status=NEW" tone="accent" />
-            <StatCard label="Reviewing" value={stats.reviewing} href="/admin/applications?status=REVIEWING" />
+            <StatCard label="Screening" value={stats.reviewing} href="/admin/applications?status=SCREENING" />
             <StatCard label="Interview" value={stats.interview} href="/admin/applications?status=INTERVIEW" />
             <StatCard label="Hired" value={stats.hired} href="/admin/applications?status=HIRED" />
           </div>
@@ -64,15 +64,15 @@ export default async function AdminDashboard() {
         {/* ---- Recent applications ---- */}
         <section aria-labelledby="recent">
           <div className="flex items-baseline justify-between gap-4">
-            <h2 id="recent" className="text-[1.125rem] font-medium text-ink-900">
+            <h2 id="recent" className="text-[0.9375rem] font-medium text-ink-900">
               Recent applications
             </h2>
             <Link
               href="/admin/applications"
-              className="inline-flex items-center gap-1.5 text-[0.875rem] font-medium text-ink-900 underline decoration-paper-300 underline-offset-4 hover:decoration-flame-500"
+              className="inline-flex items-center gap-1.5 text-[0.8125rem] font-medium text-ink-900 underline decoration-paper-300 underline-offset-4 hover:decoration-flame-500"
             >
               View all
-              <ArrowRight className="size-3.5" aria-hidden="true" />
+              <ArrowRight className="size-3" aria-hidden="true" />
             </Link>
           </div>
 
@@ -83,7 +83,7 @@ export default async function AdminDashboard() {
                 description="Applications appear here as soon as candidates apply to a published position."
                 action={
                   <Link href="/admin/jobs" className={adminButtonSecondary}>
-                    <Briefcase className="size-4" aria-hidden="true" />
+                    <Briefcase className="size-3.5" aria-hidden="true" />
                     Manage jobs
                   </Link>
                 }
@@ -97,15 +97,15 @@ export default async function AdminDashboard() {
                       className="group/row flex flex-col gap-2 px-4 py-3 transition-colors hover:bg-paper-50 sm:flex-row sm:items-center sm:justify-between sm:px-5"
                     >
                       <div className="min-w-0">
-                        <p className="truncate text-[0.9375rem] font-medium text-ink-900">
+                        <p className="truncate text-[0.8125rem] font-medium text-ink-900">
                           {r.firstName} {r.lastName}
                         </p>
-                        <p className="mt-0.5 truncate text-[0.8125rem] text-graphite-600">
+                        <p className="mt-0.5 truncate text-[0.75rem] text-graphite-600">
                           {r.jobTitle}
                         </p>
                       </div>
                       <div className="flex shrink-0 items-center gap-4">
-                        <span className="text-[0.8125rem] text-graphite-500">
+                        <span className="text-[0.75rem] text-graphite-500">
                           {relativeTime(r.createdAt)}
                         </span>
                         <StatusPill status={r.status} label={applicationStatusLabel[r.status]} />
@@ -120,7 +120,7 @@ export default async function AdminDashboard() {
 
         {/* ---- Quick actions ---- */}
         <section aria-labelledby="actions">
-          <h2 id="actions" className="text-[1.125rem] font-medium text-ink-900">
+          <h2 id="actions" className="text-[0.9375rem] font-medium text-ink-900">
             Quick actions
           </h2>
           <div className="mt-4 grid gap-4 sm:grid-cols-3">
@@ -135,8 +135,8 @@ export default async function AdminDashboard() {
                 className="group/qa rounded-[4px] border border-paper-300 bg-white p-4 transition-[border-color,box-shadow] duration-300 hover:border-ink-500/30 hover:shadow-[var(--shadow-lift)]"
               >
                 <a.Icon className="size-4.5 text-ink-500" strokeWidth={1.5} aria-hidden="true" />
-                <p className="mt-3 text-[0.9375rem] font-medium text-ink-900">{a.title}</p>
-                <p className="mt-0.5 text-[0.8125rem] text-graphite-600">{a.body}</p>
+                <p className="mt-2.5 text-[0.8125rem] font-medium text-ink-900">{a.title}</p>
+                <p className="mt-0.5 text-[0.75rem] text-graphite-600">{a.body}</p>
               </Link>
             ))}
           </div>

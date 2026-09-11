@@ -96,12 +96,12 @@ export default async function ApplicationsPage({
               </select>
             </div>
             <div className="lg:w-[9.5rem]">
-              <label htmlFor="from" className="block text-[0.6875rem] font-semibold uppercase tracking-[0.1em] text-graphite-500">From</label>
+              <label htmlFor="from" className="block text-[0.625rem] font-semibold uppercase tracking-[0.08em] text-graphite-500">From</label>
               <input id="from" name="from" type="date" defaultValue={filters.from ?? ""}
                 className="mt-1 w-full rounded-[3px] border border-paper-300 px-2.5 py-2 text-[0.8125rem] focus:border-flame-500 focus:outline-none focus:ring-2 focus:ring-flame-500/30" />
             </div>
             <div className="lg:w-[9.5rem]">
-              <label htmlFor="to" className="block text-[0.6875rem] font-semibold uppercase tracking-[0.1em] text-graphite-500">To</label>
+              <label htmlFor="to" className="block text-[0.625rem] font-semibold uppercase tracking-[0.08em] text-graphite-500">To</label>
               <input id="to" name="to" type="date" defaultValue={filters.to ?? ""}
                 className="mt-1 w-full rounded-[3px] border border-paper-300 px-2.5 py-2 text-[0.8125rem] focus:border-flame-500 focus:outline-none focus:ring-2 focus:ring-flame-500/30" />
             </div>
@@ -124,25 +124,25 @@ export default async function ApplicationsPage({
                   <thead>
                     <tr className="border-b border-paper-300">
                       {["Applicant","Job","Location","Applied","Status"].map((h) => (
-                        <th key={h} scope="col" className="px-4 py-3 text-[0.6875rem] font-semibold uppercase tracking-[0.1em] text-graphite-500">{h}</th>
+                        <th key={h} scope="col" className="px-4 py-3 text-[0.625rem] font-semibold uppercase tracking-[0.08em] text-graphite-500">{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {rows.map(({ application: a, jobTitle, jobLocation }) => (
                       <tr key={a.id} className="border-b border-paper-200 last:border-0 hover:bg-paper-50">
-                        <th scope="row" className="px-4 py-3">
+                        <th scope="row" className="px-3 py-2.5">
                           <Link href={`/admin/applications/${a.id}`} className="block">
-                            <span className="block text-[0.9375rem] font-medium text-ink-900">{a.firstName} {a.lastName}</span>
-                            <span className="block text-[0.8125rem] text-graphite-600">{a.email}</span>
+                            <span className="block text-[0.8125rem] font-medium text-ink-900">{a.firstName} {a.lastName}</span>
+                            <span className="block text-[0.75rem] text-graphite-600">{a.email}</span>
                           </Link>
                         </th>
-                        <td className="px-4 py-3 text-[0.875rem] text-graphite-700">{jobTitle}</td>
-                        <td className="px-4 py-3 text-[0.875rem] text-graphite-600">{jobLocation}</td>
-                        <td className="px-4 py-3 text-[0.8125rem] text-graphite-600">
+                        <td className="px-3 py-2.5 text-[0.8125rem] text-graphite-700">{jobTitle}</td>
+                        <td className="px-3 py-2.5 text-[0.8125rem] text-graphite-600">{jobLocation}</td>
+                        <td className="px-3 py-2.5 text-[0.75rem] text-graphite-600">
                           <span title={formatDate(a.createdAt)}>{relativeTime(a.createdAt)}</span>
                         </td>
-                        <td className="px-4 py-3"><StatusPill status={a.status} label={applicationStatusLabel[a.status]} /></td>
+                        <td className="px-3 py-2.5"><StatusPill status={a.status} label={applicationStatusLabel[a.status]} /></td>
                       </tr>
                     ))}
                   </tbody>
@@ -155,12 +155,12 @@ export default async function ApplicationsPage({
                   <li key={a.id}>
                     <Link href={`/admin/applications/${a.id}`} className="block rounded-[4px] border border-paper-300 bg-white p-4">
                       <div className="flex items-start justify-between gap-3">
-                        <span className="text-[1rem] font-medium text-ink-900">{a.firstName} {a.lastName}</span>
+                        <span className="text-[0.8125rem] font-medium text-ink-900">{a.firstName} {a.lastName}</span>
                         <StatusPill status={a.status} label={applicationStatusLabel[a.status]} />
                       </div>
-                      <p className="mt-1 truncate text-[0.875rem] text-graphite-600">{a.email}</p>
-                      <p className="mt-2 border-t border-paper-200 pt-2 text-[0.875rem] text-graphite-700">{jobTitle}</p>
-                      <p className="mt-1 text-[0.8125rem] text-graphite-500">{relativeTime(a.createdAt)}</p>
+                      <p className="mt-0.5 truncate text-[0.75rem] text-graphite-600">{a.email}</p>
+                      <p className="mt-2 border-t border-paper-200 pt-2 text-[0.8125rem] text-graphite-700">{jobTitle}</p>
+                      <p className="mt-0.5 text-[0.75rem] text-graphite-500">{relativeTime(a.createdAt)}</p>
                     </Link>
                   </li>
                 ))}
@@ -168,7 +168,7 @@ export default async function ApplicationsPage({
 
               {pageCount > 1 && (
                 <nav className="mt-5 flex items-center justify-between gap-4" aria-label="Pagination">
-                  <p className="text-[0.875rem] text-graphite-600">Page {page} of {pageCount}</p>
+                  <p className="text-[0.8125rem] text-graphite-600">Page {page} of {pageCount}</p>
                   <div className="flex gap-2">
                     {page > 1 && <Link href={pageHref(page - 1)} className={adminButtonSecondary}>Previous</Link>}
                     {page < pageCount && <Link href={pageHref(page + 1)} className={adminButtonSecondary}>Next</Link>}

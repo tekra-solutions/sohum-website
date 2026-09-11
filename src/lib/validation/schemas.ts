@@ -20,8 +20,8 @@ export const ALLOWED_RESUME_EXT = [".pdf", ".doc", ".docx"] as const;
 export const employmentTypes = ["FULL_TIME","PART_TIME","CONTRACT","TEMPORARY","INTERNSHIP"] as const;
 export const remoteTypes = ["ON_SITE","HYBRID","REMOTE"] as const;
 export const experienceLevels = ["ENTRY","MID","SENIOR","LEAD","PRINCIPAL"] as const;
-export const jobStatuses = ["DRAFT","PUBLISHED","CLOSED","ARCHIVED"] as const;
-export const applicationStatuses = ["NEW","REVIEWING","SHORTLISTED","INTERVIEW","REJECTED","HIRED"] as const;
+export const jobStatuses = ["DRAFT","PENDING_APPROVAL","APPROVED","PUBLISHED","CLOSED","ARCHIVED"] as const;
+export const applicationStatuses = ["NEW","SCREENING","SHORTLISTED","INTERVIEW","OFFER","REJECTED","HIRED"] as const;
 
 /** Accepts a textarea of one-per-line items and normalises to a string array. */
 const lines = z
@@ -121,16 +121,82 @@ export const notesSchema = z.object({
   internalNotes: z.string().max(20000),
 });
 
+export const adminRoles = ["ADMIN", "RECRUITER", "SUPER_ADMIN", "RECRUITING_ADMIN", "HIRING_MANAGER"] as const;
+export const employmentStatuses = ["ACTIVE", "ON_LEAVE", "TERMINATED"] as const;
+
+/** Shared password rule so create-admin and password-change cannot drift. */
+export const strongPassword = z
+  .string()
+  .min(12, "Use at least 12 characters")
+  .max(200)
+  .regex(/[a-z]/, "Include a lowercase letter")
+  .regex(/[A-Z]/, "Include an uppercase letter")
+  .regex(/[0-9]/, "Include a number");
+
+export const createAdminSchema = z
+  .object({
+    name: z.string().trim().min(2, "Name is required").max(160),
+    email: z.string().trim().toLowerCase().email("Enter a valid email address").max(255),
+    role: z.enum(adminRoles),
+    password: strongPassword,
+    confirmPassword: z.string(),
+  })
+  .refine((d) => d.password === d.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
+
+const optionalEmail = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .max(255)
+  .optional()
+  .or(z.literal(""))
+  .refine((v) => !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), "Enter a valid email address");
+
+/** Optional YYYY-MM-DD date from a native date input. */
+const optionalDate = z
+  .string()
+  .trim()
+  .optional()
+  .or(z.literal(""))
+  .refine((v) => !v || !Number.isNaN(Date.parse(v)), "Enter a valid date");
+
+export const employeeInputSchema = z
+  .object({
+    firstName: z.string().trim().min(1, "First name is required").max(120),
+    lastName: z.string().trim().min(1, "Last name is required").max(120),
+    workEmail: z.string().trim().toLowerCase().email("Enter a valid work email").max(255),
+    personalEmail: optionalEmail,
+    phone: z.string().trim().max(40).optional().or(z.literal("")),
+
+    jobTitle: z.string().trim().min(1, "Job title is required").max(160),
+    department: z.string().trim().min(1, "Department is required").max(120),
+    location: z.string().trim().max(160).optional().or(z.literal("")),
+    employmentType: z.enum(employmentTypes),
+    status: z.enum(employmentStatuses),
+
+    managerId: z.string().uuid().optional().or(z.literal("")),
+    startDate: optionalDate,
+    endDate: optionalDate,
+    notes: z.string().trim().max(5000).optional().or(z.literal("")),
+  })
+  .refine(
+    (d) => !d.startDate || !d.endDate || Date.parse(d.endDate) >= Date.parse(d.startDate),
+    { message: "End date cannot be before the start date", path: ["endDate"] },
+  )
+  .refine((d) => d.status !== "TERMINATED" || Boolean(d.endDate), {
+    message: "An end date is required when the status is Terminated",
+    path: ["endDate"],
+  });
+
+export type EmployeeInput = z.input<typeof employeeInputSchema>;
+
 export const passwordChangeSchema = z
   .object({
     currentPassword: z.string().min(1, "Current password is required"),
-    newPassword: z
-      .string()
-      .min(12, "Use at least 12 characters")
-      .max(200)
-      .regex(/[a-z]/, "Include a lowercase letter")
-      .regex(/[A-Z]/, "Include an uppercase letter")
-      .regex(/[0-9]/, "Include a number"),
+    newPassword: strongPassword,
     confirmPassword: z.string(),
   })
   .refine((d) => d.newPassword === d.confirmPassword, {

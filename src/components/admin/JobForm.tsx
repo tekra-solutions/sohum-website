@@ -6,13 +6,12 @@ import type { Job } from "@/db/schema";
 import { saveJobAction, type JobFormState } from "@/lib/services/job-actions";
 import { employmentTypeLabel, experienceLevelLabel, remoteTypeLabel } from "@/lib/format";
 import { employmentTypes, experienceLevels, remoteTypes } from "@/lib/validation/schemas";
+import { control as sharedControl, t } from "@/components/admin/form";
 
 const initial: JobFormState = {};
 
-const control =
-  "mt-2 w-full rounded-[3px] border bg-white px-3.5 py-2.5 text-[0.9375rem] text-ink-900 " +
-  "placeholder:text-graphite-400 transition-colors focus:border-flame-500 focus:outline-none " +
-  "focus:ring-2 focus:ring-flame-500/30";
+// Uses the shared admin control styling so every form matches.
+const control = `mt-1.5 ${sharedControl}`;
 
 function Field({
   name, label, defaultValue, error, required, placeholder, hint, className = "",
@@ -23,7 +22,7 @@ function Field({
   const id = `j-${name}`;
   return (
     <div className={className}>
-      <label htmlFor={id} className="block text-[0.875rem] font-medium text-ink-800">
+      <label htmlFor={id} className={`block ${t.label} font-medium text-ink-800`}>
         {label} {required && <span aria-hidden="true" className="text-graphite-500">*</span>}
       </label>
       <input
@@ -36,10 +35,10 @@ function Field({
         className={`${control} ${error ? "border-[#c0392b]" : "border-paper-300"}`}
       />
       {hint && !error && (
-        <p id={`${id}-hint`} className="mt-1.5 text-[0.8125rem] text-graphite-500">{hint}</p>
+        <p id={`${id}-hint`} className={`mt-1 ${t.hint} text-graphite-500`}>{hint}</p>
       )}
       {error && (
-        <p id={`${id}-error`} className="mt-1.5 text-[0.8125rem] text-[#c0392b]">{error}</p>
+        <p id={`${id}-error`} className={`mt-1 ${t.hint} text-[#c0392b]`}>{error}</p>
       )}
     </div>
   );
@@ -54,7 +53,7 @@ function Select({
   const id = `j-${name}`;
   return (
     <div>
-      <label htmlFor={id} className="block text-[0.875rem] font-medium text-ink-800">{label}</label>
+      <label htmlFor={id} className={`block ${t.label} font-medium text-ink-800`}>{label}</label>
       <select id={id} name={name} defaultValue={defaultValue} className={`${control} border-paper-300`}>
         {options.map((o) => (
           <option key={o} value={o}>{labels[o] ?? o}</option>
@@ -70,7 +69,7 @@ function ListArea({
   const id = `j-${name}`;
   return (
     <div className="sm:col-span-2">
-      <label htmlFor={id} className="block text-[0.875rem] font-medium text-ink-800">{label}</label>
+      <label htmlFor={id} className={`block ${t.label} font-medium text-ink-800`}>{label}</label>
       <textarea
         id={id}
         name={name}
@@ -79,7 +78,7 @@ function ListArea({
         aria-describedby={`${id}-hint`}
         className={`${control} resize-y border-paper-300`}
       />
-      <p id={`${id}-hint`} className="mt-1.5 text-[0.8125rem] text-graphite-500">{hint}</p>
+      <p id={`${id}-hint`} className={`mt-1 ${t.hint} text-graphite-500`}>{hint}</p>
     </div>
   );
 }
@@ -89,7 +88,7 @@ export function JobForm({ job }: { job?: Job }) {
   const e = state.errors ?? {};
 
   return (
-    <form action={action} className="space-y-8">
+    <form action={action} className="space-y-6">
       {job && <input type="hidden" name="id" value={job.id} />}
       <input type="hidden" name="status" value={job?.status ?? "DRAFT"} />
 
@@ -97,14 +96,14 @@ export function JobForm({ job }: { job?: Job }) {
         {state.message && (
           <div className="flex gap-3 rounded-[3px] border border-[#c0392b]/30 bg-[#c0392b]/[0.05] p-4">
             <AlertCircle className="mt-0.5 size-4 shrink-0 text-[#c0392b]" aria-hidden="true" />
-            <p className="text-[0.875rem] text-[#8e2c20]">{state.message}</p>
+            <p className={`${t.body} text-[#8e2c20]`}>{state.message}</p>
           </div>
         )}
       </div>
 
       <section>
-        <h2 className="text-[1.0625rem] font-medium text-ink-900">Basics</h2>
-        <div className="mt-4 grid gap-5 sm:grid-cols-2">
+        <h2 className={`${t.sectionTitle} font-medium text-ink-900`}>Basics</h2>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <Field className="sm:col-span-2" name="title" label="Job title" required defaultValue={job?.title} error={e.title} placeholder="Senior Software Engineer" />
           <Field name="department" label="Department" required defaultValue={job?.department} error={e.department} placeholder="Engineering" />
           <Field name="location" label="Location" required defaultValue={job?.location} error={e.location} placeholder="Overland Park, KS" />
@@ -124,11 +123,11 @@ export function JobForm({ job }: { job?: Job }) {
         </div>
       </section>
 
-      <section className="border-t border-paper-200 pt-8">
-        <h2 className="text-[1.0625rem] font-medium text-ink-900">Description</h2>
-        <div className="mt-4 grid gap-5 sm:grid-cols-2">
+      <section className="border-t border-paper-200 pt-6">
+        <h2 className={`${t.sectionTitle} font-medium text-ink-900`}>Description</h2>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
-            <label htmlFor="j-summary" className="block text-[0.875rem] font-medium text-ink-800">
+            <label htmlFor="j-summary" className={`block ${t.label} font-medium text-ink-800`}>
               Summary
             </label>
             <textarea
@@ -142,20 +141,20 @@ export function JobForm({ job }: { job?: Job }) {
             />
           </div>
           <div className="sm:col-span-2">
-            <label htmlFor="j-description" className="block text-[0.875rem] font-medium text-ink-800">
+            <label htmlFor="j-description" className={`block ${t.label} font-medium text-ink-800`}>
               Full description <span aria-hidden="true" className="text-graphite-500">*</span>
             </label>
             <textarea
               id="j-description"
               name="description"
-              rows={8}
+              rows={7}
               required
               defaultValue={job?.description ?? ""}
               aria-invalid={e.description ? true : undefined}
               className={`${control} resize-y ${e.description ? "border-[#c0392b]" : "border-paper-300"}`}
             />
             {e.description && (
-              <p className="mt-1.5 text-[0.8125rem] text-[#c0392b]">{e.description}</p>
+              <p className={`mt-1 ${t.hint} text-[#c0392b]`}>{e.description}</p>
             )}
           </div>
 
@@ -166,15 +165,15 @@ export function JobForm({ job }: { job?: Job }) {
         </div>
       </section>
 
-      <div className="flex flex-col gap-3 border-t border-paper-200 pt-8 sm:flex-row sm:items-center">
+      <div className="flex flex-col gap-2.5 border-t border-paper-200 pt-6 sm:flex-row sm:items-center">
         <button
           type="submit"
           name="intent"
           value="draft"
           disabled={pending}
-          className="inline-flex items-center justify-center gap-2 rounded-[3px] border border-paper-300 bg-white px-5 py-3 text-[0.9375rem] font-medium text-ink-900 transition-colors hover:border-ink-500 disabled:pointer-events-none disabled:opacity-60"
+          className="inline-flex items-center justify-center gap-2 rounded-[3px] border border-paper-300 bg-white px-4 py-2 text-[0.8125rem] font-medium text-ink-900 transition-colors hover:border-ink-500 disabled:pointer-events-none disabled:opacity-60"
         >
-          {pending ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Save className="size-4" aria-hidden="true" />}
+          {pending ? <Loader2 className="size-3.5 animate-spin" aria-hidden="true" /> : <Save className="size-3.5" aria-hidden="true" />}
           {job ? "Save changes" : "Save draft"}
         </button>
         <button
@@ -182,9 +181,9 @@ export function JobForm({ job }: { job?: Job }) {
           name="intent"
           value="publish"
           disabled={pending}
-          className="inline-flex items-center justify-center gap-2 rounded-[3px] bg-ink-900 px-5 py-3 text-[0.9375rem] font-medium text-white transition-colors hover:bg-ink-700 disabled:pointer-events-none disabled:opacity-60"
+          className="inline-flex items-center justify-center gap-2 rounded-[3px] bg-ink-900 px-4 py-2 text-[0.8125rem] font-medium text-white transition-colors hover:bg-ink-700 disabled:pointer-events-none disabled:opacity-60"
         >
-          <Send className="size-4" aria-hidden="true" />
+          <Send className="size-3.5" aria-hidden="true" />
           {job?.status === "PUBLISHED" ? "Save & keep published" : "Publish job"}
         </button>
       </div>

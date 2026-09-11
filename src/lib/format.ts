@@ -24,6 +24,8 @@ export const experienceLevelLabel: Record<string, string> = {
 
 export const jobStatusLabel: Record<string, string> = {
   DRAFT: "Draft",
+  PENDING_APPROVAL: "Pending approval",
+  APPROVED: "Approved",
   PUBLISHED: "Published",
   CLOSED: "Closed",
   ARCHIVED: "Archived",
@@ -31,9 +33,10 @@ export const jobStatusLabel: Record<string, string> = {
 
 export const applicationStatusLabel: Record<string, string> = {
   NEW: "New",
-  REVIEWING: "Reviewing",
+  SCREENING: "Screening",
   SHORTLISTED: "Shortlisted",
   INTERVIEW: "Interview",
+  OFFER: "Offer",
   REJECTED: "Rejected",
   HIRED: "Hired",
 };

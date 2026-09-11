@@ -1,17 +1,29 @@
-import { AdminHeader } from "@/components/admin/ui";
+import { AdminHeader, StatusPill } from "@/components/admin/ui";
 import { PasswordForm } from "@/components/admin/PasswordForm";
+import { CreateAdminForm } from "@/components/admin/CreateAdminForm";
+import { btnSecondary, t } from "@/components/admin/form";
+import { listAdmins, setAdminActiveAction } from "@/lib/services/admin-actions";
+import { canManageAdmins } from "@/lib/auth/roles";
 import { requireAdmin } from "@/lib/auth/session";
 import { isEmailConfigured } from "@/lib/env";
 import { isStorageConfigured } from "@/lib/storage/resumes";
 import { isDatabaseConfigured } from "@/db";
+import { relativeTime } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Settings" };
 
+const roleLabel: Record<string, string> = {
+  ADMIN: "Admin",
+  RECRUITER: "Recruiter",
+  SUPER_ADMIN: "Super admin",
+};
+
 export default async function SettingsPage() {
   const admin = await requireAdmin();
+  const mayManage = canManageAdmins(admin.role);
+  const team = mayManage && isDatabaseConfigured() ? await listAdmins() : [];
 
-  /** Read-only: secrets are never surfaced, only whether they are present. */
   const integrations = [
     { name: "Database", ok: isDatabaseConfigured(), hint: "DATABASE_URL" },
     { name: "Resume storage", ok: isStorageConfigured(), hint: "SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY" },
@@ -20,49 +32,93 @@ export default async function SettingsPage() {
 
   return (
     <>
-      <AdminHeader title="Settings" description="Your profile and system configuration." />
+      <AdminHeader title="Settings" description="Your profile, admin accounts and system configuration." />
 
       <div className="max-w-3xl space-y-5 p-5 sm:p-6 lg:p-8">
-        <section className="rounded-[4px] border border-paper-300 bg-white p-6">
-          <h2 className="text-[1.0625rem] font-medium text-ink-900">Profile</h2>
-          <dl className="mt-4">
-            {[
-              ["Name", admin.name],
-              ["Email", admin.email],
-              ["Role", admin.role],
-            ].map(([k, v]) => (
-              <div key={k} className="flex justify-between gap-6 border-b border-paper-200 py-3 last:border-0">
-                <dt className="text-[0.8125rem] text-graphite-500">{k}</dt>
-                <dd className="text-[0.9375rem] text-ink-900">{v}</dd>
+        <section className="rounded-[4px] border border-paper-300 bg-white p-5">
+          <h2 className={`${t.sectionTitle} font-medium text-ink-900`}>Profile</h2>
+          <dl className="mt-3">
+            {[["Name", admin.name], ["Email", admin.email], ["Role", roleLabel[admin.role] ?? admin.role]].map(([k, v]) => (
+              <div key={k} className="flex justify-between gap-4 border-b border-paper-200 py-2 last:border-0">
+                <dt className={`${t.hint} text-graphite-500`}>{k}</dt>
+                <dd className={`${t.body} text-ink-900`}>{v}</dd>
               </div>
             ))}
           </dl>
         </section>
 
-        <section className="rounded-[4px] border border-paper-300 bg-white p-6">
-          <h2 className="text-[1.0625rem] font-medium text-ink-900">Change password</h2>
-          <div className="mt-4">
+        <section className="rounded-[4px] border border-paper-300 bg-white p-5">
+          <h2 className={`${t.sectionTitle} font-medium text-ink-900`}>Change password</h2>
+          <div className="mt-3">
             <PasswordForm />
           </div>
         </section>
 
-        <section className="rounded-[4px] border border-paper-300 bg-white p-6">
-          <h2 className="text-[1.0625rem] font-medium text-ink-900">Integrations</h2>
-          <p className="mt-1.5 text-[0.875rem] text-graphite-600">
+        {mayManage && (
+          <>
+            <section className="rounded-[4px] border border-paper-300 bg-white p-5">
+              <h2 className={`${t.sectionTitle} font-medium text-ink-900`}>Admin accounts</h2>
+              <p className={`mt-1 ${t.hint} text-graphite-600`}>
+                {team.length} account{team.length === 1 ? "" : "s"}. Deactivating revokes access immediately.
+              </p>
+              <ul className="mt-3">
+                {team.map((a) => (
+                  <li key={a.id} className="flex flex-wrap items-center justify-between gap-3 border-b border-paper-200 py-2.5 last:border-0">
+                    <div className="min-w-0">
+                      <p className={`${t.body} font-medium text-ink-900`}>
+                        {a.name}
+                        {a.id === admin.id && (
+                          <span className={`ml-2 ${t.hint} font-normal text-graphite-500`}>(you)</span>
+                        )}
+                      </p>
+                      <p className={`${t.hint} text-graphite-600`}>
+                        {a.email} · {roleLabel[a.role] ?? a.role}
+                        {a.lastLoginAt ? ` · last in ${relativeTime(a.lastLoginAt)}` : " · never signed in"}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2.5">
+                      <StatusPill status={a.isActive ? "PUBLISHED" : "ARCHIVED"} label={a.isActive ? "Active" : "Disabled"} />
+                      {a.id !== admin.id && (
+                        <form action={setAdminActiveAction}>
+                          <input type="hidden" name="id" value={a.id} />
+                          <input type="hidden" name="active" value={String(!a.isActive)} />
+                          <button type="submit" className={btnSecondary}>
+                            {a.isActive ? "Disable" : "Enable"}
+                          </button>
+                        </form>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
+
+            <section className="rounded-[4px] border border-paper-300 bg-white p-5">
+              <h2 className={`${t.sectionTitle} font-medium text-ink-900`}>Create an admin</h2>
+              <p className={`mt-1 ${t.hint} text-graphite-600`}>
+                The password is set here and shown to nobody afterwards — pass it to the
+                person directly and have them change it.
+              </p>
+              <div className="mt-4">
+                <CreateAdminForm />
+              </div>
+            </section>
+          </>
+        )}
+
+        <section className="rounded-[4px] border border-paper-300 bg-white p-5">
+          <h2 className={`${t.sectionTitle} font-medium text-ink-900`}>Integrations</h2>
+          <p className={`mt-1 ${t.hint} text-graphite-600`}>
             Configured through environment variables. Values are never displayed here.
           </p>
-          <ul className="mt-4">
+          <ul className="mt-3">
             {integrations.map((i) => (
-              <li key={i.name} className="flex items-center justify-between gap-4 border-b border-paper-200 py-3 last:border-0">
+              <li key={i.name} className="flex items-center justify-between gap-4 border-b border-paper-200 py-2.5 last:border-0">
                 <div>
-                  <p className="text-[0.9375rem] text-ink-900">{i.name}</p>
-                  <p className="font-mono text-[0.75rem] text-graphite-500">{i.hint}</p>
+                  <p className={`${t.body} text-ink-900`}>{i.name}</p>
+                  <p className={`font-mono ${t.micro} text-graphite-500`}>{i.hint}</p>
                 </div>
-                <span className={`rounded-full border px-2.5 py-1 text-[0.6875rem] font-semibold uppercase tracking-[0.08em] ${
-                  i.ok ? "border-[#1e7a4d]/30 bg-[#1e7a4d]/10 text-[#1e7a4d]" : "border-paper-300 bg-paper-100 text-graphite-600"
-                }`}>
-                  {i.ok ? "Configured" : "Not set"}
-                </span>
+                <StatusPill status={i.ok ? "PUBLISHED" : "DRAFT"} label={i.ok ? "Configured" : "Not set"} />
               </li>
             ))}
           </ul>

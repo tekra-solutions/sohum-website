@@ -37,7 +37,7 @@ export default async function AdminJobsPage({
         description="Create, publish and archive open positions."
         action={
           <Link href="/admin/jobs/new" className={adminButton}>
-            <Plus className="size-4" aria-hidden="true" />
+            <Plus className="size-3.5" aria-hidden="true" />
             Create job
           </Link>
         }
@@ -80,7 +80,7 @@ export default async function AdminJobsPage({
           </div>
         </form>
 
-        <p className="mt-4 text-[0.875rem] text-graphite-600" aria-live="polite">
+        <p className="mt-3 text-[0.8125rem] text-graphite-600" aria-live="polite">
           {rows.length} {rows.length === 1 ? "job" : "jobs"}
         </p>
 
@@ -89,7 +89,7 @@ export default async function AdminJobsPage({
             <EmptyState
               title="No jobs found"
               description={q || status !== "ALL" ? "Try a different search or filter." : "Create your first position to start receiving applications."}
-              action={<Link href="/admin/jobs/new" className={adminButton}><Plus className="size-4" aria-hidden="true" />Create job</Link>}
+              action={<Link href="/admin/jobs/new" className={adminButton}><Plus className="size-3.5" aria-hidden="true" />Create job</Link>}
             />
           ) : (
             <>
@@ -99,7 +99,7 @@ export default async function AdminJobsPage({
                   <thead>
                     <tr className="border-b border-paper-300">
                       {["Title","Department","Location","Type","Applications","Status","Posted",""].map((h) => (
-                        <th key={h} scope="col" className="px-4 py-3 text-[0.6875rem] font-semibold uppercase tracking-[0.1em] text-graphite-500">
+                        <th key={h} scope="col" className="px-4 py-3 text-[0.625rem] font-semibold uppercase tracking-[0.08em] text-graphite-500">
                           {h || <span className="sr-only">Actions</span>}
                         </th>
                       ))}
@@ -108,24 +108,24 @@ export default async function AdminJobsPage({
                   <tbody>
                     {rows.map((j) => (
                       <tr key={j.id} className="border-b border-paper-200 last:border-0">
-                        <th scope="row" className="px-4 py-3 text-[0.9375rem] font-medium text-ink-900">
+                        <th scope="row" className="px-3 py-2.5 text-[0.75rem] font-medium text-ink-900">
                           <Link href={`/admin/jobs/${j.id}`} className="hover:underline underline-offset-4">{j.title}</Link>
                         </th>
-                        <td className="px-4 py-3 text-[0.875rem] text-graphite-600">{j.department}</td>
-                        <td className="px-4 py-3 text-[0.875rem] text-graphite-600">{j.location}</td>
-                        <td className="whitespace-nowrap px-4 py-3 text-[0.875rem] text-graphite-600">{employmentTypeLabel[j.employmentType]}</td>
-                        <td className="px-4 py-3 text-[0.875rem] tabular-nums text-graphite-700">
+                        <td className="px-3 py-2.5 text-[0.8125rem] text-graphite-600">{j.department}</td>
+                        <td className="px-3 py-2.5 text-[0.8125rem] text-graphite-600">{j.location}</td>
+                        <td className="whitespace-nowrap px-3 py-2.5 text-[0.8125rem] text-graphite-600">{employmentTypeLabel[j.employmentType]}</td>
+                        <td className="px-3 py-2.5 text-[0.8125rem] tabular-nums text-graphite-700">
                           {j.applicationCount > 0 ? (
                             <Link href={`/admin/applications?jobId=${j.id}`} className="underline decoration-paper-300 underline-offset-4 hover:decoration-flame-500">
                               {j.applicationCount}
                             </Link>
                           ) : "0"}
                         </td>
-                        <td className="whitespace-nowrap px-4 py-3"><StatusPill status={j.status} label={jobStatusLabel[j.status]} /></td>
-                        <td className="whitespace-nowrap px-4 py-3 text-[0.8125rem] text-graphite-600">
+                        <td className="whitespace-nowrap px-3 py-2.5"><StatusPill status={j.status} label={jobStatusLabel[j.status]} /></td>
+                        <td className="whitespace-nowrap px-3 py-2.5 text-[0.75rem] text-graphite-600">
                           {j.publishedAt ? shortDate(j.publishedAt) : "—"}
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-3 py-2.5">
                           <div className="flex items-center justify-end gap-2">
                             {j.status === "PUBLISHED" && (
                               <Link href={`/careers/${j.slug}`} target="_blank" className="rounded p-1.5 text-graphite-500 hover:bg-paper-100 hover:text-ink-900" aria-label={`View ${j.title} publicly`}>
@@ -148,23 +148,23 @@ export default async function AdminJobsPage({
                 {rows.map((j) => (
                   <li key={j.id} className="rounded-[4px] border border-paper-300 bg-white p-4">
                     <div className="flex items-start justify-between gap-3">
-                      <Link href={`/admin/jobs/${j.id}`} className="text-[1rem] font-medium text-ink-900">{j.title}</Link>
+                      <Link href={`/admin/jobs/${j.id}`} className="text-[0.75rem] font-medium text-ink-900">{j.title}</Link>
                       <StatusPill status={j.status} label={jobStatusLabel[j.status]} />
                     </div>
-                    <p className="mt-1.5 text-[0.875rem] text-graphite-600">{j.department} · {j.location}</p>
+                    <p className="mt-1 text-[0.75rem] text-graphite-600">{j.department} · {j.location}</p>
                     <div className="mt-3 flex items-center justify-between border-t border-paper-200 pt-3">
-                      <span className="text-[0.8125rem] text-graphite-600">
+                      <span className="text-[0.75rem] text-graphite-600">
                         {j.applicationCount} application{j.applicationCount === 1 ? "" : "s"}
                       </span>
                       <div className="flex gap-2">
                         <form action={setJobStatusAction}>
                           <input type="hidden" name="id" value={j.id} />
                           <input type="hidden" name="status" value={j.status === "PUBLISHED" ? "DRAFT" : "PUBLISHED"} />
-                          <button type="submit" className="rounded border border-paper-300 px-3 py-1.5 text-[0.8125rem] font-medium text-ink-900">
+                          <button type="submit" className="rounded border border-paper-300 px-3 py-1.5 text-[0.75rem] font-medium text-ink-900">
                             {j.status === "PUBLISHED" ? "Unpublish" : "Publish"}
                           </button>
                         </form>
-                        <Link href={`/admin/jobs/${j.id}`} className="rounded border border-paper-300 px-3 py-1.5 text-[0.8125rem] font-medium text-ink-900">Edit</Link>
+                        <Link href={`/admin/jobs/${j.id}`} className="rounded border border-paper-300 px-3 py-1.5 text-[0.75rem] font-medium text-ink-900">Edit</Link>
                       </div>
                     </div>
                   </li>

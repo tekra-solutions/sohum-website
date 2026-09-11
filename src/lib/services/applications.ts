@@ -1,7 +1,11 @@
 import "server-only";
+import { requireAdmin } from "@/lib/auth/session";
+import { candidateScope, requireApplication } from "@/lib/ats/access";
+import { positivePage, stages } from "@/lib/ats/policy";
+import { z } from "zod";
 import { and, count, desc, eq, gte, ilike, or, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { applicationEvents, applications, jobs, resumeFiles } from "@/db/schema";
+import { applicationEvents, applications, jobs, resumeFiles, candidateStars } from "@/db/schema";
 import { buildResumePath, deleteResume, uploadResume } from "@/lib/storage/resumes";
 import { serverEnv } from "@/lib/env";
 
@@ -128,35 +132,49 @@ export type AdminApplicationFilters = {
   jobId?: string;
   from?: string;
   to?: string;
-  sort?: "newest" | "oldest" | "name";
+  sort?: "newest" | "oldest" | "name" | "name-desc";
+  location?: string; source?: string; minExperience?: string; maxExperience?: string; tag?: string; starred?: string; archived?: string;
   page?: number;
   pageSize?: number;
 };
 
 /** Server-side pagination and filtering — never ships the whole table. */
 export async function listApplications(f: AdminApplicationFilters) {
-  const page = Math.max(1, f.page ?? 1);
-  const pageSize = Math.min(100, Math.max(5, f.pageSize ?? 25));
+  const admin = await requireAdmin();
+  const page = positivePage(f.page);
+  const pageSize = Math.min(100, Math.max(5, positivePage(f.pageSize ?? 25)));
 
-  const where = [];
+  const where = [candidateScope(admin)];
+  where.push(f.archived === "1" ? sql`${applications.archivedAt} is not null` : sql`${applications.archivedAt} is null`);
+  if (f.starred === "1") where.push(sql`exists (select 1 from ${candidateStars} where ${candidateStars.applicationId} = ${applications.id} and ${candidateStars.adminId} = ${admin.id})`);
+  if (f.location) where.push(sql`concat_ws(', ', ${applications.city}, ${applications.state}, ${applications.country}) ilike ${"%" + f.location.slice(0, 120) + "%"}`);
+  if (f.source) where.push(eq(applications.source, f.source));
+  if (f.tag) where.push(sql`${applications.tags} @> ${JSON.stringify([f.tag])}::jsonb`);
+  if (f.minExperience && Number.isFinite(Number(f.minExperience))) where.push(sql`${applications.yearsExperience} >= ${Number(f.minExperience)}`);
+  if (f.maxExperience && Number.isFinite(Number(f.maxExperience))) where.push(sql`${applications.yearsExperience} <= ${Number(f.maxExperience)}`);
   if (f.q?.trim()) {
-    const term = `%${f.q.trim()}%`;
+    const term = `%${f.q.trim().slice(0, 200)}%`;
     where.push(
       or(
         ilike(applications.firstName, term),
         ilike(applications.lastName, term),
         ilike(applications.email, term),
         ilike(applications.reference, term),
+        ilike(applications.phone, term),
+        ilike(applications.skills, term),
+        sql`${applications.tags}::text ilike ${term}`,
+        sql`concat_ws(' ', ${applications.firstName}, ${applications.lastName}) ilike ${term}`,
+        ilike(applications.city, term), ilike(applications.state, term),
         ilike(jobs.title, term),
       )!,
     );
   }
-  if (f.status && f.status !== "ALL") {
+  if (f.status && (stages as readonly string[]).includes(f.status)) {
     where.push(eq(applications.status, f.status as "NEW"));
   }
-  if (f.jobId && f.jobId !== "ALL") where.push(eq(applications.jobId, f.jobId));
-  if (f.from) where.push(gte(applications.createdAt, new Date(f.from)));
-  if (f.to) {
+  if (f.jobId && z.uuid().safeParse(f.jobId).success) where.push(eq(applications.jobId, f.jobId));
+  if (f.from && !isNaN(Date.parse(f.from))) where.push(gte(applications.createdAt, new Date(f.from)));
+  if (f.to && !isNaN(Date.parse(f.to))) {
     const end = new Date(f.to);
     end.setHours(23, 59, 59, 999);
     where.push(sql`${applications.createdAt} <= ${end}`);
@@ -166,6 +184,7 @@ export async function listApplications(f: AdminApplicationFilters) {
 
   const order =
     f.sort === "oldest" ? applications.createdAt
+    : f.sort === "name-desc" ? desc(applications.lastName)
     : f.sort === "name" ? applications.lastName
     : desc(applications.createdAt);
 
@@ -199,6 +218,7 @@ export async function listApplications(f: AdminApplicationFilters) {
 }
 
 export async function getApplicationDetail(id: string) {
+  await requireApplication(id);
   const row = await db.query.applications.findFirst({
     where: eq(applications.id, id),
     with: {
@@ -212,6 +232,7 @@ export async function getApplicationDetail(id: string) {
 
 /** Dashboard counters, computed in one round trip. */
 export async function dashboardStats() {
+  const admin = await requireAdmin();
   const [jobRow] = await db
     .select({
       published: sql<number>`count(*) filter (where ${jobs.status} = 'PUBLISHED')::int`,
@@ -223,13 +244,14 @@ export async function dashboardStats() {
     .select({
       total: sql<number>`count(*)::int`,
       isNew: sql<number>`count(*) filter (where ${applications.status} = 'NEW')::int`,
-      reviewing: sql<number>`count(*) filter (where ${applications.status} = 'REVIEWING')::int`,
+      reviewing: sql<number>`count(*) filter (where ${applications.status} = 'SCREENING')::int`,
       shortlisted: sql<number>`count(*) filter (where ${applications.status} = 'SHORTLISTED')::int`,
       interview: sql<number>`count(*) filter (where ${applications.status} = 'INTERVIEW')::int`,
+      offer: sql<number>`count(*) filter (where ${applications.status} = 'OFFER')::int`,
       hired: sql<number>`count(*) filter (where ${applications.status} = 'HIRED')::int`,
       rejected: sql<number>`count(*) filter (where ${applications.status} = 'REJECTED')::int`,
     })
-    .from(applications);
+    .from(applications).where(candidateScope(admin));
 
   return {
     publishedJobs: jobRow?.published ?? 0,
@@ -239,12 +261,14 @@ export async function dashboardStats() {
     reviewing: appRow?.reviewing ?? 0,
     shortlisted: appRow?.shortlisted ?? 0,
     interview: appRow?.interview ?? 0,
+    offer: appRow?.offer ?? 0,
     hired: appRow?.hired ?? 0,
     rejected: appRow?.rejected ?? 0,
   };
 }
 
 export async function recentApplications(limit = 6) {
+  const admin = await requireAdmin();
   return db
     .select({
       id: applications.id,
@@ -257,6 +281,7 @@ export async function recentApplications(limit = 6) {
     })
     .from(applications)
     .innerJoin(jobs, eq(applications.jobId, jobs.id))
+    .where(candidateScope(admin))
     .orderBy(desc(applications.createdAt))
     .limit(limit);
 }

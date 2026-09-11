@@ -14,11 +14,11 @@ export function AdminHeader({
   return (
     <div className="sticky top-0 z-20 flex flex-col gap-4 border-b border-paper-300 bg-white/95 px-5 py-5 backdrop-blur-sm sm:px-8 sm:py-6 lg:flex-row lg:items-center lg:justify-between">
       <div className="min-w-0">
-        <h1 className="truncate text-[1.375rem] font-medium leading-tight text-ink-900 sm:text-[1.5rem]">
+        <h1 className="truncate text-[1.125rem] font-medium leading-tight text-ink-900 sm:text-[1.25rem]">
           {title}
         </h1>
         {description && (
-          <p className="mt-1.5 text-[0.9375rem] text-graphite-600">{description}</p>
+          <p className="mt-1 text-[0.8125rem] text-graphite-600">{description}</p>
         )}
       </div>
       {action && <div className="flex shrink-0 flex-wrap gap-3">{action}</div>}
@@ -39,11 +39,11 @@ export function StatCard({
 }) {
   const body = (
     <>
-      <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.1em] text-graphite-500">
+      <p className="text-[0.625rem] font-semibold uppercase tracking-[0.1em] text-graphite-500">
         {label}
       </p>
       <p
-        className={`mt-1.5 font-[family-name:var(--font-display)] text-[1.75rem] font-medium leading-none tabular-nums ${
+        className={`mt-1 font-[family-name:var(--font-display)] text-[1.5rem] font-medium leading-none tabular-nums ${
           tone === "accent" ? "text-flame-600" : "text-ink-900"
         }`}
       >
@@ -99,9 +99,9 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="rounded-[4px] border border-dashed border-paper-300 bg-white p-10 text-center">
-      <p className="text-[1.0625rem] font-medium text-ink-900">{title}</p>
-      {description && <p className="mx-auto mt-2 max-w-md text-[0.9375rem] text-graphite-600">{description}</p>}
+    <div className="rounded-[4px] border border-dashed border-paper-300 bg-white p-8 text-center">
+      <p className="text-[0.9375rem] font-medium text-ink-900">{title}</p>
+      {description && <p className="mx-auto mt-1.5 max-w-md text-[0.8125rem] text-graphite-600">{description}</p>}
       {action && <div className="mt-6 flex justify-center">{action}</div>}
     </div>
   );
@@ -115,5 +115,5 @@ export const adminButton =
 
 export const adminButtonSecondary =
   "inline-flex items-center justify-center gap-2 rounded-[3px] border border-paper-300 bg-white " +
-  "px-5 py-2.5 text-[0.875rem] font-medium text-ink-900 transition-colors hover:border-ink-500 " +
+  "px-4 py-2 text-[0.8125rem] font-medium text-ink-900 transition-colors hover:border-ink-500 " +
   "disabled:pointer-events-none disabled:opacity-60";

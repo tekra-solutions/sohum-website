@@ -22,7 +22,7 @@ export type SessionAdmin = {
   id: string;
   name: string;
   email: string;
-  role: "ADMIN" | "RECRUITER" | "SUPER_ADMIN";
+  role: "ADMIN" | "RECRUITER" | "SUPER_ADMIN" | "RECRUITING_ADMIN" | "HIRING_MANAGER";
 };
 
 const key = () => new TextEncoder().encode(serverEnv().authSecret);
