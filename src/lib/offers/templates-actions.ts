@@ -29,7 +29,7 @@ export async function saveOfferTemplateAction(_: ActionState, form: FormData): P
  * silently on boot — nobody should mistake sample content for reviewed
  * legal language they didn't ask to load.
  */
-export async function seedDefaultOfferTemplatesAction(): Promise<ActionState> {
+export async function seedDefaultOfferTemplatesAction(_: ActionState): Promise<ActionState> {
   const admin = await requirePermission("settings");
   const existing = await db.select({ name: offerTemplates.name }).from(offerTemplates);
   const existingNames = new Set(existing.map(t => t.name));

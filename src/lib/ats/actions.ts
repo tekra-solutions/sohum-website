@@ -3,7 +3,8 @@ import { revalidatePath } from "next/cache";
 import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { admins, applications, applicationEvents, auditLogs, candidateNotes, candidateStars, emailEvents, emailTemplates, interviewFeedback, interviews, notifications, reminders } from "@/db/schema";
+import { admins, applications, applicationEvents, auditLogs, candidateNotes, candidateStars, emailEvents, emailTemplates, employees, interviewFeedback, interviews, notifications, reminders } from "@/db/schema";
+import { canTransition } from "./transitions";
 import { requireApplication, requirePermission, candidateScope } from "./access";
 import { requireAdmin } from "@/lib/auth/session";
 import { stages, permits, escapeHtml } from "./policy";
@@ -33,6 +34,14 @@ export async function candidateAction(_: ActionState, form: FormData): Promise<A
       if (kind === "status") {
         const status = z.enum(stages).parse(data.status);
         if (status === app.status) return;
+        // Central rule check, not just "is this a valid enum member" — see
+        // src/lib/ats/transitions.ts for why a bare enum check was unsafe.
+        const [employee] = await tx.select({ id: employees.id }).from(employees).where(eq(employees.sourceApplicationId, id)).limit(1);
+        const verdict = canTransition(app.status, status, {
+          hasEmployee: Boolean(employee),
+          allowDirectHire: data.allowDirectHire === "1" && permits(admin.role, "manage"),
+        });
+        if (!verdict.ok) throw new Error(verdict.reason);
         await tx.update(applications).set({ status, updatedAt: new Date() }).where(eq(applications.id, id));
         await tx.insert(applicationEvents).values({ applicationId: id, fromStatus: app.status, toStatus: status, changedBy: admin.id });
         await record(tx, admin.id, id, "ADMIN_CHANGED_APPLICATION_STATUS", { from: app.status, to: status });
@@ -154,6 +163,19 @@ export async function bulkCandidateAction(_: ActionState, form: FormData): Promi
       if (kind === "assign" && assignedTo) {
         const [owner] = await tx.select().from(admins).where(and(eq(admins.id, assignedTo), eq(admins.isActive, true)));
         if (!owner || !permits(owner.role, "candidates")) throw new Error("Choose an active recruiter.");
+      }
+      // Bulk moves are all-or-nothing: if any single candidate cannot legally
+      // make this move, the whole batch is refused rather than silently
+      // applying to a subset and leaving the recruiter guessing which.
+      if (kind === "status" && status.success) {
+        const converted = await tx.select({ source: employees.sourceApplicationId }).from(employees)
+          .where(inArray(employees.sourceApplicationId, rows.map(r => r.id)));
+        const hasEmployee = new Set(converted.map(c => c.source));
+        for (const app of rows) {
+          if (status.data === app.status) continue;
+          const verdict = canTransition(app.status, status.data, { hasEmployee: hasEmployee.has(app.id) });
+          if (!verdict.ok) throw new Error(`${app.firstName} ${app.lastName}: ${verdict.reason}`);
+        }
       }
       for (const app of rows) {
         if (kind === "status" && status.success && status.data !== app.status) {

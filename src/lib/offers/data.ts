@@ -5,6 +5,26 @@ import { offers, offerVersions, applications, jobs, admins } from "@/db/schema";
 import { requireAdmin } from "@/lib/auth/session";
 import { candidateScope } from "@/lib/ats/access";
 import { positivePage } from "@/lib/ats/policy";
+import { hashOfferToken } from "./tokens";
+
+/**
+ * Resolves a candidate-facing token to its offer + application, or null.
+ * Never throws — the page renders one uniform "invalid or expired" message
+ * either way, never distinguishing not-found from expired from withdrawn.
+ * Lives here (not in the "use server" actions file) because a Next.js
+ * server-actions file may only export async functions — this needs to be
+ * importable from a plain server component too.
+ */
+export async function resolveOfferToken(token: string) {
+  if (!token || token.length > 512) return null;
+  const [row] = await db
+    .select({ offer: offers, application: applications })
+    .from(offers)
+    .innerJoin(applications, eq(offers.applicationId, applications.id))
+    .where(eq(offers.secureTokenHash, hashOfferToken(token)))
+    .limit(1);
+  return row ?? null;
+}
 
 /** The latest non-superseded offer for an application, with its current
  * version — or null if none exists. Meant to be embedded into an existing

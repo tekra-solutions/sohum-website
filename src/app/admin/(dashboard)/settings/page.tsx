@@ -44,9 +44,14 @@ export default async function SettingsPage() {
         description="Your profile, admin accounts and system configuration."
         action={
           permits(admin.role, "settings") ? (
-            <Link href="/admin/settings/email-templates" className={btnSecondary}>
-              Email templates
-            </Link>
+            <>
+              <Link href="/admin/settings/email-templates" className={btnSecondary}>
+                Email templates
+              </Link>
+              <Link href="/admin/settings/offer-templates" className={btnSecondary}>
+                Offer templates
+              </Link>
+            </>
           ) : undefined
         }
       />

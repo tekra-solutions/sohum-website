@@ -10,9 +10,11 @@ import { revalidatePath } from "next/cache";
 import { eq, and, desc } from "drizzle-orm";
 import { db } from "@/db";
 import { offers, offerVersions, applications, applicationEvents, auditLogs, offerOtpCodes } from "@/db/schema";
-import { hashOfferToken, generateOtp, hashOtp } from "@/lib/offers/tokens";
+import { generateOtp, hashOtp } from "@/lib/offers/tokens";
+import { resolveOfferToken as resolveToken } from "@/lib/offers/data";
 import { createOfferSession, hasVerifiedOfferSession } from "@/lib/offers/candidate-session";
 import { canCandidateAct } from "@/lib/offers/policy";
+import { canTransition } from "@/lib/ats/transitions";
 import { otpVerifySchema, declineSchema, acceptSchema } from "@/lib/offers/validation";
 import { offerOtpEmail } from "@/lib/offers/email-templates";
 import { send } from "@/lib/email";
@@ -22,20 +24,6 @@ export type OfferPublicState = { error?: string; success?: string };
 
 const OTP_MAX_ATTEMPTS = 5;
 const OTP_TTL_MS = 10 * 60_000;
-
-/** Resolves a token to its offer + application, or null. Never throws — the
- * page renders one uniform "invalid or expired" message either way, never
- * distinguishing not-found from expired from withdrawn. */
-async function resolveToken(token: string) {
-  if (!token || token.length > 512) return null;
-  const [row] = await db
-    .select({ offer: offers, application: applications })
-    .from(offers)
-    .innerJoin(applications, eq(offers.applicationId, applications.id))
-    .where(eq(offers.secureTokenHash, hashOfferToken(token)))
-    .limit(1);
-  return row ?? null;
-}
 
 export async function requestOtpAction(_: OfferPublicState, form: FormData): Promise<OfferPublicState> {
   const token = String(form.get("token") ?? "");
@@ -135,7 +123,12 @@ export async function acceptOfferAction(_: OfferPublicState, form: FormData): Pr
         metadata: { applicationId: row.application.id, signedLegalName: parsed.data.legalName },
       });
 
+      // Accepting an offer is the normal route into HIRED, but still goes
+      // through the central rule — if a recruiter rejected this application
+      // after the offer went out, a stale link must not hire the candidate.
       if (row.application.status !== "HIRED") {
+        const verdict = canTransition(row.application.status, "HIRED", { viaOfferAcceptance: true });
+        if (!verdict.ok) throw new Error("This offer is no longer available to respond to.");
         await tx.update(applications).set({ status: "HIRED", updatedAt: new Date() }).where(eq(applications.id, row.application.id));
         await tx.insert(applicationEvents).values({
           applicationId: row.application.id, fromStatus: row.application.status, toStatus: "HIRED", changedBy: null,
@@ -186,5 +179,3 @@ export async function declineOfferAction(_: OfferPublicState, form: FormData): P
   return { success: "Your response has been recorded." };
 }
 
-export { resolveToken };
-export const otpMaxAttempts = OTP_MAX_ATTEMPTS;

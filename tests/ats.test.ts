@@ -4,6 +4,7 @@ import { applicationStatusLabel, jobStatusLabel } from "@/lib/format";
 import { csvCell, escapeHtml, permits, positivePage, renderTemplate, stages, validateTemplate } from "@/lib/ats/policy";
 import { feedbackSchema, interviewSchema, emailTemplateSchema } from "@/lib/ats/validation";
 import { jobStatuses } from "@/lib/validation/schemas";
+import { canTransition, allowedTransitions, canCreateOffer } from "@/lib/ats/transitions";
 import { defaultEmailTemplates } from "@/lib/ats/templates";
 describe("ATS authorization policy", () => {
   it("preserves admin access and restricts recruiter and manager privileges", () => {
@@ -81,5 +82,63 @@ describe("status presentation", () => {
     const page = readFileSync(new URL("../src/app/admin/(dashboard)/jobs/page.tsx", import.meta.url), "utf8");
     const filters = page.slice(page.indexOf("const statusFilters"), page.indexOf("] as const;") + 1);
     for (const status of jobStatuses) expect(filters, `filter for ${status}`).toContain(`"${status}"`);
+  });
+});
+
+describe("application stage transitions", () => {
+  // These guard the funnel-skipping and contradictory-state bugs: before the
+  // central rules existed, every write site accepted any stage from any stage.
+  it("refuses to skip the funnel into HIRED", () => {
+    for (const from of ["NEW", "SCREENING", "SHORTLISTED", "INTERVIEW"] as const) {
+      expect(canTransition(from, "HIRED").ok, `${from} -> HIRED`).toBe(false);
+    }
+    expect(canTransition("OFFER", "HIRED").ok).toBe(false);
+  });
+  it("allows HIRED only via offer acceptance or an explicit audited override", () => {
+    expect(canTransition("OFFER", "HIRED", { viaOfferAcceptance: true }).ok).toBe(true);
+    expect(canTransition("OFFER", "HIRED", { allowDirectHire: true }).ok).toBe(true);
+    // Even an override cannot skip the funnel — OFFER must have been reached.
+    expect(canTransition("NEW", "HIRED", { allowDirectHire: true }).ok).toBe(false);
+    expect(canTransition("SCREENING", "HIRED", { viaOfferAcceptance: true }).ok).toBe(false);
+  });
+  it("locks an application once it has become an employee", () => {
+    for (const to of stages) {
+      if (to === "HIRED") continue;
+      expect(canTransition("HIRED", to, { hasEmployee: true }).ok, `HIRED -> ${to}`).toBe(false);
+    }
+    const blocked = canTransition("HIRED", "REJECTED", { hasEmployee: true });
+    expect(blocked.ok).toBe(false);
+    if (!blocked.ok) expect(blocked.reason).toContain("employee");
+  });
+  it("permits forward progression, rejection from any active stage, and one step back", () => {
+    expect(canTransition("NEW", "SCREENING").ok).toBe(true);
+    expect(canTransition("SHORTLISTED", "INTERVIEW").ok).toBe(true);
+    expect(canTransition("INTERVIEW", "OFFER").ok).toBe(true);
+    for (const from of ["NEW", "SCREENING", "SHORTLISTED", "INTERVIEW", "OFFER"] as const) {
+      expect(canTransition(from, "REJECTED").ok, `${from} -> REJECTED`).toBe(true);
+    }
+    expect(canTransition("INTERVIEW", "SHORTLISTED").ok).toBe(true);
+    // A rejected candidate can be reconsidered for the same role.
+    expect(canTransition("REJECTED", "INTERVIEW").ok).toBe(true);
+  });
+  it("refuses to jump more than one stage forward", () => {
+    expect(canTransition("NEW", "INTERVIEW").ok).toBe(false);
+    expect(canTransition("NEW", "OFFER").ok).toBe(false);
+    expect(canTransition("SCREENING", "OFFER").ok).toBe(false);
+  });
+  it("treats a no-op move as allowed so idempotent saves do not error", () => {
+    for (const s of stages) expect(canTransition(s, s).ok).toBe(true);
+  });
+  it("only offers legal moves to the UI, and never the current stage", () => {
+    for (const from of stages) {
+      const moves = allowedTransitions(from);
+      expect(moves).not.toContain(from);
+      for (const to of moves) expect(canTransition(from, to).ok, `${from} -> ${to}`).toBe(true);
+    }
+    expect(allowedTransitions("HIRED", { hasEmployee: true })).toEqual([]);
+  });
+  it("gates offer creation to the OFFER stage only", () => {
+    expect(canCreateOffer("OFFER")).toBe(true);
+    for (const s of stages) if (s !== "OFFER") expect(canCreateOffer(s)).toBe(false);
   });
 });

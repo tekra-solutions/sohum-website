@@ -1,8 +1,9 @@
 import { RecruitingActivity } from "@/components/admin/RecruitingActivity";
 import Link from "next/link";
-import { ArrowRight, Briefcase, Plus, Users } from "lucide-react";
+import { ArrowRight, Briefcase, FileText, Plus, Users } from "lucide-react";
 import { AdminHeader, EmptyState, StatCard, StatusPill, adminButton, adminButtonSecondary } from "@/components/admin/ui";
 import { dashboardStats, recentApplications } from "@/lib/services/applications";
+import { offerDashboardMetrics } from "@/lib/offers/data";
 import { applicationStatusLabel, relativeTime } from "@/lib/format";
 import { requireAdmin } from "@/lib/auth/session";
 import { isDatabaseConfigured } from "@/db";
@@ -26,7 +27,7 @@ export default async function AdminDashboard() {
     );
   }
 
-  const [stats, recent] = await Promise.all([dashboardStats(), recentApplications(6)]);
+  const [stats, recent, offerMetrics] = await Promise.all([dashboardStats(), recentApplications(6), offerDashboardMetrics()]);
 
   return (
     <>
@@ -60,6 +61,20 @@ export default async function AdminDashboard() {
             <StatCard label="Interview" value={stats.interview} href="/admin/applications?status=INTERVIEW" />
             <StatCard label="Offers" value={stats.offer} href="/admin/applications?status=OFFER" />
             <StatCard label="Hired" value={stats.hired} href="/admin/applications?status=HIRED" />
+          </div>
+        </section>
+
+        {/* ---- Offer metrics ---- */}
+        <section aria-labelledby="offers">
+          <h2 id="offers" className="text-[0.9375rem] font-medium text-ink-900">
+            Offers
+          </h2>
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            <StatCard label="Pending approval" value={offerMetrics.pendingApproval} href="/admin/offers?status=PENDING_APPROVAL" />
+            <StatCard label="Sent" value={offerMetrics.sent} href="/admin/offers?status=SENT" />
+            <StatCard label="Awaiting response" value={offerMetrics.awaitingResponse} href="/admin/offers?status=SENT" />
+            <StatCard label="Accepted" value={offerMetrics.accepted} href="/admin/offers?status=ACCEPTED" tone="accent" />
+            <StatCard label="Declined" value={offerMetrics.declined} href="/admin/offers?status=DECLINED" />
           </div>
         </section>
 
@@ -127,11 +142,12 @@ export default async function AdminDashboard() {
           <h2 id="actions" className="text-[0.9375rem] font-medium text-ink-900">
             Quick actions
           </h2>
-          <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
               { href: "/admin/jobs/new", Icon: Plus, title: "Create a job", body: "Draft a new position and publish when ready." },
               { href: "/admin/jobs", Icon: Briefcase, title: "Manage jobs", body: `${stats.publishedJobs} published · ${stats.draftJobs} draft` },
               { href: "/admin/applications", Icon: Users, title: "Review applications", body: `${stats.newApplications} new to triage` },
+              { href: "/admin/offers", Icon: FileText, title: "Manage offers", body: `${offerMetrics.pendingApproval} pending approval` },
             ].map((a) => (
               <Link
                 key={a.href}

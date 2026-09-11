@@ -94,8 +94,13 @@ describe.skipIf(!enabled)("ATS database integration (local only)", () => {
     const { candidateAction, bulkCandidateAction } = await import("@/lib/ats/actions");
     const bulk = form({kind:"status",status:"HIRED"}); bulk.append("ids",appId); bulk.append("ids","30000000-0000-4000-8000-000000000002");
     expect((await bulkCandidateAction({},bulk)).error).toContain("accessible");
+    expect((await candidateAction({},form({kind:"status",status:"INTERVIEW"}))).success).toBeDefined();
     expect((await candidateAction({},form({kind:"status",status:"OFFER"}))).success).toBeDefined();
-    expect((await candidateAction({},form({kind:"status",status:"HIRED"}))).success).toBeDefined();
+    // Hiring requires either an accepted offer or the explicit, manage-gated
+    // override for a hire agreed outside the platform.
+    expect((await candidateAction({},form({kind:"status",status:"HIRED"}))).error).toContain("accept their offer");
+    state.id = "10000000-0000-4000-8000-000000000001"; state.role = "SUPER_ADMIN";
+    expect((await candidateAction({},form({kind:"status",status:"HIRED",allowDirectHire:"1"}))).success).toBeDefined();
     const { getApplicationDetail } = await import("@/lib/services/applications");
     const candidate = await getApplicationDetail(appId); expect(candidate?.status).toBe("HIRED"); expect(candidate?.events.length).toBeGreaterThan(2);
   });
@@ -156,8 +161,26 @@ describe.skipIf(!enabled)("Offer workflow (local only)", () => {
     state.id = superAdminId; state.role = "SUPER_ADMIN";
     expect((await candidateAction({}, f)).success).toBeDefined();
     state.id = recruiterId; state.role = "RECRUITER";
-    const status = new FormData(); status.set("applicationId", offerAppId); status.set("kind", "status"); status.set("status", "OFFER");
-    expect((await candidateAction({}, status)).success).toBeDefined();
+    // Walk the funnel one stage at a time — the central transition rules
+    // refuse NEW -> OFFER in a single hop, which is the point of them.
+    for (const stage of ["SCREENING", "SHORTLISTED", "INTERVIEW", "OFFER"]) {
+      const status = new FormData();
+      status.set("applicationId", offerAppId); status.set("kind", "status"); status.set("status", stage);
+      expect((await candidateAction({}, status)).success, `move to ${stage}`).toBeDefined();
+    }
+  });
+
+  it("refuses to skip the funnel or hire without an accepted offer", async () => {
+    state.id = recruiterId; state.role = "RECRUITER";
+    const { candidateAction } = await import("@/lib/ats/actions");
+    const hire = new FormData();
+    hire.set("applicationId", offerAppId); hire.set("kind", "status"); hire.set("status", "HIRED");
+    // A recruiter cannot mark someone hired directly; that requires either a
+    // candidate-accepted offer or an explicit manage-gated override.
+    expect((await candidateAction({}, hire)).error).toContain("accept their offer");
+    // The override is rejected for a role without "manage".
+    hire.set("allowDirectHire", "1");
+    expect((await candidateAction({}, hire)).error).toContain("accept their offer");
   });
 
   it("creates a draft offer with a rendered document and audits it", async () => {
@@ -247,7 +270,7 @@ describe.skipIf(!enabled)("Offer workflow (local only)", () => {
   });
 
   it("marks the offer VIEWED, records the view, and reflects it on the candidate profile", async () => {
-    const { resolveToken } = await import("@/app/offer/[token]/actions");
+    const { resolveOfferToken: resolveToken } = await import("@/lib/offers/data");
     const row = await resolveToken(offerToken);
     expect(row?.offer.status).toBe("SENT");
     // The page component itself performs the SENT->VIEWED transition on

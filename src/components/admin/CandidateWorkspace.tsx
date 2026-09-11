@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { candidateWorkspace } from "@/lib/ats/data";
 import { requireApplication } from "@/lib/ats/access";
-import { permits, sources, stages, interviewTypes, interviewStatuses } from "@/lib/ats/policy";
-import { applicationStatusLabel, formatDateTime } from "@/lib/format";
+import { permits, sources, interviewTypes, interviewStatuses } from "@/lib/ats/policy";
+import { allowedTransitions } from "@/lib/ats/transitions";
+import { applicationStatusLabel, offerStatusLabel, formatCurrency, formatDateTime, shortDate } from "@/lib/format";
+import { canEditOffer, canSend, type OfferStatus } from "@/lib/offers/policy";
 import { WorkflowForm, WorkflowField as Field } from "./WorkflowForm";
 import { CandidateEmail } from "./CandidateEmail";
-import { adminButtonSecondary } from "./ui";
+import { adminButtonSecondary, StatusPill } from "./ui";
 const options = (values: readonly string[]) => values.map(value => ({ value, label: value }));
 function Section({ title, id, children }: { title: string; id?: string; children: React.ReactNode }) {
   return <section id={id} className="rounded-[4px] border border-paper-300 bg-white p-5 sm:p-6"><h2 className="mb-4 text-[0.9375rem] font-medium text-ink-900">{title}</h2>{children}</section>;
@@ -21,7 +23,9 @@ export async function CandidateWorkspace({ id, jobTitle }: { id: string; jobTitl
     <div className="grid items-start gap-5 xl:grid-cols-2">
       <div className="space-y-5">
         {canEdit && <Section title="Recruiting details" id="stage"><div className="space-y-5">
-          <WorkflowForm applicationId={id} kind="status" label="Update stage"><Field name="status" label="Current stage" value={app.status} options={stages.map(value => ({ value, label: applicationStatusLabel[value] }))} /></WorkflowForm>
+          <WorkflowForm applicationId={id} kind="status" label="Update stage"><Field name="status" label="Current stage" value={app.status} options={[app.status, ...allowedTransitions(app.status, { hasEmployee: Boolean(w.employeeId) })].map(value => ({ value, label: applicationStatusLabel[value] }))} /></WorkflowForm>
+          {w.employeeId && <p className="text-xs text-graphite-600">This candidate is now an employee, so their stage is locked.</p>}
+          {app.status === "OFFER" && !w.employeeId && permits(admin.role, "manage") && <details><summary className="cursor-pointer text-xs text-graphite-600">Hired outside the system?</summary><div className="mt-3"><WorkflowForm applicationId={id} kind="status" label="Record hire"><input type="hidden" name="status" value="HIRED" /><input type="hidden" name="allowDirectHire" value="1" /><p className="text-xs text-graphite-500">Use only when the offer was made and accepted outside this platform. This is recorded in the audit log.</p></WorkflowForm></div></details>}
           <WorkflowForm applicationId={id} kind="profile" label="Save profile"><Field name="skills" label="Skills" value={app.skills} /><Field name="tags" label="Tags, separated by commas" value={app.tags.join(", ")} /><Field name="source" label="Application source" value={app.source || "Company Website"} options={options([...new Set([...sources, ...(app.source ? [app.source] : [])])])} /></WorkflowForm>
           <WorkflowForm applicationId={id} kind="star" label={w.starred ? "★ Unstar candidate" : "☆ Star candidate"}><input type="hidden" name="starred" value={w.starred ? "0" : "1"} /></WorkflowForm>
           <p className="text-xs text-graphite-600">Assigned to: {w.staff.find(s => s.id === app.assignedTo)?.name ?? "Unassigned"}</p>
@@ -29,6 +33,26 @@ export async function CandidateWorkspace({ id, jobTitle }: { id: string; jobTitl
           <WorkflowForm applicationId={id} kind="archive" label={app.archivedAt ? "Restore application" : "Archive application"}><input type="hidden" name="restore" value={app.archivedAt ? "1" : "0"} /><p className="text-xs text-graphite-500">Archived applications retain their full history.</p></WorkflowForm>
           {app.status === "HIRED" && permits(admin.role, "employees") && <Link href={w.employeeId ? `/admin/employees/${w.employeeId}` : `/admin/employees/new?applicationId=${id}`} className={adminButtonSecondary}>{w.employeeId ? "Open employee" : "Create employee"}</Link>}
         </div></Section>}
+        <Section title="Offer" id="offer">
+          {w.offer ? <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <StatusPill status={w.offer.offer.status} label={offerStatusLabel[w.offer.offer.status]} />
+              {w.offer.version && <span className="text-sm text-ink-900">{w.offer.version.jobTitle}</span>}
+            </div>
+            {w.offer.version && <p className="text-xs text-graphite-600">
+              {w.offer.version.annualSalaryCents != null ? formatCurrency(w.offer.version.annualSalaryCents) : w.offer.version.hourlyRateCents != null ? `${formatCurrency(w.offer.version.hourlyRateCents)}/hr` : "No compensation set"}
+              {" · "}Start {shortDate(w.offer.version.startDate)}
+            </p>}
+            <div className="flex flex-wrap gap-2">
+              <Link href={`/admin/offers/${w.offer.offer.id}`} className={adminButtonSecondary}>View offer</Link>
+              {canEditOffer(w.offer.offer.status as OfferStatus) && canEdit && <Link href={`/admin/offers/${w.offer.offer.id}/edit`} className={adminButtonSecondary}>Edit offer</Link>}
+              {canSend(w.offer.offer.status as OfferStatus) && canEdit && <Link href={`/admin/offers/${w.offer.offer.id}`} className={adminButtonSecondary}>Send offer</Link>}
+            </div>
+          </div> : <>
+            <p className="text-sm text-graphite-500">No offer yet.</p>
+            {app.status === "OFFER" && canEdit && <Link href={`/admin/offers/new?applicationId=${id}`} className={`mt-3 inline-flex ${adminButtonSecondary}`}>Create offer letter</Link>}
+          </>}
+        </Section>
         <Section title="Recruiter notes" id="notes"><p className="mb-4 text-xs text-graphite-500">Private to authorized recruiting staff. Most recent 100 notes.</p>
           {app.internalNotes && <p className="mb-4 whitespace-pre-wrap border-l-2 border-paper-300 pl-3 text-sm">{app.internalNotes}<span className="mt-1 block text-xs text-graphite-500">Legacy internal note</span></p>}
           <div className="space-y-4">{w.notes.map(({ note, author }) => <article key={note.id} className="border-b border-paper-200 pb-4"><p className="whitespace-pre-wrap text-sm text-ink-800">{note.note}</p><p className="mt-2 text-xs text-graphite-500">{author} · {formatDateTime(note.createdAt)}{note.updatedAt > note.createdAt ? " · Edited" : ""}</p>{(note.createdBy === admin.id || permits(admin.role, "manage")) && <details className="mt-2"><summary className="cursor-pointer text-xs underline">Edit or delete</summary><div className="mt-3 space-y-3"><WorkflowForm applicationId={id} kind="note" label="Save note"><input type="hidden" name="noteId" value={note.id} /><Field name="note" label="Note" value={note.note} multiline required /></WorkflowForm><WorkflowForm applicationId={id} kind="note" label="Delete this note"><input type="hidden" name="noteId" value={note.id} /><input type="hidden" name="intent" value="delete" /></WorkflowForm></div></details>}</article>)}</div>
