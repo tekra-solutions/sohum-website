@@ -228,6 +228,94 @@ describe.skipIf(!enabled)("invoice workflow (local only)", () => {
     expect(payment.metadata).toMatchObject({ previousBalanceCents: expect.any(Number), newBalanceCents: expect.any(Number) });
   });
 
+  it("runs the full lifecycle end to end: client -> invoice -> send -> pay -> duplicate", async () => {
+    state.id = SUPER; state.role = "SUPER_ADMIN";
+    const { saveClientAction, saveInvoiceAction, recordPaymentAction, duplicateInvoiceAction } = await import("@/lib/invoices/actions");
+    const { getInvoiceDetail } = await import("@/lib/invoices/data");
+    const { resolveInvoiceToken } = await import("@/lib/invoices/client-access");
+    const { hashInvoiceToken, generateInvoiceToken } = await import("@/lib/invoices/tokens");
+    const { renderInvoiceHtml } = await import("@/lib/invoices/render-html");
+    const { buildInvoiceDocument } = await import("@/lib/invoices/send-actions");
+    const { db } = await import("@/db");
+    const { invoices, clients: clientsTable, auditLogs } = await import("@/db/schema");
+    const { eq, desc } = await import("drizzle-orm");
+
+    // 3. Create a client.
+    expect((await saveClientAction({}, fd({
+      companyName: "General Services Administration", email: "ap@gsa.example.gov",
+      billingAddress: "1800 F St NW\nWashington, DC 20405",
+    }))).success).toBeDefined();
+    const [gsa] = await db.select().from(clientsTable).where(eq(clientsTable.companyName, "General Services Administration"));
+
+    // 4-7. Create an invoice with three line items and save as draft.
+    await expect(saveInvoiceAction({}, fd({
+      clientId: gsa.id, invoiceDate: "2026-09-01", dueDate: "2026-10-01", taxRateBasisPoints: "0",
+      paymentTerms: "Net 30",
+      itemDescription: ["Discovery", "Implementation", "Training"],
+      itemQuantity: ["10", "80", "4"],
+      itemRate: ["250", "185.75", "300"],
+    }))).rejects.toThrow("REDIRECT");
+    const [inv] = await db.select().from(invoices).orderBy(desc(invoices.createdAt)).limit(1);
+    expect(inv.status).toBe("DRAFT");
+    // 6. Totals: 2,500 + 14,860 + 1,200 = 18,560
+    expect(inv.subtotalCents).toBe(250000 + 1486000 + 120000);
+    expect(inv.totalCents).toBe(1856000);
+
+    // 8-9. The preview and the PDF render from the same document input.
+    const doc = await buildInvoiceDocument(inv.id);
+    expect(doc).not.toBeNull();
+    const html = renderInvoiceHtml(doc!);
+    expect(html).toContain(inv.invoiceNumber);
+    expect(html).toContain("$18,560.00");
+    expect(html).toContain("General Services Administration");
+
+    // 10-11. Sending mints a token; the client link resolves through its hash.
+    const token = generateInvoiceToken();
+    await db.update(invoices).set({
+      status: "SENT", sentAt: new Date(), sentBy: SUPER,
+      secureTokenHash: hashInvoiceToken(token),
+      tokenExpiresAt: new Date(Date.now() + 30 * 86400000),
+    }).where(eq(invoices.id, inv.id));
+    const resolved = await resolveInvoiceToken(token);
+    expect(resolved?.invoice.id).toBe(inv.id);
+    // A wrong token resolves to nothing.
+    expect(await resolveInvoiceToken(generateInvoiceToken())).toBeNull();
+
+    // 12-13. Partial payment.
+    expect((await recordPaymentAction({}, fd({
+      invoiceId: inv.id, amountCents: "10000", paidOn: "2026-09-15", method: "ACH", reference: "PART-1",
+    }))).success).toBeDefined();
+    let [after] = await db.select().from(invoices).where(eq(invoices.id, inv.id));
+    expect(after.status).toBe("PARTIALLY_PAID");
+    expect(after.balanceDueCents).toBe(1856000 - 1000000);
+
+    // 14-15. Final payment clears it exactly.
+    expect((await recordPaymentAction({}, fd({
+      invoiceId: inv.id, amountCents: "8560", paidOn: "2026-09-25", method: "WIRE", reference: "FINAL-1",
+    }))).success).toBeDefined();
+    [after] = await db.select().from(invoices).where(eq(invoices.id, inv.id));
+    expect(after.status).toBe("PAID");
+    expect(after.balanceDueCents).toBe(0);
+
+    // 16. Payment history.
+    const detail = await getInvoiceDetail(inv.id);
+    expect(detail!.payments.map(p => p.payment.reference)).toEqual(["PART-1", "FINAL-1"]);
+
+    // 17. Audit history covers the money events.
+    const actions = (await db.select().from(auditLogs).where(eq(auditLogs.entityId, inv.id))).map(a => a.action);
+    expect(actions).toContain("INVOICE_CREATED");
+    expect(actions.filter(a => a === "PAYMENT_RECORDED")).toHaveLength(2);
+
+    // 18-19. Duplicating a paid invoice yields a fresh draft with a new number.
+    await expect(duplicateInvoiceAction({}, fd({ invoiceId: inv.id }))).rejects.toThrow("REDIRECT");
+    const [copy] = await db.select().from(invoices).orderBy(desc(invoices.createdAt)).limit(1);
+    expect(copy.status).toBe("DRAFT");
+    expect(copy.invoiceNumber).not.toBe(inv.invoiceNumber);
+    expect(copy.amountPaidCents).toBe(0);
+    expect(copy.balanceDueCents).toBe(copy.totalCents);
+    expect(copy.secureTokenHash).toBeNull();
+  });
+
   it("denies every invoice path to a role without the permission", async () => {
     state.id = RECRUITER; state.role = "RECRUITER";
     const { listInvoices, invoiceDashboard, getInvoiceDetail } = await import("@/lib/invoices/data");
