@@ -105,7 +105,14 @@ export default async function OfferDetailPage({ params }: { params: Promise<{ id
             )}
 
             {canSend(status) && permits(admin.role, "candidates") && (
-              <WorkflowForm action={sendOfferAction} label="Send offer to candidate">
+              <WorkflowForm
+                action={sendOfferAction}
+                label="Send offer to candidate"
+                confirm={{
+                  message: `This emails a secure offer link to ${application.email} and cannot be unsent. The offer stays approved if delivery fails, so you can retry.`,
+                  confirmLabel: "Send offer now",
+                }}
+              >
                 <input type="hidden" name="offerId" value={id} />
                 <p className={`${t.hint} text-graphite-500`}>
                   Generates the PDF and emails a secure link to {application.email}.
@@ -114,9 +121,15 @@ export default async function OfferDetailPage({ params }: { params: Promise<{ id
             )}
 
             {canWithdraw(status) && canManage && (
-              <WorkflowForm action={withdrawOfferAction} label="Withdraw offer">
+              <WorkflowForm
+                action={withdrawOfferAction}
+                label="Withdraw offer"
+                confirm={{
+                  message: "Withdrawing immediately invalidates the candidate's link — if they open it again they will see only that the offer is no longer available. This cannot be undone; you would need to create a new offer.",
+                  tone: "danger",
+                }}
+              >
                 <input type="hidden" name="offerId" value={id} />
-                <p className={`${t.hint} text-graphite-500`}>Immediately invalidates the candidate&rsquo;s link.</p>
               </WorkflowForm>
             )}
 

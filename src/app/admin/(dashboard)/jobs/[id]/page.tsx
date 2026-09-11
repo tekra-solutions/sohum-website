@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, CheckCircle2, ExternalLink } from "lucide-react";
 import { AdminHeader, StatusPill } from "@/components/admin/ui";
+import { ConfirmSubmit } from "@/components/admin/ConfirmSubmit";
 import { JobForm } from "@/components/admin/JobForm";
 import { getJobById, countApplicationsForJob } from "@/lib/services/jobs";
 import { requiresJobApproval } from "@/lib/ats/data";
@@ -106,18 +107,24 @@ export default async function EditJobPage({
                   <button type="submit" className="rounded-[3px] border border-paper-300 px-4 py-2.5 text-[0.875rem] font-medium text-ink-900 hover:border-ink-500">Unpublish</button>
                 </form>
               )}
-              {job.status === "PUBLISHED" && <form action={setJobStatusAction}><input type="hidden" name="id" value={job.id} /><input type="hidden" name="status" value="CLOSED" /><button className="rounded-[3px] border border-paper-300 px-4 py-2.5 text-sm">Close job</button></form>}
+              {job.status === "PUBLISHED" && (
+                <form action={setJobStatusAction}>
+                  <input type="hidden" name="id" value={job.id} />
+                  <input type="hidden" name="status" value="CLOSED" />
+                  <ConfirmSubmit label="Close job" message="Closing removes this job from the public careers site immediately. Existing applications are kept and stay workable." />
+                </form>
+              )}
               {job.status !== "ARCHIVED" && (
                 <form action={setJobStatusAction}>
                   <input type="hidden" name="id" value={job.id} />
                   <input type="hidden" name="status" value="ARCHIVED" />
-                  <button type="submit" className="rounded-[3px] border border-paper-300 px-4 py-2.5 text-[0.875rem] font-medium text-ink-900 hover:border-ink-500">Archive</button>
+                  <ConfirmSubmit label="Archive" message="Archiving hides this job from the careers site and the default admin views. All applications and their history are retained." />
                 </form>
               )}
               {applicationCount === 0 && (
                 <form action={deleteJobAction}>
                   <input type="hidden" name="id" value={job.id} />
-                  <button type="submit" className="rounded-[3px] border border-[#c0392b]/40 px-4 py-2.5 text-[0.875rem] font-medium text-[#c0392b] hover:bg-[#c0392b]/[0.05]">Delete</button>
+                  <ConfirmSubmit label="Delete" tone="danger" message="This permanently deletes the job. It has no applications, so nothing else is affected — but the job cannot be recovered." />
                 </form>
               )}
             </div>
