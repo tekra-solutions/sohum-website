@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { db } from "@/db";
 import { recruitingSettings } from "@/db/schema";
 import { permits } from "@/lib/ats/policy";
@@ -38,8 +39,17 @@ export default async function SettingsPage() {
 
   return (
     <>
-      {permits(admin.role, "settings") && <a href="/admin/settings/email-templates" className="block px-8 pt-4 text-sm underline">Manage email templates</a>}
-      <AdminHeader title="Settings" description="Your profile, admin accounts and system configuration." />
+      <AdminHeader
+        title="Settings"
+        description="Your profile, admin accounts and system configuration."
+        action={
+          permits(admin.role, "settings") ? (
+            <Link href="/admin/settings/email-templates" className={btnSecondary}>
+              Email templates
+            </Link>
+          ) : undefined
+        }
+      />
 
       <div className="max-w-3xl space-y-5 p-5 sm:p-6 lg:p-8">
         <section className="rounded-[4px] border border-paper-300 bg-white p-5">

@@ -65,14 +65,19 @@ export function StatCard({
 }
 
 const statusTones: Record<string, string> = {
+  // Application stages, in pipeline order.
   NEW: "border-flame-500/40 bg-flame-500/10 text-flame-700",
-  REVIEWING: "border-[#0a6d92]/30 bg-[#0a6d92]/10 text-[#0a6d92]",
+  SCREENING: "border-[#0a6d92]/30 bg-[#0a6d92]/10 text-[#0a6d92]",
   SHORTLISTED: "border-[#7a5c00]/30 bg-[#f0a93c]/15 text-[#7a5c00]",
   INTERVIEW: "border-[#5b3fa8]/30 bg-[#5b3fa8]/10 text-[#5b3fa8]",
+  OFFER: "border-[#0a6d92]/30 bg-[#0a6d92]/10 text-[#0a6d92]",
   HIRED: "border-[#1e7a4d]/30 bg-[#1e7a4d]/10 text-[#1e7a4d]",
   REJECTED: "border-paper-300 bg-paper-100 text-graphite-600",
-  PUBLISHED: "border-[#1e7a4d]/30 bg-[#1e7a4d]/10 text-[#1e7a4d]",
+  // Job statuses. Approval states are in flight, so they share the amber tone.
   DRAFT: "border-paper-300 bg-paper-100 text-graphite-600",
+  PENDING_APPROVAL: "border-[#7a5c00]/30 bg-[#f0a93c]/15 text-[#7a5c00]",
+  APPROVED: "border-[#5b3fa8]/30 bg-[#5b3fa8]/10 text-[#5b3fa8]",
+  PUBLISHED: "border-[#1e7a4d]/30 bg-[#1e7a4d]/10 text-[#1e7a4d]",
   CLOSED: "border-paper-300 bg-paper-100 text-graphite-600",
   ARCHIVED: "border-paper-300 bg-transparent text-graphite-500",
 };

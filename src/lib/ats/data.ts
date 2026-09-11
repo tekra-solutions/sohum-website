@@ -1,9 +1,15 @@
 import "server-only";
 import { and, asc, desc, eq, ne, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { admins, applications, auditLogs, candidateNotes, candidateStars, emailEvents, emailTemplates, employees, interviewFeedback, interviews, jobs, notifications, reminders } from "@/db/schema";
+import { admins, applications, auditLogs, candidateNotes, candidateStars, emailEvents, emailTemplates, employees, interviewFeedback, interviews, jobs, notifications, recruitingSettings, reminders } from "@/db/schema";
 import { requireAdmin } from "@/lib/auth/session";
 import { candidateScope, requireApplication } from "./access";
+/** Whether jobs must be approved before they can be published. Read by the job
+ * screens so the lifecycle buttons match what setJobStatusAction will allow. */
+export async function requiresJobApproval() {
+  const [settings] = await db.select().from(recruitingSettings).limit(1);
+  return settings?.requireJobApproval ?? false;
+}
 export async function recruiterOptions() {
   await requireAdmin();
   return db.select({ id: admins.id, name: admins.name, role: admins.role }).from(admins).where(eq(admins.isActive, true)).orderBy(asc(admins.name));

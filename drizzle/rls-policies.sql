@@ -14,6 +14,22 @@ ALTER TABLE application_events  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_logs          ENABLE ROW LEVEL SECURITY;
 ALTER TABLE employees           ENABLE ROW LEVEL SECURITY;
 
+-- Applicant tracking tables added alongside the recruiting workspace. These
+-- hold recruiter notes, interview records, hiring feedback and candidate
+-- correspondence, so they follow the same default-deny rule as applications.
+ALTER TABLE candidate_notes      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE candidate_stars      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE interviews           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE interview_feedback   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE email_templates      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE email_events         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notifications        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE reminders            ENABLE ROW LEVEL SECURITY;
+ALTER TABLE job_assignments      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE job_templates        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE job_views            ENABLE ROW LEVEL SECURITY;
+ALTER TABLE recruiting_settings  ENABLE ROW LEVEL SECURITY;
+
 -- Default deny: with RLS enabled and no permissive policy, anon and
 -- authenticated roles can do nothing. The service role bypasses RLS entirely,
 -- which is how the server reads and writes.
@@ -25,9 +41,11 @@ CREATE POLICY "public can read published jobs"
   TO anon, authenticated
   USING (status = 'PUBLISHED');
 
--- Applications, resumes, events, admins, employees and audit logs have NO
--- permissive policy on purpose. Employee rows are staff PII and must never be
--- readable with the anon key. Only the service role touches them.
+-- Applications, resumes, events, admins, employees, audit logs and every
+-- applicant tracking table above have NO permissive policy on purpose.
+-- Employee rows and recruiter notes are PII and must never be readable with the
+-- anon key. Only the service role touches them. Job views are written by the
+-- server on behalf of visitors, so they need no anon policy either.
 
 -- Storage: the resumes bucket must be private. Create it with
 --   insert into storage.buckets (id, name, public) values ('resumes','resumes',false)

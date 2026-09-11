@@ -8,10 +8,12 @@ import { setJobStatusAction } from "@/lib/services/job-actions";
 import { employmentTypeLabel, jobStatusLabel, shortDate } from "@/lib/format";
 import { requireAdmin } from "@/lib/auth/session";
 import { isDatabaseConfigured } from "@/db";
+import { requiresJobApproval } from "@/lib/ats/data";
 
 export const dynamic = "force-dynamic";
 
-const statusFilters = ["ALL", "PUBLISHED", "DRAFT", "CLOSED", "ARCHIVED"] as const;
+// Mirrors the job_status enum so approval-workflow jobs stay reachable.
+const statusFilters = ["ALL", "PUBLISHED", "DRAFT", "PENDING_APPROVAL", "APPROVED", "CLOSED", "ARCHIVED"] as const;
 
 export default async function AdminJobsPage({
   searchParams,
@@ -24,11 +26,17 @@ export default async function AdminJobsPage({
     const v = sp[k];
     return Array.isArray(v) ? v[0] : v;
   };
-  const status = one("status") ?? "ALL";
+  // Only accept a status the filter actually offers; anything else is "ALL"
+  // rather than an unmatched enum comparison.
+  const requested = one("status") ?? "ALL";
+  const status = (statusFilters as readonly string[]).includes(requested) ? requested : "ALL";
   const q = one("q") ?? "";
   const sort = (one("sort") ?? "newest") as "newest" | "oldest" | "title";
 
   const rows = isDatabaseConfigured() ? await listAdminJobs({ q, status, sort }) : [];
+  // Publishing is refused for unapproved jobs, so offer Review instead of a
+  // Publish button that would quietly do nothing.
+  const needsApproval = isDatabaseConfigured() ? await requiresJobApproval() : false;
 
   return (
     <>
@@ -157,13 +165,19 @@ export default async function AdminJobsPage({
                         {j.applicationCount} application{j.applicationCount === 1 ? "" : "s"}
                       </span>
                       <div className="flex gap-2">
-                        <form action={setJobStatusAction}>
-                          <input type="hidden" name="id" value={j.id} />
-                          <input type="hidden" name="status" value={j.status === "PUBLISHED" ? "DRAFT" : "PUBLISHED"} />
-                          <button type="submit" className="rounded border border-paper-300 px-3 py-1.5 text-[0.75rem] font-medium text-ink-900">
-                            {j.status === "PUBLISHED" ? "Unpublish" : "Publish"}
-                          </button>
-                        </form>
+                        {needsApproval && j.status !== "PUBLISHED" && j.status !== "APPROVED" ? (
+                          <Link href={`/admin/jobs/${j.id}`} className="rounded border border-paper-300 px-3 py-1.5 text-[0.75rem] font-medium text-ink-900">
+                            Review
+                          </Link>
+                        ) : (
+                          <form action={setJobStatusAction}>
+                            <input type="hidden" name="id" value={j.id} />
+                            <input type="hidden" name="status" value={j.status === "PUBLISHED" ? "DRAFT" : "PUBLISHED"} />
+                            <button type="submit" className="rounded border border-paper-300 px-3 py-1.5 text-[0.75rem] font-medium text-ink-900">
+                              {j.status === "PUBLISHED" ? "Unpublish" : "Publish"}
+                            </button>
+                          </form>
+                        )}
                         <Link href={`/admin/jobs/${j.id}`} className="rounded border border-paper-300 px-3 py-1.5 text-[0.75rem] font-medium text-ink-900">Edit</Link>
                       </div>
                     </div>

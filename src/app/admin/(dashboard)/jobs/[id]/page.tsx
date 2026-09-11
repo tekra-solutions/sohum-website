@@ -6,6 +6,7 @@ import { ArrowLeft, CheckCircle2, ExternalLink } from "lucide-react";
 import { AdminHeader, StatusPill } from "@/components/admin/ui";
 import { JobForm } from "@/components/admin/JobForm";
 import { getJobById, countApplicationsForJob } from "@/lib/services/jobs";
+import { requiresJobApproval } from "@/lib/ats/data";
 import { deleteJobAction, setJobStatusAction } from "@/lib/services/job-actions";
 import { jobStatusLabel } from "@/lib/format";
 import { requireAdmin } from "@/lib/auth/session";
@@ -29,6 +30,10 @@ export default async function EditJobPage({
 
   const applicationCount = await countApplicationsForJob(job.id);
   const saved = sp.saved === "1";
+  // With approval enabled, setJobStatusAction refuses to publish anything that
+  // is not APPROVED, so the button has to reflect that rather than no-op.
+  const needsApproval = await requiresJobApproval();
+  const canPublish = !needsApproval || job.status === "APPROVED";
 
   return (
     <>
@@ -79,8 +84,15 @@ export default async function EditJobPage({
                 ? `${applicationCount} application${applicationCount === 1 ? "" : "s"} received. This job can be archived but not deleted, so those records are preserved.`
                 : "No applications yet."}
             </p>
+            {needsApproval && !canPublish && job.status !== "PUBLISHED" && (
+              <p className="mt-3 rounded-[3px] border border-[#7a5c00]/30 bg-[#f0a93c]/[0.12] p-3 text-[0.8125rem] text-[#7a5c00]">
+                {job.status === "PENDING_APPROVAL"
+                  ? "Awaiting approval. A super admin approves it in the job workflow above, then it can be published."
+                  : "Approval is required before publishing. Submit this job for approval in the job workflow above."}
+              </p>
+            )}
             <div className="mt-4 flex flex-wrap gap-3">
-              {job.status !== "PUBLISHED" && (
+              {job.status !== "PUBLISHED" && canPublish && (
                 <form action={setJobStatusAction}>
                   <input type="hidden" name="id" value={job.id} />
                   <input type="hidden" name="status" value="PUBLISHED" />

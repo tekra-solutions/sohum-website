@@ -1,6 +1,9 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { applicationStatusLabel, jobStatusLabel } from "@/lib/format";
 import { csvCell, escapeHtml, permits, positivePage, renderTemplate, stages, validateTemplate } from "@/lib/ats/policy";
 import { feedbackSchema, interviewSchema, emailTemplateSchema } from "@/lib/ats/validation";
+import { jobStatuses } from "@/lib/validation/schemas";
 import { defaultEmailTemplates } from "@/lib/ats/templates";
 describe("ATS authorization policy", () => {
   it("preserves admin access and restricts recruiter and manager privileges", () => {
@@ -55,5 +58,28 @@ describe("export and pagination", () => {
   });
   it("bounds malformed pages", () => {
     expect(positivePage("NaN")).toBe(1); expect(positivePage(-1)).toBe(1); expect(positivePage(Infinity)).toBe(1); expect(positivePage("2")).toBe(2);
+  });
+});
+describe("status presentation", () => {
+  // These guard the drift that left approval-workflow and pipeline statuses
+  // rendering as an unstyled grey fallback.
+  const toneSource = readFileSync(new URL("../src/components/admin/ui.tsx", import.meta.url), "utf8");
+  const tones = toneSource.slice(toneSource.indexOf("const statusTones"), toneSource.indexOf("export function StatusPill"));
+  it("gives every application stage a label and a distinct tone", () => {
+    for (const stage of stages) {
+      expect(applicationStatusLabel[stage], `label for ${stage}`).toBeTruthy();
+      expect(tones, `tone for ${stage}`).toContain(`${stage}:`);
+    }
+  });
+  it("gives every job status a label and a tone, including the approval states", () => {
+    for (const status of jobStatuses) {
+      expect(jobStatusLabel[status], `label for ${status}`).toBeTruthy();
+      expect(tones, `tone for ${status}`).toContain(`${status}:`);
+    }
+  });
+  it("offers every job status in the admin jobs filter", () => {
+    const page = readFileSync(new URL("../src/app/admin/(dashboard)/jobs/page.tsx", import.meta.url), "utf8");
+    const filters = page.slice(page.indexOf("const statusFilters"), page.indexOf("] as const;") + 1);
+    for (const status of jobStatuses) expect(filters, `filter for ${status}`).toContain(`"${status}"`);
   });
 });
