@@ -13,7 +13,8 @@
     "db:studio": "node --env-file=.env.local node_modules/.bin/drizzle-kit studio",
     "create-admin": "tsx --env-file=.env.local scripts/create-admin.ts",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:integration": "sh scripts/itest.sh"
   },
   "dependencies": {
     "@sparticuz/chromium": "^147.0.0",
