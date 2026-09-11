@@ -133,7 +133,7 @@ describe.skipIf(!enabled)("full recruiting funnel end to end (local only)", () =
     await requestOtpAction({}, tf());
     const code = state.lastEmail!.text.match(/\b(\d{6})\b/)![1];
     expect((await verifyOtpAction({}, tf({ code }))).success).toBeDefined();
-    expect((await acceptOfferAction({}, tf({ legalName: "Ada Lovelace", confirmed: "1" }))).success).toBeDefined();
+    expect((await acceptOfferAction({}, tf({ legalName: "Ada Lovelace", confirmed: "1", esignConsent: "1", signature: "Ada Lovelace" }))).success).toBeDefined();
 
     // 25-26. Immutable + hired.
     const [accepted] = await db.select().from(offers).where(eq(offers.id, offer.id));
