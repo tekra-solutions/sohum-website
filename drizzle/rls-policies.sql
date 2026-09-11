@@ -36,6 +36,15 @@ ALTER TABLE recruiting_settings  ENABLE ROW LEVEL SECURITY;
 -- exclusively through the service-role connection — never a Supabase
 -- anon/authenticated client — so none of them gets a permissive policy either.
 ALTER TABLE rate_limit_buckets     ENABLE ROW LEVEL SECURITY;
+
+-- Invoicing. Client billing details, contract references and payment records
+-- are commercially sensitive; like every other table here they are reachable
+-- only through the service-role connection, never an anon/authenticated key.
+ALTER TABLE clients                ENABLE ROW LEVEL SECURITY;
+ALTER TABLE invoices               ENABLE ROW LEVEL SECURITY;
+ALTER TABLE invoice_items          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE invoice_payments       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE invoice_settings       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE offer_templates       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE offers                ENABLE ROW LEVEL SECURITY;
 ALTER TABLE offer_versions        ENABLE ROW LEVEL SECURITY;
@@ -63,6 +72,8 @@ CREATE POLICY "public can read published jobs"
 --   insert into storage.buckets (id, name, public) values ('resumes','resumes',false)
 --     on conflict (id) do update set public = false;
 --   insert into storage.buckets (id, name, public) values ('offers','offers',false)
+--     on conflict (id) do update set public = false;
+--   insert into storage.buckets (id, name, public) values ('invoices','invoices',false)
 --     on conflict (id) do update set public = false;
 -- No storage policies are granted to anon/authenticated, so objects are
 -- reachable only through server-minted signed URLs.

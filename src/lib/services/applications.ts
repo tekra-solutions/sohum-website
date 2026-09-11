@@ -143,24 +143,29 @@ export async function listApplications(f: AdminApplicationFilters) {
     : f.sort === "name" ? applications.lastName
     : desc(applications.createdAt);
 
-  const rows = await db
-    .select({
-      application: applications,
-      jobTitle: jobs.title,
-      jobLocation: jobs.location,
-    })
-    .from(applications)
-    .innerJoin(jobs, eq(applications.jobId, jobs.id))
-    .where(clause)
-    .orderBy(f.sort === "newest" || !f.sort ? desc(applications.createdAt) : order)
-    .limit(pageSize)
-    .offset((page - 1) * pageSize);
-
-  const [totalRow] = await db
-    .select({ n: count() })
-    .from(applications)
-    .innerJoin(jobs, eq(applications.jobId, jobs.id))
-    .where(clause);
+  // Rows and count are independent, so they run together rather than one
+  // after the other. The pipeline board calls this once per stage (seven
+  // times), and against a pooled remote database each avoided round trip is
+  // ~80ms — serialised, that alone was seconds of the page's load time.
+  const [rows, [totalRow]] = await Promise.all([
+    db
+      .select({
+        application: applications,
+        jobTitle: jobs.title,
+        jobLocation: jobs.location,
+      })
+      .from(applications)
+      .innerJoin(jobs, eq(applications.jobId, jobs.id))
+      .where(clause)
+      .orderBy(f.sort === "newest" || !f.sort ? desc(applications.createdAt) : order)
+      .limit(pageSize)
+      .offset((page - 1) * pageSize),
+    db
+      .select({ n: count() })
+      .from(applications)
+      .innerJoin(jobs, eq(applications.jobId, jobs.id))
+      .where(clause),
+  ]);
 
   const total = totalRow?.n ?? 0;
   return {
@@ -262,4 +267,73 @@ export async function recentApplications(limit = 6) {
     .where(candidateScope(admin))
     .orderBy(desc(applications.createdAt))
     .limit(limit);
+}
+
+/**
+ * Every pipeline column in two queries instead of one pair per stage.
+ *
+ * The board previously called listApplications() once per stage — seven
+ * round trips for rows, seven more for counts. Against a pooled remote
+ * database (~80ms each) that both dominated the page's load time and
+ * demanded more concurrent connections than the pool held, so the queries
+ * queued until they hit the server's statement_timeout and the page appeared
+ * to hang. A window function ranks candidates within each stage, so one
+ * query returns the top N of every column.
+ */
+export async function pipelineByStage(jobId?: string, perStage = 20) {
+  const admin = await requireAdmin();
+  const scope = candidateScope(admin);
+  const job = jobId && z.uuid().safeParse(jobId).success ? jobId : undefined;
+
+  const where = and(
+    scope,
+    sql`${applications.archivedAt} is null`,
+    job ? eq(applications.jobId, job) : undefined,
+  );
+
+  // Only the columns the board actually renders. Drizzle cannot re-project a
+  // whole table object out of a subquery alias, and the card needs a handful
+  // of fields rather than the full row.
+  const ranked = db
+    .select({
+      id: applications.id,
+      firstName: applications.firstName,
+      lastName: applications.lastName,
+      status: applications.status,
+      createdAt: applications.createdAt,
+      city: applications.city,
+      state: applications.state,
+      yearsExperience: applications.yearsExperience,
+      jobTitle: jobs.title,
+      rank: sql<number>`row_number() over (partition by ${applications.status} order by ${applications.createdAt} desc)`.as("rank"),
+    })
+    .from(applications)
+    .innerJoin(jobs, eq(applications.jobId, jobs.id))
+    .where(where)
+    .as("ranked");
+
+  const [rows, totals] = await Promise.all([
+    db.select().from(ranked).where(sql`${ranked.rank} <= ${perStage}`),
+    db
+      .select({ status: applications.status, n: count() })
+      .from(applications)
+      .innerJoin(jobs, eq(applications.jobId, jobs.id))
+      .where(where)
+      .groupBy(applications.status),
+  ]);
+
+  const totalByStage = new Map(totals.map(t => [t.status, t.n]));
+  return stages.map(status => ({
+    status,
+    total: totalByStage.get(status) ?? 0,
+    rows: rows
+      .filter(r => r.status === status)
+      .map(r => ({
+        application: {
+          id: r.id, firstName: r.firstName, lastName: r.lastName, status: r.status,
+          createdAt: r.createdAt, city: r.city, state: r.state, yearsExperience: r.yearsExperience,
+        },
+        jobTitle: r.jobTitle,
+      })),
+  }));
 }

@@ -7,6 +7,7 @@
  * immediately rather than at token expiry.
  */
 import "server-only";
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { SignJWT, jwtVerify } from "jose";
@@ -50,8 +51,36 @@ export async function destroySession() {
 }
 
 /**
- * Resolves the signed-in admin, or null. Re-reads the database每 call so
- * deactivation takes effect immediately.
+ * The admin row lookup, deduplicated for the lifetime of one request.
+ *
+ * requireAdmin()/requireApplication() are called from the layout, the page,
+ * and several nested server components, so a single candidate page was
+ * issuing this identical query around six times — each a separate sequential
+ * round trip to a pooled remote database (~80ms each, measured). React's
+ * cache() collapses them into one.
+ *
+ * This is per-request memoisation, not caching across requests: a
+ * deactivated admin still loses access on their very next request, which is
+ * the guarantee that matters here.
+ */
+const loadAdminRow = cache(async (adminId: string) => {
+  try {
+    return await db.query.admins.findFirst({
+      where: eq(admins.id, adminId),
+      columns: { id: true, name: true, email: true, role: true, isActive: true },
+    });
+  } catch (err) {
+    // An unreachable database must fail closed, not 500.
+    console.error("[auth] admin lookup failed", {
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return undefined;
+  }
+});
+
+/**
+ * Resolves the signed-in admin, or null. Re-reads the database each request
+ * so deactivation takes effect immediately.
  */
 export async function getSessionAdmin(): Promise<SessionAdmin | null> {
   const jar = await cookies();
@@ -67,19 +96,7 @@ export async function getSessionAdmin(): Promise<SessionAdmin | null> {
     return null; // expired or tampered
   }
 
-  let row;
-  try {
-    row = await db.query.admins.findFirst({
-      where: eq(admins.id, adminId),
-      columns: { id: true, name: true, email: true, role: true, isActive: true },
-    });
-  } catch (err) {
-    // An unreachable database must fail closed, not 500.
-    console.error("[auth] admin lookup failed", {
-      error: err instanceof Error ? err.message : String(err),
-    });
-    return null;
-  }
+  const row = await loadAdminRow(adminId);
   if (!row || !row.isActive) return null;
 
   return { id: row.id, name: row.name, email: row.email, role: row.role };

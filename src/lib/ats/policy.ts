@@ -7,11 +7,15 @@ export const interviewStatuses = ["Scheduled", "Completed", "Cancelled", "Resche
  * compensation, which is a distinct sensitivity from the rest of a candidate
  * record. A HIRING_MANAGER assigned to a job can see that job's candidates in
  * order to give interview feedback, but must never see their salary.
+ *
+ * `invoices` is separate for the same reason: client billing, contract
+ * references and payment records are a different kind of sensitivity again,
+ * so recruiters and hiring managers have no invoice access by default.
  */
 export const permissions = {
-  SUPER_ADMIN: ["manage", "candidates", "offers", "feedback", "employees", "reports", "audit", "settings"],
-  ADMIN: ["manage", "candidates", "offers", "feedback", "employees", "reports", "audit", "settings"],
-  RECRUITING_ADMIN: ["manage", "candidates", "offers", "feedback", "employees", "reports"],
+  SUPER_ADMIN: ["manage", "candidates", "offers", "feedback", "employees", "reports", "audit", "settings", "invoices"],
+  ADMIN: ["manage", "candidates", "offers", "feedback", "employees", "reports", "audit", "settings", "invoices"],
+  RECRUITING_ADMIN: ["manage", "candidates", "offers", "feedback", "employees", "reports", "invoices"],
   RECRUITER: ["candidates", "offers", "feedback"],
   HIRING_MANAGER: ["feedback"],
 } as const;

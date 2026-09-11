@@ -90,6 +90,13 @@ const statusTones: Record<string, string> = {
   DECLINED: "border-paper-300 bg-paper-100 text-graphite-600",
   EXPIRED: "border-paper-300 bg-paper-100 text-graphite-600",
   WITHDRAWN: "border-paper-300 bg-transparent text-graphite-500",
+  // Invoice statuses. DRAFT/SENT/VIEWED reuse tones already defined above;
+  // only keys with no existing entry are added here. OVERDUE is the one
+  // deliberate exception to this palette's no-red rule: unpaid money past
+  // its due date is the single state a finance user must not scroll past.
+  PARTIALLY_PAID: "border-[#7a5c00]/30 bg-[#f0a93c]/15 text-[#7a5c00]",
+  OVERDUE: "border-[#c0392b]/30 bg-[#c0392b]/[0.08] text-[#a5382b]",
+  VOID: "border-paper-300 bg-transparent text-graphite-500",
 };
 
 export function StatusPill({ status, label }: { status: string; label?: string }) {

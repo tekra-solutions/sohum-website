@@ -4,7 +4,7 @@ import { permits } from "@/lib/ats/policy";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Briefcase, FileText, IdCard, LayoutDashboard, LogOut, Menu, Settings, Users, X } from "lucide-react";
+import { Briefcase, FileText, IdCard, LayoutDashboard, LogOut, Menu, Receipt, Settings, Users, X } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { logoutAction } from "@/lib/services/auth-actions";
 
@@ -14,6 +14,7 @@ const items = [
   { href: "/admin/pipeline", label: "Pipeline", Icon: LayoutDashboard },
   { href: "/admin/applications", label: "Applications", Icon: Users },
   { href: "/admin/offers", label: "Offers", Icon: FileText },
+  { href: "/admin/invoices", label: "Invoices", Icon: Receipt },
   { href: "/admin/employees", label: "Employees", Icon: IdCard },
   { href: "/admin/reports", label: "Reports", Icon: LayoutDashboard },
   { href: "/admin/audit", label: "Audit log", Icon: IdCard },
@@ -36,7 +37,7 @@ export function AdminNav({ adminName, role }: { adminName: string; role: string 
 
   const links = (
     <ul className="space-y-1">
-      {items.filter(item => (item.href !== "/admin/employees" || permits(role, "employees")) && (item.href !== "/admin/reports" || permits(role, "reports")) && (item.href !== "/admin/audit" || permits(role, "audit")) && (item.href !== "/admin/offers" || permits(role, "offers"))).map(({ href, label, Icon, exact }) => {
+      {items.filter(item => (item.href !== "/admin/employees" || permits(role, "employees")) && (item.href !== "/admin/reports" || permits(role, "reports")) && (item.href !== "/admin/audit" || permits(role, "audit")) && (item.href !== "/admin/offers" || permits(role, "offers")) && (item.href !== "/admin/invoices" || permits(role, "invoices"))).map(({ href, label, Icon, exact }) => {
         const active = isActive(href, exact);
         return (
           <li key={href}>

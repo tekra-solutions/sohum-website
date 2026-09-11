@@ -11,6 +11,7 @@
 import { relations, sql } from "drizzle-orm";
 import {
   type AnyPgColumn,
+  bigint,
   bigserial,
   boolean,
   index,
@@ -581,3 +582,166 @@ export const rateLimitBuckets = pgTable("rate_limit_buckets", {
   count: integer("count").notNull(),
   resetAt: timestamp("reset_at", { withTimezone: true }).notNull(),
 }, t => [index("rate_limit_reset_idx").on(t.resetAt)]);
+
+/* ------------------------------------------------------------- invoicing */
+
+export const invoiceStatusEnum = pgEnum("invoice_status", [
+  "DRAFT", "SENT", "VIEWED", "PARTIALLY_PAID", "PAID", "OVERDUE", "VOID",
+]);
+export const paymentMethodEnum = pgEnum("payment_method", [
+  "ACH", "WIRE", "CHECK", "CREDIT_CARD", "OTHER",
+]);
+
+export const clients = pgTable("clients", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  companyName: varchar("company_name", { length: 200 }).notNull(),
+  contactName: varchar("contact_name", { length: 160 }),
+  email: varchar("email", { length: 255 }),
+  phone: varchar("phone", { length: 40 }),
+  billingAddress: text("billing_address"),
+  /** Government/consulting work: the paying agency or department. */
+  agency: varchar("agency", { length: 200 }),
+  notes: text("notes"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdBy: uuid("created_by").references(() => admins.id, { onDelete: "set null" }),
+  ...timestamps(),
+}, t => [
+  index("clients_company_idx").on(t.companyName),
+  index("clients_email_idx").on(sql`lower(${t.email})`),
+]);
+
+/**
+ * Money is stored as bigint cents throughout. Never floating point: a
+ * float cannot represent 0.10 exactly, and invoice arithmetic must balance
+ * to the cent. bigint rather than integer because integer cents caps at
+ * ~$21.5M, which a contract invoice can legitimately exceed.
+ *
+ * Totals are derived columns: they are recomputed from the line items
+ * server-side on every write and never taken from the browser.
+ */
+export const invoices = pgTable("invoices", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  invoiceNumber: varchar("invoice_number", { length: 40 }).notNull(),
+  clientId: uuid("client_id").references(() => clients.id, { onDelete: "restrict" }),
+  status: invoiceStatusEnum("status").notNull().default("DRAFT"),
+
+  invoiceDate: timestamp("invoice_date", { withTimezone: true }).notNull(),
+  dueDate: timestamp("due_date", { withTimezone: true }).notNull(),
+  currency: varchar("currency", { length: 3 }).notNull().default("USD"),
+
+  subtotalCents: bigint("subtotal_cents", { mode: "number" }).notNull().default(0),
+  discountCents: bigint("discount_cents", { mode: "number" }).notNull().default(0),
+  taxCents: bigint("tax_cents", { mode: "number" }).notNull().default(0),
+  additionalChargesCents: bigint("additional_charges_cents", { mode: "number" }).notNull().default(0),
+  totalCents: bigint("total_cents", { mode: "number" }).notNull().default(0),
+  amountPaidCents: bigint("amount_paid_cents", { mode: "number" }).notNull().default(0),
+  balanceDueCents: bigint("balance_due_cents", { mode: "number" }).notNull().default(0),
+  /** Basis points (e.g. 825 = 8.25%), so tax rates stay exact. */
+  taxRateBasisPoints: integer("tax_rate_basis_points").notNull().default(0),
+
+  poNumber: varchar("po_number", { length: 120 }),
+  contractNumber: varchar("contract_number", { length: 120 }),
+  taskOrder: varchar("task_order", { length: 120 }),
+  projectName: varchar("project_name", { length: 200 }),
+  periodOfPerformance: varchar("period_of_performance", { length: 160 }),
+
+  paymentTerms: varchar("payment_terms", { length: 120 }),
+  notes: text("notes"),
+  /** Frozen copy of the client's billing details, so editing a client later
+   *  never rewrites history on an already-issued invoice. */
+  billingSnapshot: jsonb("billing_snapshot").$type<{
+    companyName: string; contactName?: string | null; email?: string | null;
+    phone?: string | null; billingAddress?: string | null; agency?: string | null;
+  }>(),
+
+  pdfStoragePath: text("pdf_storage_path"),
+  secureTokenHash: text("secure_token_hash"),
+  tokenExpiresAt: timestamp("token_expires_at", { withTimezone: true }),
+
+  sentAt: timestamp("sent_at", { withTimezone: true }),
+  sentBy: uuid("sent_by").references(() => admins.id, { onDelete: "set null" }),
+  viewedAt: timestamp("viewed_at", { withTimezone: true }),
+  paidAt: timestamp("paid_at", { withTimezone: true }),
+  voidedAt: timestamp("voided_at", { withTimezone: true }),
+  voidedBy: uuid("voided_by").references(() => admins.id, { onDelete: "set null" }),
+  voidReason: text("void_reason"),
+
+  createdBy: uuid("created_by").notNull().references(() => admins.id, { onDelete: "restrict" }),
+  ...timestamps(),
+}, t => [
+  uniqueIndex("invoices_number_idx").on(t.invoiceNumber),
+  uniqueIndex("invoices_token_hash_idx").on(t.secureTokenHash),
+  index("invoices_client_idx").on(t.clientId),
+  index("invoices_status_idx").on(t.status),
+  index("invoices_due_idx").on(t.dueDate),
+  index("invoices_created_idx").on(t.createdAt),
+]);
+
+export const invoiceItems = pgTable("invoice_items", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  invoiceId: uuid("invoice_id").notNull().references(() => invoices.id, { onDelete: "cascade" }),
+  /** Explicit ordering so rows can be reordered without relying on insert order. */
+  position: integer("position").notNull().default(0),
+  description: text("description").notNull(),
+  /** Thousandths of a unit (e.g. 1500 = 1.5 hours) — exact, no float. */
+  quantityMilli: bigint("quantity_milli", { mode: "number" }).notNull(),
+  rateCents: bigint("rate_cents", { mode: "number" }).notNull(),
+  amountCents: bigint("amount_cents", { mode: "number" }).notNull(),
+  servicePeriod: varchar("service_period", { length: 160 }),
+  consultantName: varchar("consultant_name", { length: 160 }),
+  projectRef: varchar("project_ref", { length: 200 }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, t => [index("invoice_items_invoice_idx").on(t.invoiceId, t.position)]);
+
+export const invoicePayments = pgTable("invoice_payments", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  invoiceId: uuid("invoice_id").notNull().references(() => invoices.id, { onDelete: "restrict" }),
+  amountCents: bigint("amount_cents", { mode: "number" }).notNull(),
+  paidOn: timestamp("paid_on", { withTimezone: true }).notNull(),
+  method: paymentMethodEnum("method").notNull().default("ACH"),
+  reference: varchar("reference", { length: 160 }),
+  notes: text("notes"),
+  recordedBy: uuid("recorded_by").notNull().references(() => admins.id, { onDelete: "restrict" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, t => [index("invoice_payments_invoice_idx").on(t.invoiceId, t.paidOn)]);
+
+export const invoiceSettings = pgTable("invoice_settings", {
+  id: integer("id").primaryKey().default(1),
+  invoicePrefix: varchar("invoice_prefix", { length: 16 }).notNull().default("SOH"),
+  /** Per-year counter backing the invoice number; bumped under a row lock. */
+  nextSequence: integer("next_sequence").notNull().default(1),
+  sequenceYear: integer("sequence_year").notNull().default(2026),
+  defaultPaymentTerms: varchar("default_payment_terms", { length: 120 }).notNull().default("Net 30"),
+  defaultNotes: text("default_notes"),
+  paymentInstructions: text("payment_instructions"),
+  defaultCurrency: varchar("default_currency", { length: 3 }).notNull().default("USD"),
+  defaultTaxRateBasisPoints: integer("default_tax_rate_basis_points").notNull().default(0),
+  /** Overrides src/lib/site.ts only when a billing entity differs from it. */
+  legalName: varchar("legal_name", { length: 200 }),
+  billingAddress: text("billing_address"),
+  billingEmail: varchar("billing_email", { length: 255 }),
+  billingPhone: varchar("billing_phone", { length: 40 }),
+  taxId: varchar("tax_id", { length: 60 }),
+  ...timestamps(),
+});
+
+export const invoicesRelations = relations(invoices, ({ one, many }) => ({
+  client: one(clients, { fields: [invoices.clientId], references: [clients.id] }),
+  items: many(invoiceItems),
+  payments: many(invoicePayments),
+  creator: one(admins, { fields: [invoices.createdBy], references: [admins.id] }),
+}));
+export const invoiceItemsRelations = relations(invoiceItems, ({ one }) => ({
+  invoice: one(invoices, { fields: [invoiceItems.invoiceId], references: [invoices.id] }),
+}));
+export const invoicePaymentsRelations = relations(invoicePayments, ({ one }) => ({
+  invoice: one(invoices, { fields: [invoicePayments.invoiceId], references: [invoices.id] }),
+  recorder: one(admins, { fields: [invoicePayments.recordedBy], references: [admins.id] }),
+}));
+export const clientsRelations = relations(clients, ({ many }) => ({ invoices: many(invoices) }));
+
+export type Client = typeof clients.$inferSelect;
+export type Invoice = typeof invoices.$inferSelect;
+export type InvoiceItem = typeof invoiceItems.$inferSelect;
+export type InvoicePayment = typeof invoicePayments.$inferSelect;
+export type InvoiceSettings = typeof invoiceSettings.$inferSelect;

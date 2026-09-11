@@ -30,6 +30,7 @@ export function serverEnv() {
     supabaseServiceRoleKey: optional("SUPABASE_SERVICE_ROLE_KEY"),
     storageBucket: optional("STORAGE_BUCKET", "resumes"),
     offersStorageBucket: optional("STORAGE_BUCKET_OFFERS", "offers"),
+    invoicesStorageBucket: optional("STORAGE_BUCKET_INVOICES", "invoices"),
 
     emailFrom: optional("EMAIL_FROM"),
     adminEmail: optional("ADMIN_EMAIL"),

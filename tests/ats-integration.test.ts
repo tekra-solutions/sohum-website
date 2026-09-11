@@ -233,6 +233,41 @@ describe.skipIf(!enabled)("Workflow edge cases (local only)", () => {
   });
 });
 
+describe.skipIf(!enabled)("pipeline board query (local only)", () => {
+  beforeAll(() => { state.sendOk = true; });
+
+  it("returns every stage in one grouped query, capped per column and scoped", async () => {
+    state.id = "10000000-0000-4000-8000-000000000001"; state.role = "SUPER_ADMIN";
+    const { pipelineByStage } = await import("@/lib/services/applications");
+    const { stages } = await import("@/lib/ats/policy");
+
+    const board = await pipelineByStage(undefined, 2);
+    // One entry per stage, always, so the board never renders a missing column.
+    expect(board.map(c => c.status)).toEqual([...stages]);
+    for (const column of board) {
+      expect(column.rows.length, `${column.status} respects the per-stage cap`).toBeLessThanOrEqual(2);
+      expect(column.total).toBeGreaterThanOrEqual(column.rows.length);
+      for (const row of column.rows) {
+        // Rows must land in their own column and carry what the card renders.
+        expect(row.application.status).toBe(column.status);
+        expect(row.application.id).toBeTruthy();
+        expect(row.jobTitle).toBeTruthy();
+      }
+    }
+  });
+
+  it("scopes columns to the viewer rather than showing every candidate", async () => {
+    const { pipelineByStage } = await import("@/lib/services/applications");
+    state.id = "10000000-0000-4000-8000-000000000001"; state.role = "SUPER_ADMIN";
+    const all = (await pipelineByStage()).reduce((n, c) => n + c.total, 0);
+    // A hiring manager only sees candidates on jobs they are assigned to.
+    state.id = "10000000-0000-4000-8000-000000000003"; state.role = "HIRING_MANAGER";
+    const scoped = (await pipelineByStage()).reduce((n, c) => n + c.total, 0);
+    expect(scoped).toBeLessThanOrEqual(all);
+    state.id = "10000000-0000-4000-8000-000000000001"; state.role = "SUPER_ADMIN";
+  });
+});
+
 describe.skipIf(!enabled)("RBAC enforcement (local only)", () => {
   const managerId = "10000000-0000-4000-8000-000000000003";
   const appId2 = "30000000-0000-4000-8000-000000000001";

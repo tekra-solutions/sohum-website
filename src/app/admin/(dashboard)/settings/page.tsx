@@ -51,6 +51,9 @@ export default async function SettingsPage() {
               <Link href="/admin/settings/offer-templates" className={btnSecondary}>
                 Offer templates
               </Link>
+              <Link href="/admin/settings/invoice-settings" className={btnSecondary}>
+                Invoice settings
+              </Link>
             </>
           ) : undefined
         }

@@ -8,13 +8,23 @@
  */
 import "server-only";
 import { serverEnv, isStorageConfigured } from "@/lib/env";
+import { ALLOWED_RESUME_EXT } from "@/lib/validation/schemas";
 import { storageClient as admin, StorageError } from "@/lib/storage/client";
 
 export { StorageError };
 
-/** Server-generated path; the client never chooses where a file lands. */
+/**
+ * Server-generated path; the client never chooses where a file lands.
+ *
+ * The extension is the one piece derived from the uploaded filename, so it is
+ * matched against the allowlist here rather than trusted. validateResume()
+ * already rejects bad types upstream, but a filename such as
+ * "evil.pdf/../../etc/passwd" slices to "./etc/passwd" — this must not be
+ * concatenated into a storage key on the strength of a caller's checks alone.
+ */
 export function buildResumePath(applicationId: string, originalName: string) {
-  const ext = originalName.slice(originalName.lastIndexOf(".")).toLowerCase();
+  const raw = originalName.slice(originalName.lastIndexOf(".")).toLowerCase();
+  const ext = (ALLOWED_RESUME_EXT as readonly string[]).includes(raw) ? raw : ".bin";
   return `applications/${applicationId}/resume-${crypto.randomUUID()}${ext}`;
 }
 

@@ -41,6 +41,11 @@ export const applicationStatusLabel: Record<string, string> = {
   HIRED: "Hired",
 };
 
+export const invoiceStatusLabel: Record<string, string> = {
+  DRAFT: "Draft", SENT: "Sent", VIEWED: "Viewed", PARTIALLY_PAID: "Partially paid",
+  PAID: "Paid", OVERDUE: "Overdue", VOID: "Void",
+};
+
 export const offerStatusLabel: Record<string, string> = {
   DRAFT: "Draft",
   PENDING_APPROVAL: "Pending approval",
