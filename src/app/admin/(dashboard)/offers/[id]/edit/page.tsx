@@ -3,8 +3,9 @@ import { notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { ArrowLeft } from "lucide-react";
 import { db } from "@/db";
-import { offerVersions, offerTemplates } from "@/db/schema";
+import { offerVersions, offerTemplates, recruitingSettings } from "@/db/schema";
 import { requireOffer } from "@/lib/offers/access";
+import { permits } from "@/lib/ats/policy";
 import { canEditOffer, type OfferStatus } from "@/lib/offers/policy";
 import { AdminHeader } from "@/components/admin/ui";
 import { OfferForm } from "@/components/admin/OfferForm";
@@ -15,14 +16,15 @@ export const metadata = { title: "Edit offer" };
 
 export default async function EditOfferPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { offer, application } = await requireOffer(id, "candidates");
+  const { admin, offer, application } = await requireOffer(id, "candidates");
   if (!canEditOffer(offer.status as OfferStatus)) notFound();
 
-  const [version, templates] = await Promise.all([
+  const [version, templates, settingsRow] = await Promise.all([
     offer.currentVersionId
       ? db.select().from(offerVersions).where(eq(offerVersions.id, offer.currentVersionId)).then(r => r[0])
       : undefined,
     db.select({ id: offerTemplates.id, name: offerTemplates.name }).from(offerTemplates).where(eq(offerTemplates.isActive, true)),
+    db.select().from(recruitingSettings).limit(1).then(r => r[0]),
   ]);
   if (!version) notFound();
 
@@ -49,6 +51,13 @@ export default async function EditOfferPage({ params }: { params: Promise<{ id: 
             }}
             version={version}
             templates={templates}
+            defaults={{
+              authorizedRepName: settingsRow?.authorizedRepName ?? null,
+              benefitsConfigured: Boolean(settingsRow?.defaultBenefitsSummary?.trim()),
+              ptoConfigured: Boolean(settingsRow?.defaultPtoSummary?.trim()),
+              settingsHref: "/admin/settings",
+              canEditSettings: permits(admin.role, "settings"),
+            }}
           />
         </div>
       </div>

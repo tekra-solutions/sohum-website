@@ -48,6 +48,14 @@ export const offerVersionInputSchema = z.object({
 }).refine(v => v.expirationDate > new Date(0) && v.expirationDate <= v.startDate, {
   message: "The offer must expire on or before the start date — a candidate cannot still be deciding after starting.",
   path: ["expirationDate"],
+}).refine(v => v.annualSalaryCents != null || v.hourlyRateCents != null, {
+  // An offer letter with no pay figure is not a usable offer, and the
+  // compensation section would render empty.
+  message: "Enter either an annual salary or an hourly rate.",
+  path: ["annualSalaryCents"],
+}).refine(v => !(v.annualSalaryCents != null && v.hourlyRateCents != null), {
+  message: "Enter an annual salary or an hourly rate, not both.",
+  path: ["hourlyRateCents"],
 });
 
 export const otpVerifySchema = z.object({

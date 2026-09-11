@@ -51,7 +51,11 @@ describe("offer template variables", () => {
   it("rejects unknown or malformed variables, and refuses to render a missing value", () => {
     expect(validateOfferTemplate("{{salary_negotiated_secretly}}")).toBe(false);
     expect(validateOfferTemplate("{{job_title}")).toBe(false);
-    expect(() => renderOfferTemplate("{{salary}}", {})).toThrow();
+    // A required variable with no value is still a hard error.
+    expect(() => renderOfferTemplate("{{job_title}}", {})).toThrow();
+    // Optional ones render as nothing instead: an hourly offer has no salary,
+    // and prose that depends on one belongs inside a conditional block.
+    expect(renderOfferTemplate("{{salary}}", {})).toBe("");
   });
   it("does not accept the email-template variable set as a substitute", () => {
     // candidate_last_name/interview_date/interview_time are ats/policy.ts
@@ -207,5 +211,106 @@ describe("electronic signature", () => {
     // Signing cannot proceed without explicit e-signature consent.
     expect(acceptSchema.safeParse({ ...base, esignConsent: "0" }).success).toBe(false);
     expect(acceptSchema.safeParse({ ...base, confirmed: "0" }).success).toBe(false);
+  });
+});
+
+describe("automatic offer generation", () => {
+  const full = {
+    candidate_name: "Ada Lovelace", candidate_first_name: "Ada", candidate_email: "ada@example.com",
+    candidate_address: "120 Analytical Way", job_title: "Principal Quality Engineer",
+    department: "Engineering", location: "Overland Park, KS", employment_type: "full-time",
+    work_arrangement: "hybrid", work_location: "Overland Park, KS", start_date: "October 5, 2026",
+    salary: "$145,000", hourly_rate: "", pay_frequency: "semi-monthly", bonus: "$15,000",
+    sign_on_bonus: "$5,000", other_compensation: "", benefits_summary: "Medical, dental and vision.",
+    pto_summary: "20 days annually.", additional_terms: "", manager_name: "Alex Rivera",
+    reports_to: "Alex Rivera, VP Engineering", company_name: "Sohum Systems",
+    company_legal_name: "Sohum Systems, LLC", company_address: "9232 W 143rd Terrace",
+    hr_contact_email: "hr@sohumsystems.com", authorized_rep_name: "Jordan Blake",
+    authorized_rep_title: "Director of Talent", offer_date: "September 11, 2026",
+    offer_expiration_date: "September 25, 2026", offer_reference: "OFFER-2026-ABCD-V1",
+  };
+  // The sparse case: hourly, no bonuses, no named manager, no configured extras.
+  const minimal = {
+    ...full, salary: "", hourly_rate: "$65", bonus: "", sign_on_bonus: "",
+    benefits_summary: "", pto_summary: "", manager_name: "", reports_to: "",
+    work_location: "", authorized_rep_name: "", authorized_rep_title: "", hr_contact_email: "",
+  };
+
+  it("ships a standard template that fills all three pages", async () => {
+    const { defaultOfferTemplates } = await import("@/lib/offers/seed-templates");
+    const standard = defaultOfferTemplates.find(t => t.name === "Sohum Systems Standard Offer");
+    expect(standard).toBeDefined();
+    expect(standard!.bodyHtml.length).toBeGreaterThan(500);
+    expect(standard!.termsHtml.length).toBeGreaterThan(1000);
+    expect(standard!.acknowledgementsHtml.length).toBeGreaterThan(300);
+    // Page 2 must cover what the spec names.
+    for (const topic of [/confidential/i, /polic/i, /contingen/i, /at will/i, /responsibilit/i]) {
+      expect(standard!.termsHtml, String(topic)).toMatch(topic);
+    }
+  });
+
+  it("renders every section with no unresolved variables, full or sparse", async () => {
+    const { defaultOfferTemplates } = await import("@/lib/offers/seed-templates");
+    const { renderOfferTemplate } = await import("@/lib/offers/variables");
+    for (const template of defaultOfferTemplates) {
+      for (const values of [full, minimal]) {
+        for (const section of [template.bodyHtml, template.termsHtml, template.acknowledgementsHtml]) {
+          const html = renderOfferTemplate(section, values);
+          expect(html, template.name).not.toMatch(/{{|}}/);
+        }
+      }
+    }
+  });
+
+  it("drops optional sections entirely rather than leaving empty prose", async () => {
+    const { defaultOfferTemplates } = await import("@/lib/offers/seed-templates");
+    const { renderOfferTemplate } = await import("@/lib/offers/variables");
+    const standard = defaultOfferTemplates.find(t => t.name === "Sohum Systems Standard Offer")!;
+
+    const withBonus = renderOfferTemplate(standard.bodyHtml, full);
+    expect(withBonus).toContain("sign-on bonus");
+    expect(withBonus).toContain("$5,000");
+
+    const without = renderOfferTemplate(standard.bodyHtml, minimal);
+    // No orphaned sentence, and no dangling currency symbol.
+    expect(without).not.toContain("sign-on bonus");
+    expect(without).not.toContain("performance bonus");
+    // The hourly branch replaces the salary branch rather than both appearing.
+    expect(without).toContain("hourly rate");
+    expect(without).not.toContain("annual base salary");
+  });
+
+  it("requires exactly one compensation figure", async () => {
+    const { offerVersionInputSchema } = await import("@/lib/offers/validation");
+    const base = {
+      jobTitle: "Engineer", department: "Engineering", location: "KC",
+      employmentType: "FULL_TIME", remoteType: "HYBRID",
+      startDate: "2099-11-01", expirationDate: "2099-10-01",
+    };
+    expect(offerVersionInputSchema.safeParse({ ...base, annualSalaryCents: "145000" }).success).toBe(true);
+    expect(offerVersionInputSchema.safeParse({ ...base, hourlyRateCents: "65" }).success).toBe(true);
+    // An offer with no pay figure would render an empty compensation section.
+    expect(offerVersionInputSchema.safeParse(base).success).toBe(false);
+    // Both at once is contradictory.
+    expect(offerVersionInputSchema.safeParse({ ...base, annualSalaryCents: "145000", hourlyRateCents: "65" }).success).toBe(false);
+  });
+
+  it("omits summary tables the letter already states, so the document stays three pages", async () => {
+    const { renderOfferHtml } = await import("@/lib/offers/render-html");
+    const common = {
+      candidateName: "Ada Lovelace", candidateEmail: "ada@example.com",
+      jobTitle: "Principal Quality Engineer", department: "Engineering", location: "KC",
+      employmentType: "FULL_TIME" as const, remoteType: "HYBRID" as const,
+      startDate: new Date("2026-10-05"), expirationDate: new Date("2026-09-25"),
+      annualSalaryCents: 14500000,
+    };
+    // A prose template that states the role and pay needs no duplicate tables.
+    const rich = renderOfferHtml({ ...common, templateBodyHtml: "<p>the position of Engineer</p><p>Your annual base salary will be $145,000.</p>" });
+    expect(rich).not.toContain("Position details");
+    expect(rich).not.toContain(">Compensation<");
+    // A sparse template still gets them, so the facts appear somewhere.
+    const sparse = renderOfferHtml({ ...common, templateBodyHtml: "<p>We are pleased to write to you.</p>" });
+    expect(sparse).toContain("Position details");
+    expect(sparse).toContain(">Compensation<");
   });
 });

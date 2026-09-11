@@ -4,14 +4,16 @@ import { redirect } from "next/navigation";
 import { and, eq, notInArray } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { offers, offerVersions, offerTemplates, applications, admins, notifications, auditLogs } from "@/db/schema";
+import { offers, offerVersions, offerTemplates, applications, admins, notifications, auditLogs, recruitingSettings } from "@/db/schema";
 import { candidateScope, requireApplication } from "@/lib/ats/access";
 import { requireOffer } from "./access";
 import type { AuditAction } from "@/lib/audit";
 import { offerVersionInputSchema, extendOfferSchema } from "./validation";
+import { formatCurrency, employmentTypeLabel, remoteTypeLabel } from "@/lib/format";
 import {
   canEditOffer, canSubmitForApproval, canApprove, canRejectOrRequestChanges,
   canSend, canWithdraw, offerEditConsequence, offerDeadline, type OfferStatus,
+  offerReferenceFor,
 } from "./policy";
 import { generateOfferToken, hashOfferToken } from "./tokens";
 import { renderOfferHtml } from "./render-html";
@@ -67,7 +69,17 @@ const versionColumns = (v: VersionInput) => ({
  * version N+1 (an edit) — the caller supplies only the form fields, this
  * fills in everything else.
  */
-async function buildRenderedHtml(tx: Tx, app: typeof applications.$inferSelect, v: VersionInput, versionNumber?: number) {
+async function buildRenderedHtml(
+  tx: Tx,
+  app: typeof applications.$inferSelect,
+  v: VersionInput,
+  versionNumber?: number,
+  reference?: string | null,
+) {
+  // Company-level offer defaults, configured once in Settings. Read here and
+  // copied onto the version, so a later settings change cannot alter an
+  // already-issued offer.
+  const [settings] = await tx.select().from(recruitingSettings).limit(1);
   let templateBodyHtml = "<p>Terms as described above.</p>";
   let templateTermsHtml: string | null = null;
   let templateAcknowledgementsHtml: string | null = null;
@@ -75,21 +87,43 @@ async function buildRenderedHtml(tx: Tx, app: typeof applications.$inferSelect, 
     const [template] = await tx.select().from(offerTemplates).where(eq(offerTemplates.id, v.templateId));
     if (!template || !template.isActive) throw new Error("Choose an active offer template.");
     if (template) {
+      // Money is formatted here, not in the template: a letter saying
+      // "145000" rather than "$145,000" reads as a bug to the candidate.
+      const money = (cents?: number | null) => (cents == null ? "" : formatCurrency(cents));
+      const day = (d: Date) => d.toLocaleDateString("en-US", { dateStyle: "long", timeZone: "UTC" });
       const variables = {
         candidate_name: `${app.firstName} ${app.lastName}`,
         candidate_first_name: app.firstName,
+        candidate_email: app.email,
+        candidate_address: [app.address, [app.city, app.state, app.zipCode].filter(Boolean).join(", ")]
+          .filter(Boolean).join(", "),
         job_title: v.jobTitle,
         department: v.department,
         location: v.location,
-        employment_type: v.employmentType,
-        start_date: v.startDate.toLocaleDateString("en-US", { timeZone: "UTC" }),
-        salary: v.annualSalaryCents != null ? String(v.annualSalaryCents / 100) : "",
-        hourly_rate: v.hourlyRateCents != null ? String(v.hourlyRateCents / 100) : "",
-        bonus: v.bonusCents != null ? String(v.bonusCents / 100) : "",
+        employment_type: (employmentTypeLabel[v.employmentType] ?? v.employmentType).toLowerCase(),
+        work_arrangement: (remoteTypeLabel[v.remoteType] ?? v.remoteType).toLowerCase(),
+        work_location: v.workLocation ?? "",
+        start_date: day(v.startDate),
+        salary: money(v.annualSalaryCents),
+        hourly_rate: money(v.hourlyRateCents),
+        pay_frequency: v.hourlyRateCents != null ? "bi-weekly" : "semi-monthly",
+        bonus: money(v.bonusCents),
+        sign_on_bonus: money(v.signOnBonusCents),
+        other_compensation: v.otherCompensation ?? "",
+        benefits_summary: v.benefitsSummary ?? "",
+        pto_summary: v.ptoSummary ?? "",
+        additional_terms: v.additionalTerms ?? "",
         manager_name: v.hiringManagerName ?? v.reportsTo ?? "",
+        reports_to: v.reportsTo ?? v.hiringManagerName ?? "",
         company_name: site.name,
+        company_legal_name: site.legalName,
         company_address: contact.address,
-        offer_expiration_date: v.expirationDate.toLocaleDateString("en-US", { timeZone: "UTC" }),
+        hr_contact_email: settings?.hrContactEmail ?? contact.emailHr,
+        authorized_rep_name: settings?.authorizedRepName ?? "",
+        authorized_rep_title: settings?.authorizedRepTitle ?? "",
+        offer_date: day(new Date()),
+        offer_expiration_date: day(v.expirationDate),
+        offer_reference: reference ?? "",
       };
       templateBodyHtml = renderOfferTemplate(template.bodyHtml, variables);
       // Pages 2 and 3 are optional on a template; when absent the renderer
@@ -98,6 +132,14 @@ async function buildRenderedHtml(tx: Tx, app: typeof applications.$inferSelect, 
       if (template.acknowledgementsHtml?.trim()) templateAcknowledgementsHtml = renderOfferTemplate(template.acknowledgementsHtml, variables);
     }
   }
+  // Company defaults fill anything the recruiter left blank, then become part
+  // of the frozen version — the recruiter never retypes standard benefits or
+  // PTO language, and changing it in Settings later does not rewrite history.
+  const columns = {
+    ...versionColumns(v),
+    benefitsSummary: v.benefitsSummary ?? settings?.defaultBenefitsSummary ?? null,
+    ptoSummary: v.ptoSummary ?? settings?.defaultPtoSummary ?? null,
+  };
   const renderedHtml = renderOfferHtml({
     candidateName: `${app.firstName} ${app.lastName}`,
     candidateEmail: app.email,
@@ -106,11 +148,15 @@ async function buildRenderedHtml(tx: Tx, app: typeof applications.$inferSelect, 
     templateTermsHtml,
     templateAcknowledgementsHtml,
     offerVersionNumber: versionNumber ?? null,
-    ...versionColumns(v),
+    offerReference: reference ?? null,
+    authorizedRepresentative: settings?.authorizedRepName
+      ? { name: settings.authorizedRepName, title: settings.authorizedRepTitle ?? null }
+      : null,
+    ...columns,
   });
   // The fragments are frozen with the version so the signed document can be
   // re-rendered later from this row alone, without re-reading offer_templates.
-  return { renderedHtml, templateBodyHtml, templateTermsHtml, templateAcknowledgementsHtml };
+  return { renderedHtml, templateBodyHtml, templateTermsHtml, templateAcknowledgementsHtml, columns };
 }
 
 export async function createOfferAction(_: OfferActionState, form: FormData): Promise<OfferActionState> {
@@ -140,10 +186,13 @@ export async function createOfferAction(_: OfferActionState, form: FormData): Pr
         secureTokenHash: hashOfferToken(generateOfferToken()),
       }).returning();
 
-      const rendered = await buildRenderedHtml(tx, locked, v, 1);
+      const rendered = await buildRenderedHtml(tx, locked, v, 1, offerReferenceFor(offer!, { versionNumber: 1 }));
       const [version] = await tx.insert(offerVersions).values({
-        offerId: offer!.id, versionNumber: 1, createdBy: admin.id, ...rendered,
-        ...versionColumns(v),
+        offerId: offer!.id, versionNumber: 1, createdBy: admin.id,
+        ...rendered.columns, renderedHtml: rendered.renderedHtml,
+        templateBodyHtml: rendered.templateBodyHtml,
+        templateTermsHtml: rendered.templateTermsHtml,
+        templateAcknowledgementsHtml: rendered.templateAcknowledgementsHtml,
       }).returning();
 
       await tx.update(offers).set({ currentVersionId: version!.id }).where(eq(offers.id, offer!.id));
@@ -175,10 +224,13 @@ export async function updateOfferAction(_: OfferActionState, form: FormData): Pr
       const versions = await tx.select({ n: offerVersions.versionNumber }).from(offerVersions).where(eq(offerVersions.offerId, offerId));
       const nextVersion = Math.max(...versions.map(r => r.n)) + 1;
 
-      const rendered = await buildRenderedHtml(tx, liveApplication, v, nextVersion);
+      const rendered = await buildRenderedHtml(tx, liveApplication, v, nextVersion, offerReferenceFor(locked, { versionNumber: nextVersion }));
       const [version] = await tx.insert(offerVersions).values({
-        offerId, versionNumber: nextVersion, createdBy: admin.id, ...rendered,
-        ...versionColumns(v),
+        offerId, versionNumber: nextVersion, createdBy: admin.id,
+        ...rendered.columns, renderedHtml: rendered.renderedHtml,
+        templateBodyHtml: rendered.templateBodyHtml,
+        templateTermsHtml: rendered.templateTermsHtml,
+        templateAcknowledgementsHtml: rendered.templateAcknowledgementsHtml,
       }).returning();
 
       const consequence = offerEditConsequence(locked.status as OfferStatus);

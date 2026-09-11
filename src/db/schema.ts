@@ -415,6 +415,18 @@ export const reminders = pgTable("reminders", {
 export const recruitingSettings = pgTable("recruiting_settings", {
   id: integer("id").primaryKey().default(1),
   requireJobApproval: boolean("require_job_approval").notNull().default(false),
+
+  // Company-level offer defaults. Configured once here so a recruiter never
+  // retypes them per offer; each is copied onto the offer version at creation
+  // so a later settings change cannot alter an already-issued document.
+  /** Who countersigns on the company's behalf, e.g. "Jordan Blake". */
+  authorizedRepName: varchar("authorized_rep_name", { length: 200 }),
+  authorizedRepTitle: varchar("authorized_rep_title", { length: 200 }),
+  /** Standard benefits and PTO language shown on every offer unless overridden. */
+  defaultBenefitsSummary: text("default_benefits_summary"),
+  defaultPtoSummary: text("default_pto_summary"),
+  /** Where candidates send questions about an offer. Falls back to site contact. */
+  hrContactEmail: varchar("hr_contact_email", { length: 255 }),
 });
 export const jobTemplates = pgTable("job_templates", {
   id: uuid("id").primaryKey().defaultRandom(),

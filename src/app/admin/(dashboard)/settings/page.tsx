@@ -2,7 +2,7 @@ import Link from "next/link";
 import { db } from "@/db";
 import { recruitingSettings } from "@/db/schema";
 import { permits } from "@/lib/ats/policy";
-import { configureRecruitingAction } from "@/lib/ats/job-actions";
+import { configureRecruitingAction, configureOfferDefaultsAction } from "@/lib/ats/job-actions";
 import { WorkflowForm, WorkflowField } from "@/components/admin/WorkflowForm";
 import { AdminHeader, StatusPill } from "@/components/admin/ui";
 import { PasswordForm } from "@/components/admin/PasswordForm";
@@ -78,6 +78,8 @@ export default async function SettingsPage() {
             <PasswordForm />
           </div>
         </section>
+
+        {permits(admin.role, "settings") && <section className="rounded-[4px] border border-paper-300 bg-white p-5"><h2 className="mb-1 text-sm font-medium">Offer letter defaults</h2><p className="mb-3 text-xs text-graphite-600">Configured once and applied to every new offer, so recruiters only enter compensation and dates. Changing these never alters an offer that has already been issued.</p><WorkflowForm action={configureOfferDefaultsAction} label="Save offer defaults"><WorkflowField name="authorizedRepName" label="Authorized representative" value={recruiting?.authorizedRepName ?? ""} /><WorkflowField name="authorizedRepTitle" label="Representative title" value={recruiting?.authorizedRepTitle ?? ""} /><WorkflowField name="hrContactEmail" label="HR contact email" value={recruiting?.hrContactEmail ?? ""} /><WorkflowField name="defaultBenefitsSummary" label="Standard benefits summary" value={recruiting?.defaultBenefitsSummary ?? ""} multiline /><WorkflowField name="defaultPtoSummary" label="Standard PTO summary" value={recruiting?.defaultPtoSummary ?? ""} multiline /></WorkflowForm></section>}
 
         {permits(admin.role, "settings") && <section className="rounded-[4px] border border-paper-300 bg-white p-5"><h2 className="mb-3 text-sm font-medium">Job approval workflow</h2><WorkflowForm action={configureRecruitingAction} label="Save recruiting settings"><WorkflowField name="requireJobApproval" label="Approval before publication" value={recruiting?.requireJobApproval ? "1" : "0"} options={[{ value: "0", label: "Disabled — preserve direct publication" }, { value: "1", label: "Enabled — jobs must be approved" }]} /></WorkflowForm></section>}
         {mayManage && (

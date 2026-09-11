@@ -15,6 +15,45 @@ export async function configureRecruitingAction(_: ActionState, form: FormData):
   });
   revalidatePath("/admin", "layout"); return { success: "Recruiting settings saved." };
 }
+/**
+ * Company-level offer defaults, configured once so recruiters never retype
+ * them. Kept separate from configureRecruitingAction so saving one group of
+ * settings cannot silently reset the other.
+ *
+ * These are copied onto each offer version at creation, so editing them here
+ * never alters an offer that has already been issued.
+ */
+export async function configureOfferDefaultsAction(_: ActionState, form: FormData): Promise<ActionState> {
+  const admin = await requirePermission("settings");
+  const text = (name: string, max: number) => {
+    const value = String(form.get(name) ?? "").trim();
+    return value ? value.slice(0, max) : null;
+  };
+  const email = text("hrContactEmail", 255);
+  if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    return { error: "Enter a valid HR contact email address." };
+  }
+  const values = {
+    authorizedRepName: text("authorizedRepName", 200),
+    authorizedRepTitle: text("authorizedRepTitle", 200),
+    defaultBenefitsSummary: text("defaultBenefitsSummary", 4000),
+    defaultPtoSummary: text("defaultPtoSummary", 2000),
+    hrContactEmail: email,
+  };
+  await db.transaction(async tx => {
+    await tx.insert(recruitingSettings).values({ id: 1, ...values })
+      .onConflictDoUpdate({ target: recruitingSettings.id, set: values });
+    // The representative's name is recorded; the free-text bodies are not, to
+    // keep the audit metadata small and free of pasted policy text.
+    await tx.insert(auditLogs).values({
+      adminId: admin.id, action: "RECRUITING_SETTINGS_UPDATED", entityType: "settings",
+      metadata: { scope: "offer_defaults", authorizedRepName: values.authorizedRepName },
+    });
+  });
+  revalidatePath("/admin", "layout");
+  return { success: "Offer defaults saved. New offers will use them automatically." };
+}
+
 export async function jobWorkflowAction(_: ActionState, form: FormData): Promise<ActionState> {
   const admin = await requirePermission("manage");
   const id = z.uuid().safeParse(form.get("jobId"));

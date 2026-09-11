@@ -2,8 +2,10 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { db } from "@/db";
-import { offerTemplates } from "@/db/schema";
+import { offerTemplates, recruitingSettings } from "@/db/schema";
 import { requireApplication } from "@/lib/ats/access";
+import { permits } from "@/lib/ats/policy";
+import { requireAdmin } from "@/lib/auth/session";
 import { getApplicationDetail } from "@/lib/services/applications";
 import { AdminHeader } from "@/components/admin/ui";
 import { OfferForm } from "@/components/admin/OfferForm";
@@ -21,8 +23,15 @@ export default async function NewOfferPage({ searchParams }: { searchParams: Pro
   const candidate = await getApplicationDetail(applicationId);
   if (!candidate || candidate.status !== "OFFER") notFound();
 
-  const templates = await db.select({ id: offerTemplates.id, name: offerTemplates.name })
-    .from(offerTemplates).where(eq(offerTemplates.isActive, true));
+  const admin = await requireAdmin();
+  const [templateRows, settingsRow] = await Promise.all([
+    db.select({ id: offerTemplates.id, name: offerTemplates.name })
+      .from(offerTemplates).where(eq(offerTemplates.isActive, true)),
+    db.select().from(recruitingSettings).limit(1).then(r => r[0]),
+  ]);
+  // The standard template is offered first so the default path needs no choice.
+  const templates = [...templateRows].sort((a, b) =>
+    Number(b.name.startsWith("Sohum Systems Standard")) - Number(a.name.startsWith("Sohum Systems Standard")));
 
   return (
     <>
@@ -49,6 +58,13 @@ export default async function NewOfferPage({ searchParams }: { searchParams: Pro
               remoteType: candidate.job.remoteType,
             }}
             templates={templates}
+            defaults={{
+              authorizedRepName: settingsRow?.authorizedRepName ?? null,
+              benefitsConfigured: Boolean(settingsRow?.defaultBenefitsSummary?.trim()),
+              ptoConfigured: Boolean(settingsRow?.defaultPtoSummary?.trim()),
+              settingsHref: "/admin/settings",
+              canEditSettings: permits(admin.role, "settings"),
+            }}
           />
         </div>
       </div>

@@ -70,7 +70,7 @@ export type OfferHtmlInput = {
   templateAcknowledgementsHtml?: string | null;
   /** Shown on page 3 above the signature. Configurable, not invented here. */
   acceptanceStatement?: string | null;
-  authorizedRepresentative?: { name: string; title: string } | null;
+  authorizedRepresentative?: { name: string; title: string | null } | null;
   offerVersionNumber?: number | null;
   offerReference?: string | null;
   logoDataUri?: string | null;
@@ -165,6 +165,14 @@ export function renderOfferHtml(input: OfferHtmlInput): string {
       <div class="sign-line"><div class="rule"></div><div class="caption">Signature</div></div>
       <div class="sign-line"><div class="rule"></div><div class="caption">Date</div></div>`;
 
+  // A template that already sets these out in prose makes the summary tables
+  // duplicates: they restate the same facts a paragraph later and push the
+  // letter onto an extra page. The tables stay for sparser templates, so an
+  // offer whose body omits the details still states them somewhere.
+  const body = input.templateBodyHtml ?? "";
+  const showCompensationTable = !/compensation|salary|hourly rate/i.test(body);
+  const showPositionTable = !/position of|role of/i.test(body);
+
   const representative = input.authorizedRepresentative
     ? `<h2>Company representative</h2>
        <table class="kv">
@@ -251,11 +259,13 @@ ${documentHeader({ title: "Offer of Employment", logoDataUri: input.logoDataUri,
 
   <div class="body-copy">${sanitizeOfferBody(input.templateBodyHtml)}</div>
 
-  <h2>Position details</h2>
-  <table class="kv">${position}</table>
+  ${showPositionTable ? `<h2>Position details</h2>
+  <table class="kv">${position}</table>` : ""}
 
-  <h2>Compensation</h2>
-  <table class="kv">${compensation || `<tr><td class="k">Compensation</td><td class="v muted">To be confirmed</td></tr>`}</table>
+  ${showCompensationTable
+    ? `<h2>Compensation</h2>
+  <table class="kv">${compensation || `<tr><td class="k">Compensation</td><td class="v muted">To be confirmed</td></tr>`}</table>`
+    : ""}
 
   <!-- ======================= PAGE 2: EMPLOYMENT TERMS ======================= -->
   <div class="page-break"></div>
