@@ -676,6 +676,65 @@ describe.skipIf(!enabled)("job reference numbers (local only)", () => {
   });
 });
 
+describe.skipIf(!enabled)("offer snapshots (local only)", () => {
+  it("freezes company defaults onto the version, so later settings edits do not rewrite history", async () => {
+    const superAdminId = "10000000-0000-4000-8000-000000000001";
+    state.id = superAdminId; state.role = "SUPER_ADMIN";
+    const { db } = await import("@/db");
+    const { recruitingSettings, offerVersions, offers, applications, jobs } = await import("@/db/schema");
+    const { eq } = await import("drizzle-orm");
+    const { configureOfferDefaultsAction } = await import("@/lib/ats/job-actions");
+    const { createOfferAction } = await import("@/lib/offers/actions");
+
+    const form = (values: Record<string, string>) => {
+      const f = new FormData();
+      for (const [k, v] of Object.entries(values)) f.set(k, v);
+      return f;
+    };
+
+    await configureOfferDefaultsAction({}, form({
+      authorizedRepName: "Original Rep", authorizedRepTitle: "Director of Talent",
+      defaultBenefitsSummary: "ORIGINAL BENEFITS TEXT", defaultPtoSummary: "ORIGINAL PTO TEXT",
+      hrContactEmail: "hr@sohumsystems.com",
+    }));
+
+    const [job] = await db.select().from(jobs).limit(1);
+    const [app] = await db.insert(applications).values({
+      reference: `LOCAL-SNAP-${crypto.randomUUID().slice(0, 8)}`, jobId: job.id,
+      firstName: "Snapshot", lastName: "Case", email: "snapshot@sohum.invalid", status: "OFFER",
+    }).returning();
+
+    await createOfferAction({}, form({
+      applicationId: app.id, jobTitle: "Engineer", department: "Engineering", location: "Kansas City",
+      employmentType: "FULL_TIME", remoteType: "HYBRID",
+      startDate: "2026-10-05", expirationDate: "2026-09-30",
+      annualSalaryCents: "145000", hourlyRateCents: "", bonusCents: "", signOnBonusCents: "",
+      benefitsSummary: "", ptoSummary: "", workLocation: "", additionalTerms: "", otherCompensation: "",
+    })).catch(() => {/* redirects on success */});
+
+    const [offer] = await db.select().from(offers).where(eq(offers.applicationId, app.id));
+    const [version] = await db.select().from(offerVersions).where(eq(offerVersions.offerId, offer.id));
+    // The recruiter left these blank; the configured defaults filled them in.
+    expect(version.benefitsSummary).toBe("ORIGINAL BENEFITS TEXT");
+    expect(version.ptoSummary).toBe("ORIGINAL PTO TEXT");
+    expect(version.renderedHtml).toContain("Original Rep");
+
+    // Changing settings afterwards must not touch the issued offer.
+    await configureOfferDefaultsAction({}, form({
+      authorizedRepName: "Replacement Rep", authorizedRepTitle: "VP People",
+      defaultBenefitsSummary: "REVISED BENEFITS TEXT", defaultPtoSummary: "REVISED PTO TEXT",
+      hrContactEmail: "hr@sohumsystems.com",
+    }));
+    const [after] = await db.select().from(offerVersions).where(eq(offerVersions.id, version.id));
+    expect(after.benefitsSummary).toBe("ORIGINAL BENEFITS TEXT");
+    expect(after.renderedHtml).toContain("Original Rep");
+    expect(after.renderedHtml).not.toContain("Replacement Rep");
+
+    const [settings] = await db.select().from(recruitingSettings).limit(1);
+    expect(settings.authorizedRepName).toBe("Replacement Rep");
+  });
+});
+
 describe.skipIf(!enabled)("extending an offer (local only)", () => {
   const form = (values: Record<string, string>) => {
     const f = new FormData();

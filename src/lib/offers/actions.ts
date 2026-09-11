@@ -135,10 +135,14 @@ async function buildRenderedHtml(
   // Company defaults fill anything the recruiter left blank, then become part
   // of the frozen version — the recruiter never retypes standard benefits or
   // PTO language, and changing it in Settings later does not rewrite history.
+  // A blank form field arrives as "" rather than undefined, so `??` alone
+  // would keep the empty string and silently skip the configured default.
+  const orDefault = (entered: string | undefined, fallback: string | null | undefined) =>
+    (entered?.trim() ? entered : fallback?.trim() ? fallback : null);
   const columns = {
     ...versionColumns(v),
-    benefitsSummary: v.benefitsSummary ?? settings?.defaultBenefitsSummary ?? null,
-    ptoSummary: v.ptoSummary ?? settings?.defaultPtoSummary ?? null,
+    benefitsSummary: orDefault(v.benefitsSummary, settings?.defaultBenefitsSummary),
+    ptoSummary: orDefault(v.ptoSummary, settings?.defaultPtoSummary),
   };
   const renderedHtml = renderOfferHtml({
     candidateName: `${app.firstName} ${app.lastName}`,
