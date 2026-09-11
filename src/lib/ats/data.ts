@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { admins, applications, auditLogs, candidateNotes, candidateStars, emailEvents, emailTemplates, employees, interviewFeedback, interviews, jobs, notifications, recruitingSettings, reminders } from "@/db/schema";
 import { requireAdmin } from "@/lib/auth/session";
 import { candidateScope, requireApplication } from "./access";
+import { offerForApplication } from "@/lib/offers/data";
 /** Whether jobs must be approved before they can be published. Read by the job
  * screens so the lifecycle buttons match what setJobStatusAction will allow. */
 export async function requiresJobApproval() {
@@ -16,7 +17,7 @@ export async function recruiterOptions() {
 }
 export async function candidateWorkspace(id: string) {
   const { admin, app } = await requireApplication(id);
-  const [notes, meetings, activity, messages, templates, stars, duplicates, staff, linkedEmployees, feedback, tasks] = await Promise.all([
+  const [notes, meetings, activity, messages, templates, stars, duplicates, staff, linkedEmployees, feedback, tasks, offer] = await Promise.all([
     db.select({ note: candidateNotes, author: admins.name }).from(candidateNotes).leftJoin(admins, eq(candidateNotes.createdBy, admins.id)).where(eq(candidateNotes.applicationId, id)).orderBy(asc(candidateNotes.createdAt)).limit(100),
     db.select().from(interviews).where(eq(interviews.applicationId, id)).orderBy(desc(interviews.startsAt)).limit(100),
     db.select({ event: auditLogs, author: admins.name }).from(auditLogs).leftJoin(admins, eq(auditLogs.adminId, admins.id)).where(and(eq(auditLogs.entityType, "application"), eq(auditLogs.entityId, id))).orderBy(desc(auditLogs.createdAt)).limit(100),
@@ -28,8 +29,9 @@ export async function candidateWorkspace(id: string) {
     db.select({ id: employees.id }).from(employees).where(eq(employees.sourceApplicationId, id)).limit(1),
     db.select({ feedback: interviewFeedback, author: admins.name }).from(interviewFeedback).innerJoin(interviews, eq(interviewFeedback.interviewId, interviews.id)).leftJoin(admins, eq(interviewFeedback.createdBy, admins.id)).where(eq(interviews.applicationId, id)).orderBy(desc(interviewFeedback.createdAt)).limit(100),
     db.select().from(reminders).where(and(eq(reminders.applicationId, id), eq(reminders.adminId, admin.id))).orderBy(asc(reminders.dueAt)).limit(50),
+    offerForApplication(id),
   ]);
-  return { notes, meetings, activity, messages, templates, starred: stars.length > 0, duplicates, staff, employeeId: linkedEmployees[0]?.id, feedback, tasks };
+  return { notes, meetings, activity, messages, templates, starred: stars.length > 0, duplicates, staff, employeeId: linkedEmployees[0]?.id, feedback, tasks, offer };
 }
 export async function upcomingInterviews() {
   const admin = await requireAdmin();

@@ -40,8 +40,8 @@ export const offerVersionInputSchema = z.object({
   additionalTerms: z.string().trim().max(4000).optional(),
 
   templateId: z.uuid().optional(),
-}).refine(v => v.expirationDate > new Date(0) && v.expirationDate >= v.startDate, {
-  message: "Expiration date must be on or after the start date",
+}).refine(v => v.expirationDate > new Date(0) && v.expirationDate <= v.startDate, {
+  message: "The offer must expire on or before the start date — a candidate cannot still be deciding after starting.",
   path: ["expirationDate"],
 });
 

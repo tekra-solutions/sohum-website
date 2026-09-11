@@ -1,6 +1,6 @@
 import "server-only";
 
-const shell = (heading: string, body: string) => `
+export const shell = (heading: string, body: string) => `
 <div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:560px;margin:0 auto;padding:32px 24px;color:#1b2a5e">
   <div style="font-size:20px;font-weight:700;letter-spacing:-.02em">
     <span style="color:#e8622a">Sohum</span> Systems
