@@ -32,8 +32,8 @@ export function OtpForm({ token }: { token: string }) {
         <button type="submit" disabled={requestPending} className={btnSecondary}>
           {requestPending ? "Sending…" : "Send verification code"}
         </button>
-        {requestState.success && <p className={`${t.body} text-[#14603b]`}>{requestState.success}</p>}
-        {requestState.error && <p className={`${t.body} text-[#8e2c20]`}>{requestState.error}</p>}
+        {requestState.success && <p role="status" className={`${t.body} text-[#14603b]`}>{requestState.success}</p>}
+        {requestState.error && <p role="alert" className={`${t.body} text-[#8e2c20]`}>{requestState.error}</p>}
       </form>
 
       <form action={verifyAction} className="space-y-3">
@@ -42,7 +42,7 @@ export function OtpForm({ token }: { token: string }) {
         <button type="submit" disabled={verifyPending} className={btn}>
           {verifyPending ? "Verifying…" : "Verify"}
         </button>
-        {verifyState.error && <p className={`${t.body} text-[#8e2c20]`}>{verifyState.error}</p>}
+        {verifyState.error && <p role="alert" className={`${t.body} text-[#8e2c20]`}>{verifyState.error}</p>}
       </form>
     </div>
   );

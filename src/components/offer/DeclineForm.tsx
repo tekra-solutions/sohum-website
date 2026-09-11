@@ -21,7 +21,7 @@ export function DeclineForm({ token }: { token: string }) {
   if (state.success) {
     return (
       <div className="rounded-[4px] border border-paper-300 bg-white p-5">
-        <p className={`${t.body} font-medium text-ink-900`}>{state.success}</p>
+        <p role="status" className={`${t.body} font-medium text-ink-900`}>{state.success}</p>
         <p className={`mt-2 ${t.body} text-graphite-600`}>Thank you for letting us know.</p>
       </div>
     );
@@ -36,7 +36,7 @@ export function DeclineForm({ token }: { token: string }) {
         <button type="submit" disabled={pending} className={btnSecondary}>
           {pending ? "Submitting…" : "Decline offer"}
         </button>
-        {state.error && <p className={`${t.body} text-[#8e2c20]`}>{state.error}</p>}
+        {state.error && <p role="alert" className={`${t.body} text-[#8e2c20]`}>{state.error}</p>}
       </form>
     </details>
   );

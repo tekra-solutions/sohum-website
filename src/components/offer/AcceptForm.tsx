@@ -34,7 +34,7 @@ export function AcceptForm({
   if (state.success) {
     return (
       <div className="rounded-[4px] border border-[#1e7a4d]/30 bg-[#1e7a4d]/[0.06] p-5">
-        <p className={`${t.body} font-medium text-[#14603b]`}>{state.success}</p>
+        <p role="status" className={`${t.body} font-medium text-[#14603b]`}>{state.success}</p>
         <p className={`mt-2 ${t.body} text-graphite-600`}>
           We look forward to having you on the team. Our recruiting team will follow up with next steps.
         </p>
