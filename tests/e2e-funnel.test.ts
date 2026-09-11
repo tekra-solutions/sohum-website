@@ -41,6 +41,37 @@ describe.skipIf(!enabled)("full recruiting funnel end to end (local only)", () =
       description: "Build and verify reliable recruiting software.", responsibilities: "Testing",
       qualifications: "Engineering", preferredQualifications: "", skills: "TypeScript", intent: "draft",
     }))).rejects.toThrow("REDIRECT");
+    // A publish attempt while approval is required is refused — and must hand
+    // back everything that was typed, or the author loses the whole form and
+    // has to retype valid work that was rejected only over which button was
+    // pressed.
+    {
+      const fields = {
+        title: "Approval Echo Engineer", slug: "approval-echo-engineer",
+        department: "Engineering", location: "Overland Park, KS",
+        employmentType: "FULL_TIME", remoteType: "HYBRID", experienceLevel: "SENIOR",
+        summary: "", description: "A description the author spent real time writing.",
+        responsibilities: "Build things\nShip things", qualifications: "Engineering",
+        preferredQualifications: "", skills: "TypeScript",
+      };
+      const refused = await saveJobAction({}, form({ ...fields, intent: "publish" }));
+      expect(refused.message).toContain("Approval is enabled");
+      expect(refused.values).toBeDefined();
+      for (const [key, value] of Object.entries(fields)) {
+        expect(refused.values![key], `echoed ${key}`).toBe(value);
+      }
+      // Multi-line list text round-trips verbatim, not normalised.
+      expect(refused.values!.responsibilities).toBe("Build things\nShip things");
+      // Nothing was written: this was a refusal, not a partial save.
+      expect(await db.select().from(jobs).where(eq(jobs.slug, "approval-echo-engineer"))).toHaveLength(0);
+
+      // A validation failure echoes the input back too.
+      const invalid = await saveJobAction({}, form({ ...fields, title: "x", intent: "draft" }));
+      expect(invalid.errors?.title).toBeDefined();
+      expect(invalid.values!.description).toBe(fields.description);
+      expect(invalid.values!.title).toBe("x");
+    }
+
     const [job] = await db.select().from(jobs).where(eq(jobs.slug, "funnel-engineer"));
     expect(job.status).toBe("DRAFT");
     await setJobStatusAction(form({ id: job.id, status: "PUBLISHED" }));

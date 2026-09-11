@@ -10,6 +10,16 @@ import { control as sharedControl, t } from "@/components/admin/form";
 
 const initial: JobFormState = {};
 
+/** Identity-based remount key: a new result object means a new render pass. */
+const keys = new WeakMap<object, number>();
+let nextKey = 0;
+function formKey(state: JobFormState) {
+  if (!state.values) return "initial";
+  let key = keys.get(state.values);
+  if (key === undefined) { key = ++nextKey; keys.set(state.values, key); }
+  return key;
+}
+
 // Uses the shared admin control styling so every form matches.
 const control = `mt-1.5 ${sharedControl}`;
 
@@ -65,7 +75,7 @@ function Select({
 
 function ListArea({
   name, label, defaultValue, hint,
-}: { name: string; label: string; defaultValue?: string[]; hint: string }) {
+}: { name: string; label: string; defaultValue?: string; hint: string }) {
   const id = `j-${name}`;
   return (
     <div className="sm:col-span-2">
@@ -74,7 +84,7 @@ function ListArea({
         id={id}
         name={name}
         rows={5}
-        defaultValue={(defaultValue ?? []).join("\n")}
+        defaultValue={defaultValue ?? ""}
         aria-describedby={`${id}-hint`}
         className={`${control} resize-y border-paper-300`}
       />
@@ -87,8 +97,24 @@ export function JobForm({ job }: { job?: Partial<Job> }) {
   const [state, action, pending] = useActionState(saveJobAction, initial);
   const e = state.errors ?? {};
 
+  // A rejected save re-renders this form. Prefer what the user just submitted
+  // over the stored record so their work survives the round trip — without
+  // this, a validation error (or the approval-required message, where the
+  // input was perfectly valid) silently emptied every field.
+  const v = state.values;
+  const text = (name: keyof Job & string, fallback?: string | null) =>
+    v?.[name] ?? (fallback ?? undefined);
+  // List fields round-trip as the raw newline-separated text the user typed.
+  const list = (name: string, fallback?: string[] | null) =>
+    v?.[name] ?? (fallback ?? []).join("\n");
+
   return (
-    <form action={action} className="space-y-6">
+    // Inputs are uncontrolled, so defaultValue is only read when an element
+    // mounts. Keying the form on the echoed values remounts the fields after
+    // a rejected save, which is what makes those values actually appear;
+    // useActionState returns a new object per result, so a repeated failure
+    // still produces a new key.
+    <form key={formKey(state)} action={action} className="space-y-6">
       {job?.id && <input type="hidden" name="id" value={job.id} />}
       <input type="hidden" name="status" value={job?.status ?? "DRAFT"} />
 
@@ -104,18 +130,18 @@ export function JobForm({ job }: { job?: Partial<Job> }) {
       <section>
         <h2 className={`${t.sectionTitle} font-medium text-ink-900`}>Basics</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <Field className="sm:col-span-2" name="title" label="Job title" required defaultValue={job?.title} error={e.title} placeholder="Senior Software Engineer" />
-          <Field name="department" label="Department" required defaultValue={job?.department} error={e.department} placeholder="Engineering" />
-          <Field name="location" label="Location" required defaultValue={job?.location} error={e.location} placeholder="Overland Park, KS" />
-          <Select name="employmentType" label="Employment type" options={employmentTypes} labels={employmentTypeLabel} defaultValue={job?.employmentType ?? "FULL_TIME"} />
-          <Select name="remoteType" label="Work setting" options={remoteTypes} labels={remoteTypeLabel} defaultValue={job?.remoteType ?? "ON_SITE"} />
-          <Select name="experienceLevel" label="Experience level" options={experienceLevels} labels={experienceLevelLabel} defaultValue={job?.experienceLevel ?? "MID"} />
-          <Field name="salaryRange" label="Salary range" defaultValue={job?.salaryRange} error={e.salaryRange} placeholder="$120,000 – $150,000" hint="Optional. Shown publicly if set." />
+          <Field className="sm:col-span-2" name="title" label="Job title" required defaultValue={text("title", job?.title)} error={e.title} placeholder="Senior Software Engineer" />
+          <Field name="department" label="Department" required defaultValue={text("department", job?.department)} error={e.department} placeholder="Engineering" />
+          <Field name="location" label="Location" required defaultValue={text("location", job?.location)} error={e.location} placeholder="Overland Park, KS" />
+          <Select name="employmentType" label="Employment type" options={employmentTypes} labels={employmentTypeLabel} defaultValue={v?.employmentType ?? job?.employmentType ?? "FULL_TIME"} />
+          <Select name="remoteType" label="Work setting" options={remoteTypes} labels={remoteTypeLabel} defaultValue={v?.remoteType ?? job?.remoteType ?? "ON_SITE"} />
+          <Select name="experienceLevel" label="Experience level" options={experienceLevels} labels={experienceLevelLabel} defaultValue={v?.experienceLevel ?? job?.experienceLevel ?? "MID"} />
+          <Field name="salaryRange" label="Salary range" defaultValue={text("salaryRange", job?.salaryRange)} error={e.salaryRange} placeholder="$120,000 – $150,000" hint="Optional. Shown publicly if set." />
           <Field
             className="sm:col-span-2"
             name="slug"
             label="URL slug"
-            defaultValue={job?.slug}
+            defaultValue={text("slug", job?.slug)}
             error={e.slug}
             placeholder="senior-software-engineer"
             hint="Leave blank to generate from the title."
@@ -134,7 +160,7 @@ export function JobForm({ job }: { job?: Partial<Job> }) {
               id="j-summary"
               name="summary"
               rows={2}
-              defaultValue={job?.summary ?? ""}
+              defaultValue={v?.summary ?? job?.summary ?? ""}
               maxLength={400}
               placeholder="One or two sentences shown on the careers list."
               className={`${control} resize-y border-paper-300`}
@@ -149,7 +175,7 @@ export function JobForm({ job }: { job?: Partial<Job> }) {
               name="description"
               rows={7}
               required
-              defaultValue={job?.description ?? ""}
+              defaultValue={v?.description ?? job?.description ?? ""}
               aria-invalid={e.description ? true : undefined}
               className={`${control} resize-y ${e.description ? "border-[#c0392b]" : "border-paper-300"}`}
             />
@@ -158,10 +184,10 @@ export function JobForm({ job }: { job?: Partial<Job> }) {
             )}
           </div>
 
-          <ListArea name="responsibilities" label="Responsibilities" defaultValue={job?.responsibilities} hint="One per line." />
-          <ListArea name="qualifications" label="Required qualifications" defaultValue={job?.qualifications} hint="One per line." />
-          <ListArea name="preferredQualifications" label="Preferred qualifications" defaultValue={job?.preferredQualifications} hint="One per line." />
-          <ListArea name="skills" label="Skills" defaultValue={job?.skills} hint="One per line. Shown as tags." />
+          <ListArea name="responsibilities" label="Responsibilities" defaultValue={list("responsibilities", job?.responsibilities)} hint="One per line." />
+          <ListArea name="qualifications" label="Required qualifications" defaultValue={list("qualifications", job?.qualifications)} hint="One per line." />
+          <ListArea name="preferredQualifications" label="Preferred qualifications" defaultValue={list("preferredQualifications", job?.preferredQualifications)} hint="One per line." />
+          <ListArea name="skills" label="Skills" defaultValue={list("skills", job?.skills)} hint="One per line. Shown as tags." />
         </div>
       </section>
 

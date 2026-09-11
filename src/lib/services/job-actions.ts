@@ -13,7 +13,26 @@ import { uniqueSlug } from "@/lib/services/jobs";
 export type JobFormState = {
   errors?: Record<string, string>;
   message?: string;
+  /**
+   * The raw submitted fields, echoed back so a rejected save can re-render
+   * what the user actually typed instead of resetting to the stored record
+   * (or, for a new job, to empty). Raw strings rather than parsed values:
+   * the point is to hand back exactly what was in the form, including input
+   * that failed validation and list text the parser would normalise away.
+   */
+  values?: Record<string, string>;
 };
+
+/** Form fields echoed back on a failed save. `id` and `intent` are excluded:
+ *  the form supplies those itself and they are not user-edited content. */
+function submittedValues(formData: FormData): Record<string, string> {
+  const values: Record<string, string> = {};
+  for (const [key, value] of formData.entries()) {
+    if (key === "id" || key === "intent") continue;
+    if (typeof value === "string") values[key] = value;
+  }
+  return values;
+}
 
 /** Refreshes every surface a job change can affect. */
 function revalidateJob(slug?: string) {
@@ -31,6 +50,7 @@ export async function saveJobAction(
 
   const id = String(formData.get("id") ?? "") || null;
   if (id && !z.uuid().safeParse(id).success) return { message: "Invalid job." };
+  const submitted = submittedValues(formData);
   // Which button was pressed decides the status, not a client-supplied field.
   const intent = String(formData.get("intent") ?? "draft");
 
@@ -41,12 +61,12 @@ export async function saveJobAction(
       const key = String(issue.path[0] ?? "form");
       errors[key] ??= issue.message;
     }
-    return { errors, message: "Please correct the highlighted fields." };
+    return { errors, message: "Please correct the highlighted fields.", values: submitted };
   }
   const v = parsed.data;
 
   const [settings] = await db.select().from(recruitingSettings).limit(1);
-  if (settings?.requireJobApproval && intent === "publish") return { message: "Approval is enabled. Save as a draft, submit for approval, then use Publish on the approved job." };
+  if (settings?.requireJobApproval && intent === "publish") return { message: "Approval is enabled. Save as a draft, submit for approval, then use Publish on the approved job.", values: submitted };
   const status: "PUBLISHED" | "DRAFT" = intent === "publish" ? "PUBLISHED" : "DRAFT";
   const slug = await uniqueSlug(v.slug || v.title, id ?? undefined);
 
@@ -95,7 +115,7 @@ export async function saveJobAction(
     // Log the cause so failures are diagnosable; the user-facing message
     // stays generic so no backend detail leaks to the browser.
     console.error("[jobs] save failed", { error: err instanceof Error ? err.message : String(err) });
-    return { message: "Could not save this job. Please try again." };
+    return { message: "Could not save this job. Please try again.", values: submitted };
   }
 
   revalidateJob(slug);
