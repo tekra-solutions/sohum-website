@@ -475,7 +475,12 @@ describe.skipIf(!enabled)("Offer workflow (local only)", () => {
 
   it("accepts the offer, advances the application toward HIRED, and refuses a second accept or any further edit", async () => {
     const { acceptOfferAction } = await import("@/app/offer/[token]/actions");
-    const accept = () => acceptOfferAction({}, offerForm({ token: offerToken, legalName: "Private Unassigned", confirmed: "1" }));
+    // Signing requires explicit e-signature consent and a typed signature
+    // matching the legal name, both checked server-side.
+    const accept = () => acceptOfferAction({}, offerForm({
+      token: offerToken, legalName: "Private Unassigned", confirmed: "1",
+      esignConsent: "1", signature: "Private Unassigned",
+    }));
     expect((await accept()).success).toBeDefined();
 
     const { db } = await import("@/db");
@@ -593,5 +598,144 @@ describe.skipIf(!enabled)("production security regressions", () => {
     await createOfferSession(offer.id, hashOfferToken(token));
     expect(await resolveOfferToken(token)).toBeNull();
     expect((await GET(new Request(`http://localhost/offer/${token}/pdf`), { params: Promise.resolve({ token }) })).status).toBe(404);
+  });
+});
+
+describe.skipIf(!enabled)("offer signing attack surface (local only)", () => {
+  const form = (values: Record<string, string>) => {
+    const f = new FormData();
+    for (const [k, v] of Object.entries(values)) f.set(k, v);
+    return f;
+  };
+
+  it("refuses a tampered, unknown or malformed token without revealing which", async () => {
+    const { resolveOfferToken } = await import("@/lib/offers/data");
+    const { db } = await import("@/db");
+    const { offers } = await import("@/db/schema");
+    const { eq } = await import("drizzle-orm");
+    const [accepted] = await db.select().from(offers).where(eq(offers.status, "ACCEPTED"));
+
+    // A hash is stored, never the token, so the stored value is not usable as one.
+    expect(await resolveOfferToken(accepted.secureTokenHash)).toBeNull();
+    for (const bogus of ["", "   ", "../../etc/passwd", "%2e%2e%2f", "'; drop table offers;--", "a".repeat(600)]) {
+      expect(await resolveOfferToken(bogus), bogus).toBeNull();
+    }
+  });
+
+  it("refuses to sign without a verified identity session", async () => {
+    const { db } = await import("@/db");
+    const { offers, applications, jobs, offerVersions } = await import("@/db/schema");
+    const { eq } = await import("drizzle-orm");
+    const { hashOfferToken } = await import("@/lib/offers/tokens");
+    const { destroyOfferSession } = await import("@/lib/offers/candidate-session");
+    const { acceptOfferAction } = await import("@/app/offer/[token]/actions");
+    const superAdminId = "10000000-0000-4000-8000-000000000001";
+
+    const [job] = await db.select().from(jobs).limit(1);
+    const [app] = await db.insert(applications).values({
+      reference: `LOCAL-SEC-${crypto.randomUUID().slice(0, 8)}`, jobId: job.id,
+      firstName: "Unverified", lastName: "Signer", email: "unverified@sohum.invalid", status: "OFFER",
+    }).returning();
+    const token = `sec-unverified-${crypto.randomUUID()}`;
+    const [offer] = await db.insert(offers).values({
+      applicationId: app.id, createdBy: superAdminId, status: "SENT",
+      secureTokenHash: hashOfferToken(token), tokenExpiresAt: new Date(Date.now() + 86_400_000),
+    }).returning();
+    const [version] = await db.insert(offerVersions).values({
+      offerId: offer.id, versionNumber: 1, createdBy: superAdminId,
+      jobTitle: "Engineer", department: "Engineering", location: "Kansas City",
+      employmentType: "FULL_TIME", remoteType: "HYBRID",
+      startDate: new Date("2026-10-05"), expirationDate: new Date("2099-01-01"),
+      renderedHtml: "<html></html>",
+    }).returning();
+    await db.update(offers).set({ currentVersionId: version.id }).where(eq(offers.id, offer.id));
+
+    await destroyOfferSession();
+    const result = await acceptOfferAction({}, form({
+      token, legalName: "Unverified Signer", confirmed: "1",
+      esignConsent: "1", signature: "Unverified Signer",
+    }));
+    expect(result.error).toBeDefined();
+    const [after] = await db.select().from(offers).where(eq(offers.id, offer.id));
+    expect(after.status).toBe("SENT");
+    expect(after.acceptedVersionId).toBeNull();
+  });
+
+  it("refuses a verified session replayed against a different candidate's offer", async () => {
+    const { db } = await import("@/db");
+    const { offers } = await import("@/db/schema");
+    const { eq, ne, and } = await import("drizzle-orm");
+    const { createOfferSession, hasVerifiedOfferSession } = await import("@/lib/offers/candidate-session");
+    const [victim] = await db.select().from(offers).where(eq(offers.status, "ACCEPTED"));
+    const [other] = await db.select().from(offers).where(and(ne(offers.id, victim.id), ne(offers.status, "ACCEPTED")));
+
+    // A session is scoped to one offer AND that offer's current token hash.
+    await createOfferSession(other.id, other.secureTokenHash);
+    expect(await hasVerifiedOfferSession(other.id, other.secureTokenHash)).toBe(true);
+    expect(await hasVerifiedOfferSession(victim.id, victim.secureTokenHash)).toBe(false);
+    // Nor does it transfer by pairing one offer's id with another's token.
+    expect(await hasVerifiedOfferSession(other.id, victim.secureTokenHash)).toBe(false);
+  });
+
+  it("cannot sign an offer that was already accepted, and never writes a second signature", async () => {
+    const { db } = await import("@/db");
+    const { offers, offerSignatures } = await import("@/db/schema");
+    const { eq } = await import("drizzle-orm");
+    const [accepted] = await db.select().from(offers).where(eq(offers.status, "ACCEPTED"));
+    const signatures = await db.select().from(offerSignatures).where(eq(offerSignatures.offerId, accepted.id));
+    expect(signatures).toHaveLength(1);
+
+    // The unique index is the structural guarantee, not just the code path.
+    await expect(db.insert(offerSignatures).values({
+      offerId: accepted.id, offerVersionId: accepted.acceptedVersionId!,
+      candidateLegalName: "Replay Attacker", candidateEmail: "replay@sohum.invalid",
+      signatureValue: "Replay Attacker", electronicConsent: true,
+      consentText: "x", consentedAt: new Date(), signedAt: new Date(),
+    })).rejects.toThrow();
+    expect(await db.select().from(offerSignatures).where(eq(offerSignatures.offerId, accepted.id))).toHaveLength(1);
+  });
+
+  it("records the signature with consent evidence and no token material", async () => {
+    const { db } = await import("@/db");
+    const { offers, offerSignatures } = await import("@/db/schema");
+    const { eq } = await import("drizzle-orm");
+    const [accepted] = await db.select().from(offers).where(eq(offers.status, "ACCEPTED"));
+    const [signature] = await db.select().from(offerSignatures).where(eq(offerSignatures.offerId, accepted.id));
+
+    expect(signature.electronicConsent).toBe(true);
+    expect(signature.consentText.length).toBeGreaterThan(0);
+    expect(signature.consentedAt).toBeInstanceOf(Date);
+    expect(signature.verificationMethod).toBe("EMAIL_OTP");
+    expect(signature.offerVersionId).toBe(accepted.acceptedVersionId);
+    // Nothing in the record may carry the secure token or a session value.
+    expect(JSON.stringify(signature)).not.toContain(accepted.secureTokenHash);
+  });
+
+  it("never logs an OTP code or a secure token in the audit trail", async () => {
+    const { db } = await import("@/db");
+    const { auditLogs, offers } = await import("@/db/schema");
+    const { eq } = await import("drizzle-orm");
+    const [accepted] = await db.select().from(offers).where(eq(offers.status, "ACCEPTED"));
+    const entries = await db.select().from(auditLogs).where(eq(auditLogs.entityId, accepted.id));
+    expect(entries.length).toBeGreaterThan(0);
+    for (const entry of entries) {
+      const blob = JSON.stringify(entry.metadata ?? {});
+      expect(blob).not.toContain(accepted.secureTokenHash);
+      // No bare 6-digit value that could be a one-time code.
+      expect(blob).not.toMatch(/\b\d{6}\b/);
+    }
+  });
+
+  it("keeps compensation out of the audit trail", async () => {
+    const { db } = await import("@/db");
+    const { auditLogs, offers, offerVersions } = await import("@/db/schema");
+    const { eq } = await import("drizzle-orm");
+    const [accepted] = await db.select().from(offers).where(eq(offers.status, "ACCEPTED"));
+    const [version] = await db.select().from(offerVersions).where(eq(offerVersions.id, accepted.acceptedVersionId!));
+    const entries = await db.select().from(auditLogs).where(eq(auditLogs.entityId, accepted.id));
+    for (const entry of entries) {
+      const blob = JSON.stringify(entry.metadata ?? {});
+      expect(blob).not.toContain(String(version.annualSalaryCents));
+    }
   });
 });

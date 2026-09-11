@@ -436,6 +436,11 @@ export const offerTemplates = pgTable("offer_templates", {
   // The templated content region only; branding, signature block and the
   // legal disclaimer are injected by the renderer, never stored per-template.
   bodyHtml: text("body_html").notNull(),
+  /** Page 2: employment terms (benefits, PTO, classification, contingencies).
+   *  Optional and nullable so existing templates keep working unchanged. */
+  termsHtml: text("terms_html"),
+  /** Page 3: acknowledgements shown above the signature block. */
+  acknowledgementsHtml: text("acknowledgements_html"),
   isActive: boolean("is_active").notNull().default(true),
   createdBy: uuid("created_by").references(() => admins.id, { onDelete: "set null" }),
   ...timestamps(),
@@ -523,6 +528,15 @@ export const offerVersions = pgTable("offer_versions", {
   // change an already-issued or already-accepted document.
   renderedHtml: text("rendered_html").notNull(),
   pdfStoragePath: text("pdf_storage_path"),
+  // The template-resolved body/terms/acknowledgement fragments this version
+  // was built from. Frozen alongside renderedHtml so the signed document can
+  // be re-rendered (same content, plus the signature block) without consulting
+  // offer_templates, whose rows may have changed since the offer was sent.
+  // Nullable: versions created before signing existed have no copy, and the
+  // signed renderer falls back to the frozen renderedHtml for those.
+  templateBodyHtml: text("template_body_html"),
+  templateTermsHtml: text("template_terms_html"),
+  templateAcknowledgementsHtml: text("template_acknowledgements_html"),
 
   createdBy: uuid("created_by").notNull().references(() => admins.id, { onDelete: "restrict" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -745,3 +759,59 @@ export type Invoice = typeof invoices.$inferSelect;
 export type InvoiceItem = typeof invoiceItems.$inferSelect;
 export type InvoicePayment = typeof invoicePayments.$inferSelect;
 export type InvoiceSettings = typeof invoiceSettings.$inferSelect;
+
+/* ------------------------------------------- offer electronic signatures */
+
+export const signatureTypeEnum = pgEnum("offer_signature_type", ["TYPED", "DRAWN"]);
+
+/**
+ * The electronic acceptance record for an offer — deliberately its own table
+ * rather than more columns on `offers`, because this is the evidentiary
+ * artifact: who signed, exactly which version they saw, that they consented
+ * to sign electronically, and a hash of the document produced at that moment.
+ *
+ * Insert-only and unique per offer. The unique index is what makes the sign
+ * endpoint idempotent under a double-click: the second insert simply loses.
+ */
+export const offerSignatures = pgTable("offer_signatures", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  offerId: uuid("offer_id").notNull().references(() => offers.id, { onDelete: "restrict" }),
+  offerVersionId: uuid("offer_version_id").notNull().references(() => offerVersions.id, { onDelete: "restrict" }),
+
+  candidateLegalName: varchar("candidate_legal_name", { length: 200 }).notNull(),
+  candidateEmail: varchar("candidate_email", { length: 255 }).notNull(),
+  signatureType: signatureTypeEnum("signature_type").notNull().default("TYPED"),
+  /** The typed legal name adopted as the signature representation. The
+   *  authoritative record is this row plus the audit trail, not an image. */
+  signatureValue: text("signature_value").notNull(),
+
+  /** Explicit e-sign consent, captured separately from the signature itself
+   *  so the record shows intent was given before signing. */
+  electronicConsent: boolean("electronic_consent").notNull().default(false),
+  consentText: text("consent_text").notNull(),
+  consentedAt: timestamp("consented_at", { withTimezone: true }).notNull(),
+  signedAt: timestamp("signed_at", { withTimezone: true }).notNull(),
+
+  /** How the signer proved who they were before signing. */
+  verificationMethod: varchar("verification_method", { length: 40 }).notNull().default("EMAIL_OTP"),
+  /** Retained only for the evidentiary record; never used for auth. */
+  signerIp: varchar("signer_ip", { length: 64 }),
+  signerUserAgent: varchar("signer_user_agent", { length: 400 }),
+
+  /** SHA-256 of the exact signed document bytes, so later tampering with the
+   *  stored file is detectable. The PDF itself is never overwritten. */
+  documentHash: varchar("document_hash", { length: 64 }),
+  signedPdfPath: text("signed_pdf_path"),
+
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, t => [
+  uniqueIndex("offer_signatures_offer_idx").on(t.offerId),
+  index("offer_signatures_version_idx").on(t.offerVersionId),
+]);
+
+export const offerSignaturesRelations = relations(offerSignatures, ({ one }) => ({
+  offer: one(offers, { fields: [offerSignatures.offerId], references: [offers.id] }),
+  version: one(offerVersions, { fields: [offerSignatures.offerVersionId], references: [offerVersions.id] }),
+}));
+
+export type OfferSignature = typeof offerSignatures.$inferSelect;

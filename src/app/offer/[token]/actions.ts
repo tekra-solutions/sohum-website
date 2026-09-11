@@ -7,18 +7,19 @@
  */
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
-import { eq, and, desc, gte, count } from "drizzle-orm";
+import { eq, and, desc, gte, count, isNull } from "drizzle-orm";
 import { db } from "@/db";
-import { offers, offerVersions, applications, applicationEvents, auditLogs, offerOtpCodes, notifications } from "@/db/schema";
+import { offers, offerVersions, offerSignatures, applications, applicationEvents, auditLogs, offerOtpCodes, notifications } from "@/db/schema";
 import { generateOtp, hashOtp } from "@/lib/offers/tokens";
 import { resolveOfferToken as resolveToken } from "@/lib/offers/data";
 import { createOfferSession, hasVerifiedOfferSession } from "@/lib/offers/candidate-session";
-import { canCandidateAct, offerDeadline } from "@/lib/offers/policy";
+import { canCandidateAct, offerDeadline, offerReferenceFor, ESIGN_CONSENT_TEXT } from "@/lib/offers/policy";
 import { canTransition } from "@/lib/ats/transitions";
 import { otpVerifySchema, declineSchema, acceptSchema } from "@/lib/offers/validation";
 import { offerOtpEmail } from "@/lib/offers/email-templates";
 import { send } from "@/lib/email";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
+import { generateSignedOfferPdf } from "@/lib/offers/signed-document";
 
 export type OfferPublicState = { error?: string; success?: string };
 
@@ -51,6 +52,11 @@ export async function requestOtpAction(_: OfferPublicState, form: FormData): Pro
   const message = offerOtpEmail({ code });
   const result = await send({ to: row.application.email, ...message });
   if (!result.sent) return { error: "Could not send a verification code. Please try again shortly." };
+  // Records that a code was sent — never the code itself.
+  await db.insert(auditLogs).values({
+    adminId: null, action: "IDENTITY_VERIFICATION_SENT", entityType: "offer", entityId: row.offer.id,
+    metadata: { applicationId: row.application.id, method: "EMAIL_OTP" },
+  });
   return { success: "A verification code has been sent to the email on file." };
 }
 
@@ -85,6 +91,10 @@ export async function verifyOtpAction(_: OfferPublicState, form: FormData): Prom
 
   if (!verified) return { error: "That code is incorrect or has expired. Request a new one." };
   await createOfferSession(row.offer.id, row.offer.secureTokenHash);
+  await db.insert(auditLogs).values({
+    adminId: null, action: "IDENTITY_VERIFIED", entityType: "offer", entityId: row.offer.id,
+    metadata: { applicationId: row.application.id, method: "EMAIL_OTP" },
+  });
   return { success: "Verified." };
 }
 
@@ -103,6 +113,14 @@ export async function acceptOfferAction(_: OfferPublicState, form: FormData): Pr
   const [version] = await db.select().from(offerVersions).where(eq(offerVersions.id, row.offer.currentVersionId!));
   if (!version || offerDeadline(version.expirationDate) < new Date()) return { error: "This offer has expired." };
 
+  // Signer metadata is limited to what evidences the signature: the verified
+  // identity, when it happened, and the request's IP/user-agent. Nothing
+  // further is collected, and no token or session value is stored.
+  const requestHeaders = await headers();
+  const signerIp = clientIp(requestHeaders);
+  const signerUserAgent = (requestHeaders.get("user-agent") ?? "").slice(0, 400) || null;
+  const signedAt = new Date();
+
   try {
     await db.transaction(async tx => {
       const [app] = await tx.select().from(applications).where(eq(applications.id, row.application.id)).for("update");
@@ -118,14 +136,42 @@ export async function acceptOfferAction(_: OfferPublicState, form: FormData): Pr
       // above refuses a second accept — this update cannot race.
       await tx.update(offers).set({
         status: "ACCEPTED",
-        acceptedAt: new Date(),
+        acceptedAt: signedAt,
         acceptedVersionId: locked.currentVersionId,
         signedLegalName: parsed.data.legalName,
-        signedAt: new Date(),
+        signedAt,
       }).where(eq(offers.id, row.offer.id));
+
+      // The evidentiary signature record. The unique index on offer_id is the
+      // structural guarantee that one offer can be signed exactly once: a
+      // concurrent or replayed accept fails here rather than producing a
+      // second signature.
+      await tx.insert(offerSignatures).values({
+        offerId: row.offer.id,
+        offerVersionId: locked.currentVersionId!,
+        candidateLegalName: parsed.data.legalName,
+        candidateEmail: row.application.email,
+        signatureType: "TYPED",
+        signatureValue: parsed.data.signature,
+        electronicConsent: true,
+        consentText: ESIGN_CONSENT_TEXT,
+        consentedAt: signedAt,
+        signedAt,
+        verificationMethod: "EMAIL_OTP",
+        signerIp,
+        signerUserAgent,
+      });
 
       // Candidate-initiated: no admin actor, so adminId/changedBy are null —
       // both columns are nullable for exactly this case.
+      await tx.insert(auditLogs).values({
+        adminId: null, action: "ESIGN_CONSENT_ACCEPTED", entityType: "offer", entityId: row.offer.id,
+        metadata: { applicationId: row.application.id, versionId: locked.currentVersionId },
+      });
+      await tx.insert(auditLogs).values({
+        adminId: null, action: "OFFER_SIGNED", entityType: "offer", entityId: row.offer.id,
+        metadata: { applicationId: row.application.id, versionId: locked.currentVersionId, method: "TYPED" },
+      });
       await tx.insert(auditLogs).values({
         adminId: null, action: "OFFER_ACCEPTED", entityType: "offer", entityId: row.offer.id,
         metadata: { applicationId: row.application.id, acceptedVersionId: locked.currentVersionId },
@@ -149,6 +195,51 @@ export async function acceptOfferAction(_: OfferPublicState, form: FormData): Pr
   } catch (err) {
     return { error: err instanceof Error && !("query" in err) ? err.message : "Could not record your acceptance. Please try again." };
   }
+
+  // The acceptance is committed at this point. The signed PDF is generated
+  // afterwards so that Chromium and the storage upload — both slow, both able
+  // to fail — never hold row locks and can never roll back a valid
+  // acceptance. If this fails the acceptance still stands and the document can
+  // be regenerated from the frozen version; the signature row simply has no
+  // stored path yet.
+  try {
+    const { path, documentHash, fileHash } = await generateSignedOfferPdf({
+      version,
+      candidateName: `${row.application.firstName} ${row.application.lastName}`,
+      candidateEmail: row.application.email,
+      candidateAddress: [row.application.address, [row.application.city, row.application.state, row.application.zipCode].filter(Boolean).join(", ")].filter(Boolean).join("\n") || null,
+      offerReference: offerReferenceFor(row.offer, version),
+      signature: {
+        candidateLegalName: parsed.data.legalName,
+        candidateEmail: row.application.email,
+        signatureValue: parsed.data.signature,
+        signedAt,
+        consentedAt: signedAt,
+        consentText: ESIGN_CONSENT_TEXT,
+        verificationMethod: "EMAIL_OTP",
+        offerVersionNumber: version.versionNumber,
+        offerId: row.offer.id,
+      },
+    });
+    // Recorded only against a signature row that has no document yet, so a
+    // retry can never replace the hash of an already-stored signed document.
+    await db.transaction(async tx => {
+      await tx.update(offerSignatures)
+        .set({ signedPdfPath: path, documentHash })
+        .where(and(eq(offerSignatures.offerId, row.offer.id), isNull(offerSignatures.signedPdfPath)));
+      await tx.insert(auditLogs).values({
+        adminId: null, action: "SIGNED_PDF_GENERATED", entityType: "offer", entityId: row.offer.id,
+        metadata: { applicationId: row.application.id, versionId: version.id, fileHash },
+      });
+    });
+  } catch (err) {
+    // Never surfaced to the candidate: their acceptance succeeded.
+    console.error("[offers] signed PDF generation failed", {
+      offerId: row.offer.id,
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+
   revalidatePath(`/offer/${token}`);
   revalidatePath(`/admin/applications/${row.application.id}`);
   revalidatePath("/admin", "layout");

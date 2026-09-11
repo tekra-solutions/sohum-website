@@ -136,3 +136,76 @@ describe("offer security regressions", () => {
     expect(offerVersionInputSchema.safeParse({ ...values, annualSalaryCents: "21474836.48" }).success).toBe(false);
   });
 });
+
+describe("electronic signature", () => {
+  const consentText = "I consent to use an electronic signature.";
+  const signedAt = new Date("2026-09-11T15:42:00Z");
+  const version = {
+    id: "11111111-1111-4111-8111-111111111111",
+    offerId: "22222222-2222-4222-8222-222222222222",
+    versionNumber: 2, jobTitle: "Principal Quality Engineer", department: "Engineering",
+    location: "Kansas City, MO", employmentType: "FULL_TIME" as const, remoteType: "HYBRID" as const,
+    hiringManagerName: "Alex Rivera", reportsTo: "Alex Rivera, VP Engineering",
+    startDate: new Date("2026-10-05T00:00:00Z"), expirationDate: new Date("2026-09-25T00:00:00Z"),
+    annualSalaryCents: 14500000, hourlyRateCents: null, bonusCents: null, signOnBonusCents: 500000,
+    otherCompensation: null, benefitsSummary: "Medical, dental and vision.", ptoSummary: "20 days.",
+    workLocation: "Overland Park, KS", additionalTerms: null,
+    templateBodyHtml: "<p>We are pleased to offer you this position.</p>",
+    templateTermsHtml: "<h3>Benefits</h3><p>Per the employee handbook.</p>",
+    templateAcknowledgementsHtml: "<p>You acknowledge you have read these terms.</p>",
+    renderedHtml: "", pdfStoragePath: null,
+    createdBy: "33333333-3333-4333-8333-333333333333", createdAt: new Date("2026-09-01T00:00:00Z"),
+  };
+  const input = (overrides: Record<string, unknown> = {}) => ({
+    version, candidateName: "Ada Lovelace", candidateEmail: "ada@example.com",
+    candidateAddress: "120 Analytical Way", offerReference: "OFFER-2026-2222-V2",
+    signature: {
+      candidateLegalName: "Ada Lovelace", candidateEmail: "ada@example.com",
+      signatureValue: "Ada Lovelace", signedAt, consentedAt: signedAt, consentText,
+      verificationMethod: "EMAIL_OTP", offerVersionNumber: 2, offerId: version.offerId,
+      documentHash: null,
+    },
+    ...overrides,
+  });
+
+  it("renders the signature, consent and acceptance record into the signed document", async () => {
+    const { renderSignedOfferHtml } = await import("@/lib/offers/signed-document");
+    const html = renderSignedOfferHtml(input() as never);
+    expect(html).toContain("Electronic acceptance record");
+    expect(html).toContain("Ada Lovelace");
+    expect(html).toContain(consentText);
+    expect(html).toContain("One-time code sent to the candidate&#39;s email on file");
+    // The document must never carry a token or session value.
+    expect(html).not.toMatch(/secureToken|tokenHash|sohum_offer_session/);
+  });
+
+  it("derives a content hash that is reproducible and changes when terms change", async () => {
+    const { renderSignedOfferHtml, hashDocument } = await import("@/lib/offers/signed-document");
+    const hash = (i: unknown) => hashDocument(Buffer.from(renderSignedOfferHtml(i as never), "utf8"));
+    // Same frozen row + same signature => same hash, which is what makes the
+    // value printed in the document verifiable after the fact.
+    expect(hash(input())).toBe(hash(input()));
+    // Altered compensation must not keep the signed document's hash.
+    expect(hash(input({ version: { ...version, annualSalaryCents: 20000000 } }))).not.toBe(hash(input()));
+  });
+
+  it("never reuses a signed document path, so an accepted PDF cannot be overwritten", async () => {
+    const { buildSignedOfferPdfPath } = await import("@/lib/offers/signed-document");
+    const a = buildSignedOfferPdfPath(version.offerId, 2);
+    const b = buildSignedOfferPdfPath(version.offerId, 2);
+    expect(a).not.toBe(b);
+    expect(a.startsWith(`offers/${version.offerId}/v2/`)).toBe(true);
+  });
+
+  it("requires consent and a signature matching the legal name", async () => {
+    const { acceptSchema } = await import("@/lib/offers/validation");
+    const base = { legalName: "Ada Lovelace", confirmed: "1", esignConsent: "1", signature: "Ada Lovelace" };
+    expect(acceptSchema.safeParse(base).success).toBe(true);
+    // Case and spacing differences are tolerated; a different name is not.
+    expect(acceptSchema.safeParse({ ...base, signature: "  ada   lovelace " }).success).toBe(true);
+    expect(acceptSchema.safeParse({ ...base, signature: "Someone Else" }).success).toBe(false);
+    // Signing cannot proceed without explicit e-signature consent.
+    expect(acceptSchema.safeParse({ ...base, esignConsent: "0" }).success).toBe(false);
+    expect(acceptSchema.safeParse({ ...base, confirmed: "0" }).success).toBe(false);
+  });
+});
