@@ -1,0 +1,73 @@
+import { asc } from "drizzle-orm";
+import { db } from "@/db";
+import { offerTemplates } from "@/db/schema";
+import { requirePermission } from "@/lib/ats/access";
+import { saveOfferTemplateAction, seedDefaultOfferTemplatesAction } from "@/lib/offers/templates-actions";
+import { offerTemplateVariables } from "@/lib/offers/variables";
+import { WorkflowForm, WorkflowField as Field } from "@/components/admin/WorkflowForm";
+import { AdminHeader } from "@/components/admin/ui";
+
+export const dynamic = "force-dynamic";
+export const metadata = { title: "Offer letter templates" };
+
+const categoryOptions = [
+  { value: "FULL_TIME", label: "Full-Time Employee" },
+  { value: "CONTRACT", label: "Contract Employee" },
+  { value: "REMOTE", label: "Remote Employee" },
+  { value: "INTERNSHIP", label: "Internship" },
+  { value: "CUSTOM", label: "Custom" },
+];
+
+export default async function OfferTemplatesPage() {
+  await requirePermission("settings");
+  const saved = await db.select().from(offerTemplates).orderBy(asc(offerTemplates.name));
+  const rows = [...saved, { id: "", name: "", category: "CUSTOM" as const, subject: "", bodyHtml: "", isActive: true }];
+
+  return (
+    <>
+      <AdminHeader title="Offer letter templates" description="Reusable offer content, editable before every offer." />
+      <div className="space-y-5 p-5 sm:p-8">
+        <div className="rounded-[4px] border border-[#7a5c00]/30 bg-[#f0a93c]/[0.08] p-4 text-xs text-[#7a5c00]">
+          <strong>Every template requires legal review before use.</strong> This platform does not generate
+          legally approved language on its own — templates are only as sound as what your organization puts in them,
+          and every generated offer document carries its own disclaimer regardless of template content.
+        </div>
+
+        <p className="text-xs text-graphite-600">
+          Supported variables: {offerTemplateVariables.map(v => `{{${v}}}`).join(", ")}
+        </p>
+
+        {saved.length === 0 && (
+          <WorkflowForm action={seedDefaultOfferTemplatesAction} label="Load starter templates">
+            <p className="text-xs text-graphite-500">
+              Loads one placeholder template per category (Full-Time, Contract, Remote, Internship). All are
+              explicitly marked as sample content requiring legal review.
+            </p>
+          </WorkflowForm>
+        )}
+
+        {rows.map((row, index) => (
+          <details key={row.id || index} className="rounded-[4px] border border-paper-300 bg-white p-5">
+            <summary className="cursor-pointer text-sm font-medium text-ink-900">
+              {row.name || "Create template"}
+              {row.id && !row.isActive ? " · Inactive" : ""}
+            </summary>
+            <div className="mt-4 max-w-2xl">
+              <WorkflowForm action={saveOfferTemplateAction} label="Save template">
+                <input type="hidden" name="id" value={row.id} />
+                <Field name="name" label="Template name" value={row.name} required />
+                <Field name="category" label="Category" value={row.category} options={categoryOptions} />
+                <Field name="subject" label="Subject" value={row.subject} required />
+                <Field name="bodyHtml" label="Body (HTML)" value={row.bodyHtml} multiline required />
+                <Field
+                  name="isActive" label="Status" value={row.isActive ? "1" : "0"}
+                  options={[{ value: "1", label: "Active" }, { value: "0", label: "Inactive" }]}
+                />
+              </WorkflowForm>
+            </div>
+          </details>
+        ))}
+      </div>
+    </>
+  );
+}

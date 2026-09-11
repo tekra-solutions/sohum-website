@@ -22,13 +22,26 @@ export function Logo({
   showWordmark?: boolean;
   /** "dark" = for light backgrounds; "light" = for dark backgrounds. */
   tone?: "dark" | "light";
-  /** md = header/footer default; lg = generous, for the footer masthead. */
-  size?: "md" | "lg";
+  /** sm = compact rails such as the admin sidebar; md = header/footer default;
+   *  lg = generous, for the footer masthead. */
+  size?: "sm" | "md" | "lg";
 }) {
   const navy = tone === "light" ? "#8fa2c4" : "#304368";
   const wordNavy = tone === "light" ? "text-white" : "text-brand-navy";
-  const markSize = size === "lg" ? "h-[4rem] w-[4.125rem]" : "h-[3.375rem] w-[3.4375rem]";
-  const wordSize = size === "lg" ? "text-[2rem]" : "text-[1.75rem]";
+  // Stepped down on narrow screens: at full size the lockup pushed the mobile
+  // menu button past the viewport edge (41px overflow at 320px).
+  const markSize =
+    size === "sm"
+      ? "h-[2rem] w-[2.0625rem]"
+      : size === "lg"
+        ? "h-[3rem] w-[3.0625rem] sm:h-[3.5rem] sm:w-[3.625rem] lg:h-[4rem] lg:w-[4.125rem]"
+        : "h-[2.625rem] w-[2.6875rem] sm:h-[3rem] sm:w-[3.0625rem] lg:h-[3.375rem] lg:w-[3.4375rem]";
+  const wordSize =
+    size === "sm"
+      ? "text-[1.0625rem]"
+      : size === "lg"
+        ? "text-[1.375rem] sm:text-[1.625rem] lg:text-[2rem]"
+        : "text-[1.1875rem] sm:text-[1.4375rem] lg:text-[1.75rem]";
 
   return (
     <span className={`inline-flex items-center gap-3 ${className}`}>

@@ -1,0 +1,64 @@
+import { z } from "zod";
+import { validateOfferTemplate } from "./variables";
+import { employmentTypeEnum, remoteTypeEnum } from "@/db/schema";
+
+export const offerTemplateSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  category: z.enum(["FULL_TIME", "CONTRACT", "REMOTE", "INTERNSHIP", "CUSTOM"]),
+  subject: z.string().trim().min(1).max(300).refine(v => !/[\r\n]/.test(v)).refine(validateOfferTemplate, "Unknown or invalid variable"),
+  bodyHtml: z.string().trim().min(1).max(20000).refine(validateOfferTemplate, "Unknown or invalid variable"),
+  isActive: z.boolean(),
+});
+
+/**
+ * Dollars in from the form, cents out for storage — the schema does the
+ * conversion so every caller works in cents from here on.
+ */
+const dollarsToCents = z.coerce.number().nonnegative().max(100_000_000)
+  .transform(dollars => Math.round(dollars * 100))
+  .optional();
+
+export const offerVersionInputSchema = z.object({
+  jobTitle: z.string().trim().min(1).max(200),
+  department: z.string().trim().min(1).max(120),
+  location: z.string().trim().min(1).max(160),
+  employmentType: z.enum(employmentTypeEnum.enumValues),
+  remoteType: z.enum(remoteTypeEnum.enumValues),
+  hiringManagerName: z.string().trim().max(160).optional(),
+  reportsTo: z.string().trim().max(160).optional(),
+
+  startDate: z.coerce.date(),
+  expirationDate: z.coerce.date(),
+  annualSalaryCents: dollarsToCents,
+  hourlyRateCents: dollarsToCents,
+  bonusCents: dollarsToCents,
+  signOnBonusCents: dollarsToCents,
+  otherCompensation: z.string().trim().max(2000).optional(),
+  benefitsSummary: z.string().trim().max(4000).optional(),
+  ptoSummary: z.string().trim().max(2000).optional(),
+  workLocation: z.string().trim().max(300).optional(),
+  additionalTerms: z.string().trim().max(4000).optional(),
+
+  templateId: z.uuid().optional(),
+}).refine(v => v.expirationDate > new Date(0) && v.expirationDate <= v.startDate, {
+  message: "The offer must expire on or before the start date — a candidate cannot still be deciding after starting.",
+  path: ["expirationDate"],
+});
+
+export const otpVerifySchema = z.object({
+  code: z.string().trim().regex(/^\d{6}$/, "Enter the 6-digit code"),
+});
+
+export const declineReasons = [
+  "ACCEPTED_ANOTHER", "COMPENSATION", "LOCATION", "TIMING", "OTHER",
+] as const;
+
+export const declineSchema = z.object({
+  reason: z.enum(declineReasons).optional(),
+  note: z.string().trim().max(1000).optional(),
+});
+
+export const acceptSchema = z.object({
+  legalName: z.string().trim().min(1).max(200),
+  confirmed: z.literal("1", { message: "You must confirm acceptance to continue" }),
+});

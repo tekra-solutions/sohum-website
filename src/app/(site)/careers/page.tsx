@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
 import { ArrowUpRight, GraduationCap, HeartHandshake, MapPin, Users2 } from "lucide-react";
+import { JobCard } from "@/components/careers/JobCard";
+import { JobFilters } from "@/components/careers/JobFilters";
+import { jobFacets, listPublishedJobs } from "@/lib/services/jobs";
 import { PageHero } from "@/components/PageHero";
 import { CtaBand } from "@/components/CtaBand";
 import { Reveal } from "@/components/Reveal";
-import { Badge, Eyebrow, SectionHeading } from "@/components/ui";
+import { Eyebrow, SectionHeading } from "@/components/ui";
 import { contact, site } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -18,18 +21,6 @@ export const metadata: Metadata = {
   },
 };
 
-/**
- * Roles currently listed by the company. Kept as data so the page renders an
- * honest empty state if the list is cleared, rather than stale postings.
- */
-const openRoles = [
-  { title: "Software Engineer", discipline: "Engineering", location: "Overland Park, KS" },
-  { title: "Senior Software Developer", discipline: "Engineering", location: "Overland Park, KS" },
-  { title: "Software Developer", discipline: "Engineering", location: "Kansas City, MO" },
-  { title: "Software Test Engineer", discipline: "Quality Engineering", location: "Kansas City, MO" },
-  { title: "Business Analyst", discipline: "Program Delivery", location: "Kansas City, MO" },
-];
-
 const benefits = [
   { group: "Health", items: ["Health insurance", "Dental insurance", "Vision insurance"] },
   {
@@ -40,7 +31,31 @@ const benefits = [
   { group: "Growth", items: ["Tuition reimbursement", "401(k) retirement plan"] },
 ];
 
-export default function CareersPage() {
+/** Job listings are live data, so this page must not be statically cached. */
+export const dynamic = "force-dynamic";
+
+export default async function CareersPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const sp = await searchParams;
+  const one = (k: string) => {
+    const v = sp[k];
+    return Array.isArray(v) ? v[0] : v;
+  };
+
+  const [openRoles, facets] = await Promise.all([
+    listPublishedJobs({
+      q: one("q"),
+      department: one("department"),
+      location: one("location"),
+      employmentType: one("employmentType"),
+      experienceLevel: one("experienceLevel"),
+    }),
+    jobFacets(),
+  ]);
+
   return (
     <>
       <PageHero
@@ -147,11 +162,15 @@ export default function CareersPage() {
             />
           </Reveal>
 
-          <div className="mt-12">
+          <Reveal delay={60} className="mt-10">
+            <JobFilters facets={facets} total={openRoles.length} />
+          </Reveal>
+
+          <div className="mt-6">
             {openRoles.length === 0 ? (
               <div className="rounded-[4px] border border-dashed border-paper-300 bg-white p-10 text-center">
                 <p className="text-[1.0625rem] text-ink-900">
-                  No positions are posted right now.
+                  No positions match your search.
                 </p>
                 <p className="mt-2 text-[0.9375rem] text-graphite-600">
                   We still welcome résumés at{" "}
@@ -162,37 +181,10 @@ export default function CareersPage() {
                 </p>
               </div>
             ) : (
-              <ul className="grid gap-px overflow-hidden rounded-[4px] border border-paper-300 bg-paper-300">
-                {openRoles.map((role, i) => (
-                  <Reveal key={role.title + role.location} as="li" delay={i * 50} className="bg-white">
-                    <div>
-                      <a
-                        href={`mailto:${contact.emailHr}?subject=${encodeURIComponent(
-                          `Application — ${role.title} (${role.location})`,
-                        )}`}
-                        className="group/role flex flex-col gap-4 p-6 transition-colors hover:bg-paper-50 sm:flex-row sm:items-center sm:justify-between sm:p-7"
-                      >
-                        <div>
-                          <h3 className="text-[1.125rem] font-medium text-ink-900">
-                            {role.title}
-                          </h3>
-                          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
-                            <Badge>{role.discipline}</Badge>
-                            <span className="flex items-center gap-1.5 text-[0.875rem] text-graphite-700">
-                              <MapPin className="size-3.5 text-graphite-400" aria-hidden="true" />
-                              {role.location}
-                            </span>
-                          </div>
-                        </div>
-                        <span className="inline-flex shrink-0 items-center gap-2 text-[0.875rem] font-medium text-ink-900">
-                          Apply
-                          <ArrowUpRight
-                            className="size-4 transition-transform duration-300 group-hover/role:translate-x-0.5 group-hover/role:-translate-y-0.5"
-                            aria-hidden="true"
-                          />
-                        </span>
-                      </a>
-                    </div>
+              <ul className="grid gap-px overflow-hidden rounded-[4px] border border-paper-300 bg-paper-300 md:grid-cols-2">
+                {openRoles.map((job, i) => (
+                  <Reveal key={job.id} as="li" delay={i * 40} className="bg-white">
+                    <JobCard job={job} />
                   </Reveal>
                 ))}
               </ul>
