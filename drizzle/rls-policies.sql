@@ -49,6 +49,9 @@ ALTER TABLE offer_templates       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE offers                ENABLE ROW LEVEL SECURITY;
 ALTER TABLE offer_versions        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE offer_otp_codes       ENABLE ROW LEVEL SECURITY;
+-- The electronic acceptance record: signer identity, consent and document
+-- hash. Evidentiary data, service-role only like every other table here.
+ALTER TABLE offer_signatures      ENABLE ROW LEVEL SECURITY;
 
 -- Default deny: with RLS enabled and no permissive policy, anon and
 -- authenticated roles can do nothing. The service role bypasses RLS entirely,
