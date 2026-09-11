@@ -97,7 +97,7 @@ export default async function ApplicationDetailPage({
           {/* ---------------------------------------------------- main column */}
           <div className="space-y-5">
             <section className="rounded-[4px] border border-paper-300 bg-white p-6">
-              <h2 className="text-[1.0625rem] font-medium text-ink-900">Applicant</h2>
+              <h2 className="text-[1.0625rem] font-medium text-ink-900">Candidate</h2>
               <dl className="mt-4">
                 <Row label="Name">{name}</Row>
                 <Row label="Email">

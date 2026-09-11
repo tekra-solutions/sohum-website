@@ -29,7 +29,8 @@ export async function saveOfferTemplateAction(_: ActionState, form: FormData): P
  * silently on boot — nobody should mistake sample content for reviewed
  * legal language they didn't ask to load.
  */
-export async function seedDefaultOfferTemplatesAction(_: ActionState): Promise<ActionState> {
+export async function seedDefaultOfferTemplatesAction(previous: ActionState): Promise<ActionState> {
+  void previous; // Required by the useActionState/WorkflowForm contract.
   const admin = await requirePermission("settings");
   const existing = await db.select({ name: offerTemplates.name }).from(offerTemplates);
   const existingNames = new Set(existing.map(t => t.name));

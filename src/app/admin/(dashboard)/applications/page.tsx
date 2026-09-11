@@ -140,7 +140,7 @@ export default async function ApplicationsPage({
                 <table className="w-full min-w-[54rem] border-collapse text-left">
                   <thead>
                     <tr className="border-b border-paper-300">
-                      {["Applicant","Job","Location","Applied","Status"].map((h) => (
+                      {["Candidate","Job","Location","Applied","Status"].map((h) => (
                         <th key={h} scope="col" className="px-4 py-3 text-[0.625rem] font-semibold uppercase tracking-[0.08em] text-graphite-500">{h}</th>
                       ))}
                     </tr>
