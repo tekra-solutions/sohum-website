@@ -8,7 +8,7 @@ import { offers, offerVersions, offerTemplates, applications, admins, notificati
 import { candidateScope, requireApplication } from "@/lib/ats/access";
 import { requireOffer } from "./access";
 import type { AuditAction } from "@/lib/audit";
-import { offerVersionInputSchema } from "./validation";
+import { offerVersionInputSchema, extendOfferSchema } from "./validation";
 import {
   canEditOffer, canSubmitForApproval, canApprove, canRejectOrRequestChanges,
   canSend, canWithdraw, offerEditConsequence, offerDeadline, type OfferStatus,
@@ -357,4 +357,76 @@ export async function withdrawOfferAction(_: OfferActionState, form: FormData): 
   }
   refresh(offerId, application.id);
   return { success: "Offer withdrawn." };
+}
+
+/**
+ * Extends a live offer's expiration date.
+ *
+ * Deliberately not an edit: it changes no term the candidate agreed to
+ * consider, so it does not create a new version, does not reset approval, and
+ * does not rotate the token — the link the candidate already has keeps
+ * working, which is the point. Only the deadline moves, and it is audited
+ * with both the old and new dates.
+ */
+export async function extendOfferAction(_: OfferActionState, form: FormData): Promise<OfferActionState> {
+  const offerId = String(form.get("offerId") ?? "");
+  const { admin, offer, application } = await requireOffer(offerId, "manage");
+  if (!["SENT", "VIEWED", "APPROVED", "EXPIRED"].includes(offer.status)) {
+    return { error: "Only a live or recently expired offer can be extended." };
+  }
+
+  const parsed = extendOfferSchema.safeParse(Object.fromEntries(form));
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Choose a valid new expiration date." };
+  const { expirationDate } = parsed.data;
+
+  try {
+    await db.transaction(async tx => {
+      const { offer: locked, app } = await lockOffer(tx, offerId, admin, application.id);
+      if (!locked || !locked.currentVersionId) throw new Error("This offer cannot be extended.");
+      if (!["SENT", "VIEWED", "APPROVED", "EXPIRED"].includes(locked.status)) {
+        throw new Error("Only a live or recently expired offer can be extended.");
+      }
+      if (app.status !== "OFFER" || app.archivedAt) throw new Error("Candidate must be active and at the Offer stage.");
+
+      const [current] = await tx.select().from(offerVersions).where(eq(offerVersions.id, locked.currentVersionId));
+      if (!current) throw new Error("This offer has no content to extend.");
+      if (expirationDate <= current.expirationDate) {
+        throw new Error("The new expiration date must be later than the current one.");
+      }
+
+      // offerVersions is insert-only and an accepted version is immutable, so
+      // the extension writes a new version carrying identical terms with only
+      // the date changed. Status and token are deliberately left alone.
+      const [next] = await tx.insert(offerVersions).values({
+        ...current,
+        id: undefined,
+        versionNumber: current.versionNumber + 1,
+        expirationDate,
+        createdBy: admin.id,
+        createdAt: undefined,
+        pdfStoragePath: null,
+      } as typeof offerVersions.$inferInsert).returning();
+
+      const deadline = offerDeadline(expirationDate);
+      await tx.update(offers).set({
+        currentVersionId: next!.id,
+        // A previously expired offer becomes live again at the status it can
+        // act from; a live one keeps the status it already had.
+        status: locked.status === "EXPIRED" ? "SENT" : locked.status,
+        tokenExpiresAt: new Date(deadline.getTime() + 5 * 86_400_000),
+        updatedAt: new Date(),
+      }).where(eq(offers.id, offerId));
+
+      await record(tx, admin.id, offerId, "OFFER_EXTENDED", {
+        applicationId: application.id,
+        from: current.expirationDate.toISOString().slice(0, 10),
+        to: expirationDate.toISOString().slice(0, 10),
+        versionNumber: next!.versionNumber,
+      });
+    });
+  } catch (err) {
+    return { error: err instanceof Error && !("query" in err) ? err.message : "Could not extend this offer. Please refresh and try again." };
+  }
+  refresh(offerId, application.id);
+  return { success: "Offer expiration extended." };
 }

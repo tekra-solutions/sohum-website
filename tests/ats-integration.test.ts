@@ -676,6 +676,83 @@ describe.skipIf(!enabled)("job reference numbers (local only)", () => {
   });
 });
 
+describe.skipIf(!enabled)("extending an offer (local only)", () => {
+  const form = (values: Record<string, string>) => {
+    const f = new FormData();
+    for (const [k, v] of Object.entries(values)) f.set(k, v);
+    return f;
+  };
+
+  it("moves only the deadline: same terms, same token, new version, audited", async () => {
+    const superAdminId = "10000000-0000-4000-8000-000000000001";
+    state.id = superAdminId; state.role = "SUPER_ADMIN";
+    const { db } = await import("@/db");
+    const { offers, offerVersions, applications, jobs, auditLogs } = await import("@/db/schema");
+    const { eq, and } = await import("drizzle-orm");
+    const { hashOfferToken } = await import("@/lib/offers/tokens");
+
+    const [job] = await db.select().from(jobs).limit(1);
+    const [app] = await db.insert(applications).values({
+      reference: `LOCAL-EXT-${crypto.randomUUID().slice(0, 8)}`, jobId: job.id,
+      firstName: "Extend", lastName: "Case", email: "extend@sohum.invalid", status: "OFFER",
+    }).returning();
+    const token = `ext-${crypto.randomUUID()}`;
+    const tokenHash = hashOfferToken(token);
+    const [offer] = await db.insert(offers).values({
+      applicationId: app.id, createdBy: superAdminId, status: "SENT",
+      secureTokenHash: tokenHash, tokenExpiresAt: new Date("2026-09-30"),
+    }).returning();
+    const [v1] = await db.insert(offerVersions).values({
+      offerId: offer.id, versionNumber: 1, createdBy: superAdminId,
+      jobTitle: "Principal Engineer", department: "Engineering", location: "Kansas City",
+      employmentType: "FULL_TIME", remoteType: "HYBRID",
+      startDate: new Date("2026-10-05"), expirationDate: new Date("2026-09-25"),
+      annualSalaryCents: 14500000, benefitsSummary: "Medical, dental, vision.",
+      renderedHtml: "<html>v1</html>",
+    }).returning();
+    await db.update(offers).set({ currentVersionId: v1.id }).where(eq(offers.id, offer.id));
+
+    const { extendOfferAction } = await import("@/lib/offers/actions");
+    // An earlier date is refused.
+    expect((await extendOfferAction({}, form({ offerId: offer.id, expirationDate: "2026-09-20" }))).error).toBeDefined();
+    expect((await extendOfferAction({}, form({ offerId: offer.id, expirationDate: "2026-10-20" }))).success).toBeDefined();
+
+    const [after] = await db.select().from(offers).where(eq(offers.id, offer.id));
+    const [v2] = await db.select().from(offerVersions)
+      .where(and(eq(offerVersions.offerId, offer.id), eq(offerVersions.versionNumber, 2)));
+
+    // The new version carries the previous terms verbatim — only the date moved.
+    expect(v2.expirationDate.toISOString().slice(0, 10)).toBe("2026-10-20");
+    expect(v2.jobTitle).toBe(v1.jobTitle);
+    expect(v2.annualSalaryCents).toBe(v1.annualSalaryCents);
+    expect(v2.benefitsSummary).toBe(v1.benefitsSummary);
+    expect(v2.startDate.toISOString()).toBe(v1.startDate.toISOString());
+    expect(v2.id).not.toBe(v1.id);
+    expect(v2.pdfStoragePath).toBeNull();
+    expect(after.currentVersionId).toBe(v2.id);
+    // Extending must not reset approval or invalidate the candidate's link.
+    expect(after.status).toBe("SENT");
+    expect(after.secureTokenHash).toBe(tokenHash);
+    expect(after.tokenExpiresAt!.getTime()).toBeGreaterThan(new Date("2026-10-20").getTime());
+
+    const events = await db.select().from(auditLogs).where(eq(auditLogs.entityId, offer.id));
+    const extended = events.find(e => e.action === "OFFER_EXTENDED");
+    expect(extended).toBeDefined();
+    expect(JSON.stringify(extended!.metadata)).toContain("2026-10-20");
+  });
+
+  it("refuses to extend an accepted offer", async () => {
+    const superAdminId = "10000000-0000-4000-8000-000000000001";
+    state.id = superAdminId; state.role = "SUPER_ADMIN";
+    const { db } = await import("@/db");
+    const { offers } = await import("@/db/schema");
+    const { eq } = await import("drizzle-orm");
+    const { extendOfferAction } = await import("@/lib/offers/actions");
+    const [accepted] = await db.select().from(offers).where(eq(offers.status, "ACCEPTED"));
+    expect((await extendOfferAction({}, form({ offerId: accepted.id, expirationDate: "2099-01-01" }))).error).toBeDefined();
+  });
+});
+
 describe.skipIf(!enabled)("offer signing attack surface (local only)", () => {
   const form = (values: Record<string, string>) => {
     const f = new FormData();

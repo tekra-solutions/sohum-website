@@ -58,6 +58,34 @@ export const offerStatusLabel: Record<string, string> = {
   WITHDRAWN: "Withdrawn",
 };
 
+/**
+ * Human labels for offer lifecycle audit events. The generic fallback
+ * ("OFFER_LINK_OPENED" -> "link opened") reads poorly for the signing
+ * events, which are the ones a reviewer most needs to understand.
+ */
+export const offerEventLabel: Record<string, string> = {
+  OFFER_CREATED: "Offer created",
+  OFFER_UPDATED: "Offer updated",
+  OFFER_SUBMITTED_FOR_APPROVAL: "Submitted for approval",
+  OFFER_APPROVED: "Approved",
+  OFFER_REJECTED: "Rejected",
+  OFFER_PDF_GENERATED: "Offer PDF generated",
+  OFFER_SENT: "Sent to candidate",
+  OFFER_LINK_OPENED: "Candidate opened the offer link",
+  IDENTITY_VERIFICATION_SENT: "Verification code sent",
+  IDENTITY_VERIFIED: "Identity verified",
+  OFFER_VIEWED: "Offer viewed",
+  ESIGN_CONSENT_ACCEPTED: "Consented to electronic signature",
+  OFFER_SIGNED: "Signed by candidate",
+  OFFER_ACCEPTED: "Offer accepted",
+  SIGNED_PDF_GENERATED: "Signed PDF generated",
+  OFFER_DECLINED: "Declined by candidate",
+  OFFER_WITHDRAWN: "Withdrawn",
+  OFFER_EXPIRED: "Expired",
+  OFFER_EXTENDED: "Expiration extended",
+  OFFER_EMAIL_FAILED: "Offer email failed to send",
+};
+
 /** "2 hours ago", "yesterday", "3 days ago" — for dashboard density. */
 export function relativeTime(date: Date | string) {
   const d = typeof date === "string" ? new Date(date) : date;

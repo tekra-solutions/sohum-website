@@ -83,3 +83,8 @@ export const acceptSchema = z.object({
 function normalizeName(value: string) {
   return value.trim().toLowerCase().replace(/\s+/g, " ");
 }
+
+/** Extending an offer moves only its expiration date. */
+export const extendOfferSchema = z.object({
+  expirationDate: z.coerce.date(),
+});
