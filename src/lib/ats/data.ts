@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { admins, applications, auditLogs, candidateNotes, candidateStars, emailEvents, emailTemplates, employees, interviewFeedback, interviews, jobs, notifications, recruitingSettings, reminders } from "@/db/schema";
 import { requireAdmin } from "@/lib/auth/session";
 import { candidateScope, requireApplication } from "./access";
+import { permits } from "./policy";
 import { offerForApplication } from "@/lib/offers/data";
 /** Whether jobs must be approved before they can be published. Read by the job
  * screens so the lifecycle buttons match what setJobStatusAction will allow. */
@@ -29,7 +30,9 @@ export async function candidateWorkspace(id: string) {
     db.select({ id: employees.id }).from(employees).where(eq(employees.sourceApplicationId, id)).limit(1),
     db.select({ feedback: interviewFeedback, author: admins.name }).from(interviewFeedback).innerJoin(interviews, eq(interviewFeedback.interviewId, interviews.id)).leftJoin(admins, eq(interviewFeedback.createdBy, admins.id)).where(eq(interviews.applicationId, id)).orderBy(desc(interviewFeedback.createdAt)).limit(100),
     db.select().from(reminders).where(and(eq(reminders.applicationId, id), eq(reminders.adminId, admin.id))).orderBy(asc(reminders.dueAt)).limit(50),
-    offerForApplication(id),
+    // Compensation is only fetched for roles permitted to see it — a
+    // hiring manager's payload never contains offer data at all.
+    permits(admin.role, "offers") ? offerForApplication(id) : Promise.resolve(null),
   ]);
   return { notes, meetings, activity, messages, templates, starred: stars.length > 0, duplicates, staff, employeeId: linkedEmployees[0]?.id, feedback, tasks, offer };
 }

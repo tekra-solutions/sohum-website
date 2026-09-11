@@ -6,12 +6,13 @@ import { dashboardStats, recentApplications } from "@/lib/services/applications"
 import { offerDashboardMetrics } from "@/lib/offers/data";
 import { applicationStatusLabel, relativeTime } from "@/lib/format";
 import { requireAdmin } from "@/lib/auth/session";
+import { permits } from "@/lib/ats/policy";
 import { isDatabaseConfigured } from "@/db";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminDashboard() {
-  await requireAdmin();
+  const admin = await requireAdmin();
 
   if (!isDatabaseConfigured()) {
     return (
@@ -27,7 +28,15 @@ export default async function AdminDashboard() {
     );
   }
 
-  const [stats, recent, offerMetrics] = await Promise.all([dashboardStats(), recentApplications(6), offerDashboardMetrics()]);
+  // Offer metrics carry compensation signal, so they are only loaded for
+  // roles holding the "offers" permission — a hiring manager sees the rest
+  // of the dashboard without them.
+  const canSeeOffers = permits(admin.role, "offers");
+  const [stats, recent, offerMetrics] = await Promise.all([
+    dashboardStats(),
+    recentApplications(6),
+    canSeeOffers ? offerDashboardMetrics() : Promise.resolve(null),
+  ]);
 
   return (
     <>
@@ -65,7 +74,7 @@ export default async function AdminDashboard() {
         </section>
 
         {/* ---- Offer metrics ---- */}
-        <section aria-labelledby="offers">
+        {offerMetrics && <section aria-labelledby="offers">
           <h2 id="offers" className="text-[0.9375rem] font-medium text-ink-900">
             Offers
           </h2>
@@ -76,7 +85,7 @@ export default async function AdminDashboard() {
             <StatCard label="Accepted" value={offerMetrics.accepted} href="/admin/offers?status=ACCEPTED" tone="accent" />
             <StatCard label="Declined" value={offerMetrics.declined} href="/admin/offers?status=DECLINED" />
           </div>
-        </section>
+        </section>}
 
         <RecruitingActivity />
 
@@ -147,7 +156,7 @@ export default async function AdminDashboard() {
               { href: "/admin/jobs/new", Icon: Plus, title: "Create a job", body: "Draft a new position and publish when ready." },
               { href: "/admin/jobs", Icon: Briefcase, title: "Manage jobs", body: `${stats.publishedJobs} published · ${stats.draftJobs} draft` },
               { href: "/admin/applications", Icon: Users, title: "Review applications", body: `${stats.newApplications} new to triage` },
-              { href: "/admin/offers", Icon: FileText, title: "Manage offers", body: `${offerMetrics.pendingApproval} pending approval` },
+              ...(offerMetrics ? [{ href: "/admin/offers", Icon: FileText, title: "Manage offers", body: `${offerMetrics.pendingApproval} pending approval` }] : []),
             ].map((a) => (
               <Link
                 key={a.href}

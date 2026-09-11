@@ -2,8 +2,7 @@ import "server-only";
 import { and, desc, eq, gte, ilike, lte, or, notInArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { offers, offerVersions, applications, jobs, admins } from "@/db/schema";
-import { requireAdmin } from "@/lib/auth/session";
-import { candidateScope } from "@/lib/ats/access";
+import { candidateScope, requirePermission } from "@/lib/ats/access";
 import { positivePage } from "@/lib/ats/policy";
 import { hashOfferToken } from "./tokens";
 
@@ -56,7 +55,7 @@ const offerStatusValues = [
 ] as const;
 
 export async function listOffers(f: OfferListFilters) {
-  const admin = await requireAdmin();
+  const admin = await requirePermission("offers");
   const page = positivePage(f.page);
   const pageSize = 25;
 
@@ -109,7 +108,7 @@ export async function listOffers(f: OfferListFilters) {
 /** Whether editing an offer would reset its approval — used by callers that
  * only need the count, not the rows (dashboard metrics, reminders). */
 export async function offerDashboardMetrics() {
-  const admin = await requireAdmin();
+  const admin = await requirePermission("offers");
   const [row] = await db
     .select({
       pendingApproval: sql<number>`count(*) filter (where ${offers.status} = 'PENDING_APPROVAL')::int`,

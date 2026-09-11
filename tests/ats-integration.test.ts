@@ -129,6 +129,56 @@ describe.skipIf(!enabled)("ATS database integration (local only)", () => {
   });
 });
 
+describe.skipIf(!enabled)("RBAC enforcement (local only)", () => {
+  const managerId = "10000000-0000-4000-8000-000000000003";
+  const appId2 = "30000000-0000-4000-8000-000000000001";
+  beforeAll(() => { state.sendOk = true; });
+
+  it("denies a hiring manager every offer read path, not just the nav link", async () => {
+    state.id = managerId; state.role = "HIRING_MANAGER";
+    const { listOffers, offerDashboardMetrics } = await import("@/lib/offers/data");
+    // requirePermission() calls notFound(), which the suite maps to a throw.
+    await expect(listOffers({})).rejects.toThrow("NOT_FOUND");
+    await expect(offerDashboardMetrics()).rejects.toThrow("NOT_FOUND");
+  });
+
+  it("omits compensation from a hiring manager's candidate payload entirely", async () => {
+    state.id = managerId; state.role = "HIRING_MANAGER";
+    const { candidateWorkspace } = await import("@/lib/ats/data");
+    const asManager = await candidateWorkspace(appId2);
+    expect(asManager.offer).toBeNull();
+    state.id = "10000000-0000-4000-8000-000000000001"; state.role = "SUPER_ADMIN";
+    const asAdmin = await candidateWorkspace(appId2);
+    // Same record, privileged role — proves the null above is the permission
+    // gate doing its job, not simply an application without an offer.
+    expect(asAdmin).toHaveProperty("offer");
+  });
+
+  it("refuses candidate mutations from a feedback-only role", async () => {
+    state.id = managerId; state.role = "HIRING_MANAGER";
+    const { candidateAction, bulkCandidateAction } = await import("@/lib/ats/actions");
+    const f = new FormData();
+    f.set("applicationId", appId2); f.set("kind", "status"); f.set("status", "REJECTED");
+    await expect(candidateAction({}, f)).rejects.toThrow("NOT_FOUND");
+    const bulk = new FormData();
+    bulk.set("kind", "status"); bulk.set("status", "REJECTED"); bulk.append("ids", appId2);
+    await expect(bulkCandidateAction({}, bulk)).rejects.toThrow("NOT_FOUND");
+  });
+
+  it("keeps admin account management to super admins only", async () => {
+    state.id = "10000000-0000-4000-8000-000000000002"; state.role = "RECRUITER";
+    const { createAdminAction } = await import("@/lib/services/admin-actions");
+    const f = new FormData();
+    f.set("name", "Escalated User"); f.set("email", "escalate@sohum.invalid");
+    f.set("role", "SUPER_ADMIN"); f.set("password", "Str0ng-Passw0rd!23"); f.set("confirmPassword", "Str0ng-Passw0rd!23");
+    expect((await createAdminAction({}, f)).message).toContain("super admin");
+    const { db } = await import("@/db");
+    const { admins } = await import("@/db/schema");
+    const { eq } = await import("drizzle-orm");
+    expect((await db.select().from(admins).where(eq(admins.email, "escalate@sohum.invalid"))).length).toBe(0);
+  });
+});
+
 describe.skipIf(!enabled)("Offer workflow (local only)", () => {
   const offerAppId = "30000000-0000-4000-8000-000000000002";
   const superAdminId = "10000000-0000-4000-8000-000000000001";

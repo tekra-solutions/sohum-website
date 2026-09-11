@@ -7,7 +7,7 @@ import { offerStatuses } from "@/lib/offers/policy";
 import { offerStatusLabel, formatCurrency, shortDate } from "@/lib/format";
 import { AdminHeader, EmptyState, StatusPill, adminButtonSecondary } from "@/components/admin/ui";
 import { control } from "@/components/admin/form";
-import { requireAdmin } from "@/lib/auth/session";
+import { requirePermission } from "@/lib/ats/access";
 import { isDatabaseConfigured } from "@/db";
 
 export const dynamic = "force-dynamic";
@@ -18,7 +18,7 @@ export default async function OffersPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  await requireAdmin();
+  await requirePermission("offers");
   const sp = await searchParams;
   const one = (k: string) => {
     const v = sp[k];

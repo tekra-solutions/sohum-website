@@ -18,7 +18,7 @@ export const metadata = { title: "Offer" };
 
 export default async function OfferDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { admin, offer, application } = await requireOffer(id);
+  const { admin, offer, application } = await requireOffer(id, "offers");
 
   const [version, activity, templates] = await Promise.all([
     offer.currentVersionId

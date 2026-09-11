@@ -13,7 +13,7 @@ import { requireOffer } from "@/lib/offers/access";
  */
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { offer } = await requireOffer(id);
+  const { offer } = await requireOffer(id, "offers");
   if (!offer.currentVersionId) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const [version] = await db.select().from(offerVersions).where(eq(offerVersions.id, offer.currentVersionId));
   if (!version) return NextResponse.json({ error: "Not found" }, { status: 404 });

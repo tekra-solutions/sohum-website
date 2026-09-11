@@ -36,7 +36,7 @@ export function AdminNav({ adminName, role }: { adminName: string; role: string 
 
   const links = (
     <ul className="space-y-1">
-      {items.filter(item => (item.href !== "/admin/employees" || permits(role, "employees")) && (item.href !== "/admin/reports" || permits(role, "reports")) && (item.href !== "/admin/audit" || permits(role, "audit"))).map(({ href, label, Icon, exact }) => {
+      {items.filter(item => (item.href !== "/admin/employees" || permits(role, "employees")) && (item.href !== "/admin/reports" || permits(role, "reports")) && (item.href !== "/admin/audit" || permits(role, "audit")) && (item.href !== "/admin/offers" || permits(role, "offers"))).map(({ href, label, Icon, exact }) => {
         const active = isActive(href, exact);
         return (
           <li key={href}>

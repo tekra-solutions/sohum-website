@@ -2,11 +2,17 @@ export const stages = ["NEW", "SCREENING", "SHORTLISTED", "INTERVIEW", "OFFER", 
 export const sources = ["Company Website", "LinkedIn", "Indeed", "Referral", "Employee Referral", "GovernmentJobs", "Job Board", "Recruiter", "Other"] as const;
 export const interviewTypes = ["Technical", "HR", "Managerial", "Phone", "Video", "Onsite"] as const;
 export const interviewStatuses = ["Scheduled", "Completed", "Cancelled", "Rescheduled"] as const;
+/**
+ * `offers` is separate from `candidates` on purpose: offer records carry
+ * compensation, which is a distinct sensitivity from the rest of a candidate
+ * record. A HIRING_MANAGER assigned to a job can see that job's candidates in
+ * order to give interview feedback, but must never see their salary.
+ */
 export const permissions = {
-  SUPER_ADMIN: ["manage", "candidates", "feedback", "employees", "reports", "audit", "settings"],
-  ADMIN: ["manage", "candidates", "feedback", "employees", "reports", "audit", "settings"],
-  RECRUITING_ADMIN: ["manage", "candidates", "feedback", "employees", "reports"],
-  RECRUITER: ["candidates", "feedback"],
+  SUPER_ADMIN: ["manage", "candidates", "offers", "feedback", "employees", "reports", "audit", "settings"],
+  ADMIN: ["manage", "candidates", "offers", "feedback", "employees", "reports", "audit", "settings"],
+  RECRUITING_ADMIN: ["manage", "candidates", "offers", "feedback", "employees", "reports"],
+  RECRUITER: ["candidates", "offers", "feedback"],
   HIRING_MANAGER: ["feedback"],
 } as const;
 export type Permission = typeof permissions.SUPER_ADMIN[number];

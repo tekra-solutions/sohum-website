@@ -33,7 +33,7 @@ export async function CandidateWorkspace({ id, jobTitle }: { id: string; jobTitl
           <WorkflowForm applicationId={id} kind="archive" label={app.archivedAt ? "Restore application" : "Archive application"}><input type="hidden" name="restore" value={app.archivedAt ? "1" : "0"} /><p className="text-xs text-graphite-500">Archived applications retain their full history.</p></WorkflowForm>
           {app.status === "HIRED" && permits(admin.role, "employees") && <Link href={w.employeeId ? `/admin/employees/${w.employeeId}` : `/admin/employees/new?applicationId=${id}`} className={adminButtonSecondary}>{w.employeeId ? "Open employee" : "Create employee"}</Link>}
         </div></Section>}
-        <Section title="Offer" id="offer">
+        {permits(admin.role, "offers") && <Section title="Offer" id="offer">
           {w.offer ? <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-3">
               <StatusPill status={w.offer.offer.status} label={offerStatusLabel[w.offer.offer.status]} />
@@ -52,7 +52,7 @@ export async function CandidateWorkspace({ id, jobTitle }: { id: string; jobTitl
             <p className="text-sm text-graphite-500">No offer yet.</p>
             {app.status === "OFFER" && canEdit && <Link href={`/admin/offers/new?applicationId=${id}`} className={`mt-3 inline-flex ${adminButtonSecondary}`}>Create offer letter</Link>}
           </>}
-        </Section>
+        </Section>}
         <Section title="Recruiter notes" id="notes"><p className="mb-4 text-xs text-graphite-500">Private to authorized recruiting staff. Most recent 100 notes.</p>
           {app.internalNotes && <p className="mb-4 whitespace-pre-wrap border-l-2 border-paper-300 pl-3 text-sm">{app.internalNotes}<span className="mt-1 block text-xs text-graphite-500">Legacy internal note</span></p>}
           <div className="space-y-4">{w.notes.map(({ note, author }) => <article key={note.id} className="border-b border-paper-200 pb-4"><p className="whitespace-pre-wrap text-sm text-ink-800">{note.note}</p><p className="mt-2 text-xs text-graphite-500">{author} · {formatDateTime(note.createdAt)}{note.updatedAt > note.createdAt ? " · Edited" : ""}</p>{(note.createdBy === admin.id || permits(admin.role, "manage")) && <details className="mt-2"><summary className="cursor-pointer text-xs underline">Edit or delete</summary><div className="mt-3 space-y-3"><WorkflowForm applicationId={id} kind="note" label="Save note"><input type="hidden" name="noteId" value={note.id} /><Field name="note" label="Note" value={note.note} multiline required /></WorkflowForm><WorkflowForm applicationId={id} kind="note" label="Delete this note"><input type="hidden" name="noteId" value={note.id} /><input type="hidden" name="intent" value="delete" /></WorkflowForm></div></details>}</article>)}</div>
