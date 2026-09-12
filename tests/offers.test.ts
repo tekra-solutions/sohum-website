@@ -295,7 +295,7 @@ describe("automatic offer generation", () => {
     expect(offerVersionInputSchema.safeParse({ ...base, annualSalaryCents: "145000", hourlyRateCents: "65" }).success).toBe(false);
   });
 
-  it("omits summary tables the letter already states, so the document stays three pages", async () => {
+  it("always states position and compensation as structured summaries", async () => {
     const { renderOfferHtml } = await import("@/lib/offers/render-html");
     const common = {
       candidateName: "Ada Lovelace", candidateEmail: "ada@example.com",
@@ -304,13 +304,46 @@ describe("automatic offer generation", () => {
       startDate: new Date("2026-10-05"), expirationDate: new Date("2026-09-25"),
       annualSalaryCents: 14500000,
     };
-    // A prose template that states the role and pay needs no duplicate tables.
+    // The summaries used to be suppressed whenever the prose happened to
+    // mention the role or the salary — which the standard template always
+    // does, so in practice every offer lost them and facts like department,
+    // employment type and start date appeared nowhere as structured data.
     const rich = renderOfferHtml({ ...common, templateBodyHtml: "<p>the position of Engineer</p><p>Your annual base salary will be $145,000.</p>" });
-    expect(rich).not.toContain("Position details");
-    expect(rich).not.toContain(">Compensation<");
-    // A sparse template still gets them, so the facts appear somewhere.
     const sparse = renderOfferHtml({ ...common, templateBodyHtml: "<p>We are pleased to write to you.</p>" });
-    expect(sparse).toContain("Position details");
-    expect(sparse).toContain(">Compensation<");
+    for (const html of [rich, sparse]) {
+      expect(html).toContain("Position summary");
+      expect(html).toContain("Compensation summary");
+      // The facts a candidate scans for, regardless of how the prose reads.
+      expect(html).toContain("Engineering");
+      expect(html).toContain("Principal Quality Engineer");
+      expect(html).toContain("$145,000");
+    }
+  });
+
+  it("never opens an issued offer with the template review warning", async () => {
+    const { defaultOfferTemplates } = await import("@/lib/offers/seed-templates");
+    // The warning belongs to the template in the admin editor, not to the
+    // letter a candidate receives: it used to be the first line of every
+    // bodyHtml, so every offer opened with "Sample content" above "Dear ...".
+    for (const template of defaultOfferTemplates) {
+      expect(template.bodyHtml).not.toContain("Sample content");
+      expect(template.bodyHtml).not.toContain("⚠");
+    }
+  });
+
+  it("brands every document with the Sohum Systems mark", async () => {
+    const { renderOfferHtml } = await import("@/lib/offers/render-html");
+    const html = renderOfferHtml({
+      candidateName: "Ada Lovelace", candidateEmail: "ada@example.com",
+      jobTitle: "Engineer", department: "Engineering", location: "KC",
+      employmentType: "FULL_TIME", remoteType: "HYBRID",
+      startDate: new Date("2026-10-05"), expirationDate: new Date("2026-09-25"),
+      annualSalaryCents: 14500000, templateBodyHtml: "<p>Hello.</p>",
+    });
+    // The logo plumbing existed but no caller ever supplied a URI, so issued
+    // documents went out unbranded. The header now defaults to the mark.
+    expect(html).toContain('class="doc-logo"');
+    expect(html).toContain("data:image/svg+xml");
+    expect(html).toContain("SOHUM");
   });
 });

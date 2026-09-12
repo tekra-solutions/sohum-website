@@ -61,7 +61,11 @@ export async function renderOfferPdf(
       footerTemplate: options?.footerTemplate ??
         '<div style="font-size:9px;width:100%;text-align:center;color:#5b6a80;font-family:-apple-system,Segoe UI,Roboto,sans-serif;">' +
         'Page <span class="pageNumber"></span> of <span class="totalPages"></span></div>',
-      margin: options?.margin ?? { top: "0.6in", bottom: "0.6in", left: "0.6in", right: "0.6in" },
+      // No default margin: the documents declare @page in documentBaseCss and
+      // Chromium honours that. Passing one here as well meant the PDF options
+      // and the stylesheet disagreed about the usable page height. A caller can
+      // still override deliberately.
+      ...(options?.margin ? { margin: options.margin } : {}),
     });
     return Buffer.from(pdf);
   } finally {

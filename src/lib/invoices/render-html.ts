@@ -10,6 +10,7 @@
  */
 import { escapeHtml } from "@/lib/ats/policy";
 import { documentBaseCss, documentHeader } from "@/lib/documents/chrome";
+import { site } from "@/lib/site";
 import { formatMoney, formatQuantity } from "./money";
 
 export type InvoiceDocumentInput = {
@@ -60,7 +61,13 @@ function referenceRows(r: InvoiceDocumentInput["references"]) {
 
 export function renderInvoiceHtml(input: InvoiceDocumentInput): string {
   const money = (cents: number) => formatMoney(cents, input.currency);
-  const refs = referenceRows(input.references);
+  // The issuer's tax ID is remit-to detail an accounts-payable team needs. It
+  // used to live in the "From" panel; with that panel folded into the
+  // masthead it joins the reference rows rather than being dropped.
+  const refs = referenceRows(input.references)
+    + (input.from.taxId
+      ? `<tr><td class="k">Tax ID</td><td class="v">${escapeHtml(input.from.taxId)}</td></tr>`
+      : "");
 
   const itemRows = input.items.map(item => {
     const meta = [item.servicePeriod, item.consultantName, item.projectRef].filter(Boolean).map(String);
@@ -98,42 +105,60 @@ ${documentBaseCss}
      masthead come from documentBaseCss/documentHeader so the invoice and the
      offer letter stay visually consistent. */
   body { padding: 0; }
-  /* The compact masthead carries no org lines, so the rule sits closer. */
-  .doc-title { margin-top: 10px; padding-top: 9px; }
-  .doc-header { margin-bottom: 14px; }
+  /* The invoice masthead carries the same lockup as the offer letter, but an
+     invoice is a data document: it must leave room for line items, totals and
+     payment instructions on one page. The mark and type are stepped down a
+     little and the surrounding space tightened, which keeps a single-page
+     invoice single-page without weakening the branding. */
+  .doc-logo { max-height: 38px; margin-bottom: 6px; }
+  .doc-wordmark { font-size: 15pt; letter-spacing: 0.13em; }
+  .doc-org { font-size: 8.2pt; line-height: 1.4; }
+  .doc-org:first-of-type { margin-top: 5px; }
+  .doc-title { font-size: 11pt; margin-top: 8px; padding-top: 7px; }
+  .doc-header { margin-bottom: 9px; }
   .doc-subtitle { font-size: 12pt; font-weight: 700; color: #16233f; letter-spacing: 0.04em; }
 
   /* Issued/Due sit directly under the number so the three facts a payer looks
      for first — who to pay, which invoice, by when — are grouped. */
   .inv-dates {
     font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    font-size: 9pt; color: #5b6a80; margin-top: 3px; letter-spacing: 0.02em;
+    font-size: 8.8pt; color: #5b6a80; margin-top: 2px; letter-spacing: 0.02em;
   }
   .inv-dates .due { color: #16233f; font-weight: 600; }
 
-  .panels { display: flex; gap: 24px; margin-top: 15px; }
-  .panels h2 { margin: 0 0 6px; padding-bottom: 4px; }
-  .panel { flex: 1.15; min-width: 0; }
-  /* The reference table is label/value pairs, not prose: it needs less width
-     than the address blocks, which otherwise wrap mid-street-address. */
-  .panel.ref { flex: 1; }
+  /* Equal columns so the two heading rules read as one continuous band across
+     the page; unequal flex values left "Bill to" underlined short of
+     "Reference", which looked like a rendering fault rather than a layout. */
+  .panels { display: flex; gap: 30px; margin-top: 12px; align-items: flex-start; }
+  .panels h2 { margin: 0 0 5px; padding-bottom: 3px; }
+  /* The base sheet spaces headings for a letter; an invoice stacks several in
+     a short document, so they run tighter here. */
+  .foot .label { margin-top: 0; }
+  .panel { flex: 1; min-width: 0; }
+  /* With no reference rows the lone Bill-to panel stretched the full page and
+     its heading rule ran edge to edge, reading as a stray line above the
+     address. Capping it keeps the same column width either way. */
+  .panels.single .panel { flex: 0 1 50%; }
   .party { white-space: pre-line; line-height: 1.38; font-size: 9.8pt; }
   .party strong { display: block; font-size: 10.8pt; margin-bottom: 1px; }
   table.kv { width: 100%; border-collapse: collapse; }
   table.kv td { padding: 2px 0; vertical-align: top; font-size: 9.8pt; }
   table.kv td.k {
-    color: #5b6a80; width: 46%;
+    color: #5b6a80; width: 46%; padding-right: 10px;
     font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 8.8pt;
   }
+  /* Long values (a project name, a contract number) wrap inside the column
+     instead of pushing the table against the right margin. */
+  .panel.ref table.kv td.v { overflow-wrap: anywhere; }
 
-  table.items { width: 100%; border-collapse: collapse; margin-top: 18px; }
+  table.items { width: 100%; border-collapse: collapse; margin-top: 14px; }
   table.items thead th {
     font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     font-size: 8.5pt; text-transform: uppercase; letter-spacing: 0.09em;
     color: #5b6a80; text-align: left; padding: 6px 7px; border-bottom: 1.5px solid #16233f;
   }
   table.items thead th.num, table.items td.num { text-align: right; }
-  table.items td { padding: 6.5px 7px; border-bottom: 1px solid #eef1f5; vertical-align: top; }
+  table.items td { padding: 5.5px 7px; border-bottom: 1px solid #eef1f5; vertical-align: top; }
   table.items td.desc { width: 55%; }
   table.items td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
   table.items tbody tr:nth-child(even) { background: #fafbfc; }
@@ -145,8 +170,8 @@ ${documentBaseCss}
   table.items tr { page-break-inside: avoid; }
   table.items thead { display: table-header-group; }
 
-  .totals-wrap { display: flex; justify-content: flex-end; margin-top: 13px; page-break-inside: avoid; }
-  table.totals { width: 48%; border-collapse: collapse; }
+  .totals-wrap { display: flex; justify-content: flex-end; margin-top: 10px; page-break-inside: avoid; }
+  table.totals { width: 54%; border-collapse: collapse; }
   table.totals td { padding: 3px 7px; }
   table.totals td.tl {
     font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -158,15 +183,15 @@ ${documentBaseCss}
   table.totals tr.due td { font-size: 12pt; border-top: 2px solid #16233f; padding-top: 7px; }
   table.totals tr.due td.tl { color: #16233f; font-size: 9.5pt; }
 
-  .foot { margin-top: 15px; page-break-inside: avoid; }
-  .foot .block { margin-top: 9px; page-break-inside: avoid; }
+  .foot { margin-top: 12px; page-break-inside: avoid; }
+  .foot .block { margin-top: 7px; page-break-inside: avoid; }
   .foot .label {
     font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     font-size: 8.5pt; text-transform: uppercase; letter-spacing: 0.1em; color: #5b6a80;
   }
   .foot .body { white-space: pre-line; margin-top: 2px; line-height: 1.42; }
   /* Payment instructions are the action item: boxed so they are findable. */
-  .foot .block.pay { border: 1px solid #d9dfe8; background: #f7f8fa; padding: 8px 12px; }
+  .foot .block.pay { border: 1px solid #d9dfe8; background: #f7f8fa; padding: 7px 11px; }
 
   .stamp {
     margin-top: 16px; padding: 8px 12px; border: 1px solid #1e7a4d; color: #14603b;
@@ -181,21 +206,19 @@ ${documentBaseCss}
   ${documentHeader({
     title: "Invoice",
     logoDataUri: input.logoDataUri,
-    // The remit-to detail lives in the FROM panel below, so the invoice
-    // masthead is wordmark + title + number only. Repeating the address here
-    // would both duplicate that panel and cost a third of the page.
-    compact: true,
+    // The issuing entity's own detail belongs in the masthead, as on any
+    // corporate invoice. It used to sit only in a "From" panel beside "Bill
+    // to", which read as though two third parties were being compared; the
+    // panel is gone and the remit-to identity is stated once, at the top.
+    legalName: input.from.legalName,
+    address: input.from.billingAddress.replace(/\s*\n\s*/g, ", "),
+    contactLine: [input.from.phone, input.from.email, site.url.replace(/^https?:\/\//, "")]
+      .filter(Boolean).join("  ·  "),
     subtitle: input.invoiceNumber,
   })}
   <div class="inv-dates" style="text-align:center">Issued ${fmtDate(input.invoiceDate)} &nbsp;·&nbsp; <span class="due">Due ${fmtDate(input.dueDate)}</span></div>
 
-  <div class="panels">
-    <div class="panel">
-      <h2>From</h2>
-      <div class="party"><strong>${escapeHtml(input.from.legalName)}</strong>${escapeHtml(input.from.billingAddress)}
-${escapeHtml(input.from.phone)}
-${escapeHtml(input.from.email)}${input.from.taxId ? `\nTax ID ${escapeHtml(input.from.taxId)}` : ""}</div>
-    </div>
+  <div class="panels${refs ? "" : " single"}">
     <div class="panel">
       <h2>Bill to</h2>
       <div class="party">${billTo ? `<strong>${escapeHtml(billTo.companyName)}</strong>${[

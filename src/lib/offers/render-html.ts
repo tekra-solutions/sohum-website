@@ -10,8 +10,8 @@ import { sanitizeOfferBody } from "./sanitize";
  * already-issued or already-accepted document.
  *
  * The document is laid out as three pages with real content, not padding:
- *   1. Offer summary — parties, position details, compensation.
- *   2. Employment terms — entirely from the configurable HR template.
+ *   1. The letter itself — addressee, subject, and the offer prose.
+ *   2. Position and compensation summaries, then the employment terms.
  *   3. Acknowledgements, acceptance statement and the signature block.
  *
  * Pages 2 and 3 draw their prose from the offer template's optional
@@ -119,11 +119,11 @@ export function renderOfferHtml(input: OfferHtmlInput): string {
     row("Proposed start date", fmtCalendarDate(input.startDate)),
   ].filter(Boolean).join("");
 
-  // Page 2 sections that come from structured version fields rather than the
-  // template prose. Omitted when empty.
+  // Benefits and PTO are narrated on page 1 by the template body, which reads
+  // them from the same fields; repeating them here as a table restated whole
+  // paragraphs verbatim and pushed the letter onto a fifth page. Only
+  // additional terms — which no other section renders — remains.
   const structuredTerms = [
-    row("Benefits", input.benefitsSummary),
-    row("Paid time off", input.ptoSummary),
     row("Additional terms", input.additionalTerms),
   ].filter(Boolean).join("");
 
@@ -165,13 +165,15 @@ export function renderOfferHtml(input: OfferHtmlInput): string {
       <div class="sign-line"><div class="rule"></div><div class="caption">Signature</div></div>
       <div class="sign-line"><div class="rule"></div><div class="caption">Date</div></div>`;
 
-  // A template that already sets these out in prose makes the summary tables
-  // duplicates: they restate the same facts a paragraph later and push the
-  // letter onto an extra page. The tables stay for sparser templates, so an
-  // offer whose body omits the details still states them somewhere.
-  const body = input.templateBodyHtml ?? "";
-  const showCompensationTable = !/compensation|salary|hourly rate/i.test(body);
-  const showPositionTable = !/position of|role of/i.test(body);
+  // The summary tables are always rendered.
+  //
+  // They used to be suppressed whenever the template prose mentioned salary or
+  // "the position of" — which the standard template always does, so in practice
+  // every offer lost them, and facts a candidate scans for (department,
+  // employment type, work arrangement, start date) appeared nowhere as
+  // structured data. Prose and a summary table serve different readers: one is
+  // the letter, the other is what someone checks at a glance. The duplication
+  // this avoided is real but minor; losing the summary entirely was worse.
 
   const representative = input.authorizedRepresentative
     ? `<h2>Company representative</h2>
@@ -206,10 +208,10 @@ export function renderOfferHtml(input: OfferHtmlInput): string {
 <title>Offer of Employment — ${escapeHtml(input.jobTitle)}</title>
 <style>
 ${documentBaseCss}
-  .letter-date { font-family: -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 9pt; color: #5b6a80; margin-bottom: 14px; }
-  .party { margin-bottom: 14px; line-height: 1.45; }
+  .letter-date { font-family: -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 9pt; color: #5b6a80; margin-bottom: 11px; }
+  .party { margin-bottom: 11px; line-height: 1.4; }
   .party strong { font-weight: 600; }
-  .subject { font-weight: 700; margin: 0 0 11px; }
+  .subject { font-weight: 700; margin: 0 0 9px; }
   .body-copy { margin: 12px 0 0; }
   /* A ruled line to sign on, with its label underneath. */
   .sign-line { margin-top: 22px; }
@@ -237,11 +239,20 @@ ${documentBaseCss}
   .expiry { margin: 11px 0; padding: 8px 12px; border-left: 3px solid #e8622a; background: #fff6f2; }
   .body-copy h3 {
     font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
-    font-size: 9.5pt; font-weight: 700; color: #16233f; margin: 13px 0 5px;
+    font-size: 9.5pt; font-weight: 700; color: #16233f; margin: 10px 0 4px;
     letter-spacing: 0.02em;
   }
   .body-copy h3:first-child { margin-top: 0; }
   .body-copy ul { margin: 0 0 9px; padding-left: 18px; }
+  /* The two page-1 reference tables sit side by side: stacked full-width they
+     ran the letter onto a fourth page for no gain in legibility, since each
+     table is short label/value pairs rather than prose. */
+  .summary-pair { display: flex; gap: 26px; align-items: flex-start; break-inside: avoid; page-break-inside: avoid; margin-bottom: 4px; }
+  .summary-pair > section { flex: 1; min-width: 0; }
+  .summary-pair h2 { margin-top: 0; margin-bottom: 5px; }
+  .summary-pair table.kv td { padding: 2.5px 0; line-height: 1.35; }
+  .summary-pair table.kv td.k { width: 47%; padding-right: 8px; }
+  .summary-pair table.kv td.v { width: 53%; font-size: 9.8pt; }
 </style>
 </head>
 <body>
@@ -259,16 +270,20 @@ ${documentHeader({ title: "Offer of Employment", logoDataUri: input.logoDataUri,
 
   <div class="body-copy">${sanitizeOfferBody(input.templateBodyHtml)}</div>
 
-  ${showPositionTable ? `<h2>Position details</h2>
-  <table class="kv">${position}</table>` : ""}
-
-  ${showCompensationTable
-    ? `<h2>Compensation</h2>
-  <table class="kv">${compensation || `<tr><td class="k">Compensation</td><td class="v muted">To be confirmed</td></tr>`}</table>`
-    : ""}
-
-  <!-- ======================= PAGE 2: EMPLOYMENT TERMS ======================= -->
+  <!-- ============== PAGE 2: SUMMARY TABLES AND EMPLOYMENT TERMS ============== -->
   <div class="page-break"></div>
+
+  <div class="summary-pair">
+    <section>
+      <h2>Position summary</h2>
+      <table class="kv">${position}</table>
+    </section>
+    <section>
+      <h2>Compensation summary</h2>
+      <table class="kv">${compensation || `<tr><td class="k">Compensation</td><td class="v muted">To be confirmed</td></tr>`}</table>
+    </section>
+  </div>
+
   <h2>Employment terms</h2>
   <div class="body-copy">${termsProse}</div>
   ${structuredTerms ? `<h2>Summary of terms</h2><table class="kv">${structuredTerms}</table>` : ""}

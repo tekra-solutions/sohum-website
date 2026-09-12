@@ -1,13 +1,24 @@
 /**
  * Starter offer templates, one per non-custom category. Every one is
  * explicitly placeholder content: it must be reviewed by counsel before use,
- * and says so in the admin editor as well as inside the rendered document
- * itself (render-html.ts adds an always-present disclaimer regardless of
- * which template produced the offer, so this isn't the only place that
- * warning lives). Not inserted automatically on boot — only via an explicit
- * admin action, so nobody mistakes this for reviewed legal language.
+ * and the admin template editor says so. The rendered document carries its own
+ * standing note (render-html.ts appends one regardless of which template
+ * produced the offer), so the candidate-facing letter states the position
+ * without opening on an internal warning. Not inserted automatically on boot —
+ * only via an explicit admin action, so nobody mistakes this for reviewed
+ * legal language.
  */
-const disclaimer = "<p><strong>⚠ Sample content — requires legal review before use.</strong></p>";
+/**
+ * Templates are starter content pending legal review, and the admin must know
+ * that — but the warning belongs to the *template*, not to the letter a
+ * candidate receives. It used to be the first line of every bodyHtml, so every
+ * issued offer opened with "⚠ Sample content — requires legal review before
+ * use." above "Dear <candidate>". The review warning now lives in the template
+ * editor and in the reviewNotice below; the rendered document carries the
+ * standing legal-note in its footer instead.
+ */
+export const templateReviewNotice =
+  "Starter content. Have counsel review this template before issuing offers from it.";
 
 /**
  * The default template a recruiter gets without choosing anything.
@@ -19,8 +30,8 @@ const disclaimer = "<p><strong>⚠ Sample content — requires legal review befo
  * as though those sentences were never written.
  *
  * The prose is standard employment-offer language, not counsel-reviewed advice
- * for any specific offer: it stays editable in Offer Template Settings and
- * carries the same review disclaimer as every other template.
+ * for any specific offer: it stays editable in Offer Template Settings, which
+ * shows the review notice to the admin.
  */
 const standardOffer = {
   name: "Sohum Systems Standard Offer",
@@ -28,8 +39,7 @@ const standardOffer = {
   subject: "Employment Offer — {{job_title}} — {{company_name}}",
 
   // Page 1 — introduction, position, compensation, benefits.
-  bodyHtml: `${disclaimer}
-<p>Dear {{candidate_first_name}},</p>
+  bodyHtml: `<p>Dear {{candidate_first_name}},</p>
 <p>{{company_legal_name}} is pleased to offer you the {{employment_type}} position of <strong>{{job_title}}</strong> in our {{department}} team{{#if manager_name}}, reporting to {{manager_name}}{{/if}}. We were impressed by your background and believe you will make a strong contribution to our work supporting mission-critical federal programs.</p>
 <p>Your anticipated start date is <strong>{{start_date}}</strong>. This letter sets out the terms of our offer, which remains open until <strong>{{offer_expiration_date}}</strong>.</p>
 <h3>Compensation</h3>
@@ -72,7 +82,7 @@ export const defaultOfferTemplates = [
     name: "Full-Time Employee",
     category: "FULL_TIME" as const,
     subject: "Employment Offer — {{job_title}} — {{company_name}}",
-    bodyHtml: `${disclaimer}<p>We are pleased to offer {{candidate_first_name}} the full-time position of {{job_title}} at {{company_name}}, reporting to {{manager_name}}, with an anticipated start date of {{start_date}}.</p><p>This offer is contingent upon standard pre-employment requirements and is valid until {{offer_expiration_date}}.</p>`,
+    bodyHtml: `<p>We are pleased to offer {{candidate_first_name}} the full-time position of {{job_title}} at {{company_name}}, reporting to {{manager_name}}, with an anticipated start date of {{start_date}}.</p><p>This offer is contingent upon standard pre-employment requirements and is valid until {{offer_expiration_date}}.</p>`,
     // Pages 2 and 3. Placeholder structure showing where each kind of term
     // belongs — deliberately generic, and subject to the same legal review as
     // the rest of the template.
@@ -83,7 +93,7 @@ export const defaultOfferTemplates = [
     name: "Contract Employee",
     category: "CONTRACT" as const,
     subject: "Contract Offer — {{job_title}} — {{company_name}}",
-    bodyHtml: `${disclaimer}<p>We are pleased to offer {{candidate_first_name}} a contract engagement as {{job_title}} with {{company_name}}, reporting to {{manager_name}}, beginning {{start_date}}.</p><p>This offer is valid until {{offer_expiration_date}}.</p>`,
+    bodyHtml: `<p>We are pleased to offer {{candidate_first_name}} a contract engagement as {{job_title}} with {{company_name}}, reporting to {{manager_name}}, beginning {{start_date}}.</p><p>This offer is valid until {{offer_expiration_date}}.</p>`,
     // Pages 2 and 3. Placeholder structure showing where each kind of term
     // belongs — deliberately generic, and subject to the same legal review as
     // the rest of the template.
@@ -94,7 +104,7 @@ export const defaultOfferTemplates = [
     name: "Remote Employee",
     category: "REMOTE" as const,
     subject: "Remote Employment Offer — {{job_title}} — {{company_name}}",
-    bodyHtml: `${disclaimer}<p>We are pleased to offer {{candidate_first_name}} the fully remote position of {{job_title}} at {{company_name}}, reporting to {{manager_name}}, with an anticipated start date of {{start_date}}.</p><p>This offer is valid until {{offer_expiration_date}}.</p>`,
+    bodyHtml: `<p>We are pleased to offer {{candidate_first_name}} the fully remote position of {{job_title}} at {{company_name}}, reporting to {{manager_name}}, with an anticipated start date of {{start_date}}.</p><p>This offer is valid until {{offer_expiration_date}}.</p>`,
     // Pages 2 and 3. Placeholder structure showing where each kind of term
     // belongs — deliberately generic, and subject to the same legal review as
     // the rest of the template.
@@ -105,7 +115,7 @@ export const defaultOfferTemplates = [
     name: "Internship",
     category: "INTERNSHIP" as const,
     subject: "Internship Offer — {{job_title}} — {{company_name}}",
-    bodyHtml: `${disclaimer}<p>We are pleased to offer {{candidate_first_name}} an internship position as {{job_title}} at {{company_name}}, reporting to {{manager_name}}, beginning {{start_date}}.</p><p>This offer is valid until {{offer_expiration_date}}.</p>`,
+    bodyHtml: `<p>We are pleased to offer {{candidate_first_name}} an internship position as {{job_title}} at {{company_name}}, reporting to {{manager_name}}, beginning {{start_date}}.</p><p>This offer is valid until {{offer_expiration_date}}.</p>`,
     // Pages 2 and 3. Placeholder structure showing where each kind of term
     // belongs — deliberately generic, and subject to the same legal review as
     // the rest of the template.

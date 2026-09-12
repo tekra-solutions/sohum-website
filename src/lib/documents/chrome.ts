@@ -7,6 +7,7 @@
  */
 import { site, contact } from "@/lib/site";
 import { escapeHtml } from "@/lib/ats/policy";
+import { sohumLogoDataUri } from "./logo";
 
 /**
  * Centered masthead: company name, optional logo, then company/legal detail
@@ -18,8 +19,11 @@ import { escapeHtml } from "@/lib/ats/policy";
  */
 export function documentHeader(opts: {
   title: string;
-  /** Optional data: URI. Remote URLs are not used: the PDF renderer aborts
-   *  every external request, so an http(s) logo would silently render blank. */
+  /** Data: URI for the mark. Defaults to the Sohum Systems logo, so a caller
+   *  cannot accidentally issue an unbranded document — which is what happened
+   *  while this was purely opt-in. Remote URLs are not usable: the PDF
+   *  renderer aborts every external request, so an http(s) logo renders blank.
+   *  Pass `null` explicitly for a deliberately unbranded document. */
   logoDataUri?: string | null;
   legalName?: string | null;
   address?: string | null;
@@ -30,6 +34,7 @@ export function documentHeader(opts: {
    *  this because it repeats that detail in its own FROM panel. */
   compact?: boolean;
 }) {
+  const logo = opts.logoDataUri === null ? null : (opts.logoDataUri || sohumLogoDataUri);
   const legalName = opts.legalName || site.legalName;
   const address = opts.address || contact.address;
   const contactLine = opts.contactLine || `${contact.phone} · ${contact.emailGeneral}`;
@@ -39,7 +44,7 @@ export function documentHeader(opts: {
   <div class="doc-org">${escapeHtml(address)}</div>
   <div class="doc-org">${escapeHtml(contactLine)}</div>`;
   return `<header class="doc-header">
-  ${opts.logoDataUri ? `<img class="doc-logo" src="${opts.logoDataUri}" alt="">` : ""}
+  ${logo ? `<img class="doc-logo" src="${logo}" alt="">` : ""}
   <div class="doc-wordmark"><span class="flame">SOHUM</span> SYSTEMS</div>
   ${org}
   <h1 class="doc-title">${escapeHtml(opts.title)}</h1>
@@ -53,7 +58,12 @@ export function documentHeader(opts: {
  * rules keep headings attached to their content across page breaks.
  */
 export const documentBaseCss = `
-  @page { margin: 0.7in 0.7in; }
+  /* Page geometry is declared here and NOWHERE else. pdf.ts used to pass its
+     own 0.6in margin to page.pdf() while this rule said 0.7in; Chromium honours
+     the CSS, so the two silently disagreed and the usable height was never what
+     the PDF options claimed. renderOfferPdf() now sends no margin at all and
+     defers to this rule, so on-screen preview and PDF share one geometry. */
+  @page { size: Letter; margin: 0.62in; }
   * { box-sizing: border-box; }
   body {
     font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
@@ -84,7 +94,7 @@ export const documentBaseCss = `
   h2 {
     font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     font-size: 9.5pt; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase;
-    color: #16233f; margin: 17px 0 7px; padding-bottom: 4px; border-bottom: 1px solid #d9dfe8;
+    color: #16233f; margin: 14px 0 6px; padding-bottom: 4px; border-bottom: 1px solid #d9dfe8;
   }
   p { margin: 0 0 9px; }
   table.kv { width: 100%; border-collapse: collapse; margin: 0 0 6px; }

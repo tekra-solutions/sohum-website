@@ -29,8 +29,9 @@ export default async function OfferTemplatesPage() {
       <div className="space-y-5 p-5 sm:p-8">
         <div className="rounded-[4px] border border-[#7a5c00]/30 bg-[#f0a93c]/[0.08] p-4 text-xs text-[#7a5c00]">
           <strong>Every template requires legal review before use.</strong> This platform does not generate
-          legally approved language on its own — templates are only as sound as what your organization puts in them,
-          and every generated offer document carries its own disclaimer regardless of template content.
+          legally approved language on its own — templates are only as sound as what your organization puts in
+          them. Every generated offer carries a standing note in its footer stating that its content was produced
+          from a configurable template and not reviewed by counsel for that specific offer.
         </div>
 
         <p className="text-xs text-graphite-600">
@@ -45,8 +46,9 @@ export default async function OfferTemplatesPage() {
         {saved.length === 0 && (
           <WorkflowForm action={seedDefaultOfferTemplatesAction} label="Load starter templates">
             <p className="text-xs text-graphite-500">
-              Loads one placeholder template per category (Full-Time, Contract, Remote, Internship). All are
-              explicitly marked as sample content requiring legal review.
+              Loads one starter template per category (Full-Time, Contract, Remote, Internship), plus the
+              Sohum Systems standard offer. All are sample content requiring legal review before you issue
+              an offer from them.
             </p>
           </WorkflowForm>
         )}
