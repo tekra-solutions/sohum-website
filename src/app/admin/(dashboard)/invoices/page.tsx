@@ -4,7 +4,7 @@ import { listInvoices, invoiceDashboard, listClients } from "@/lib/invoices/data
 import { invoiceStatuses } from "@/lib/invoices/policy";
 import { derivedInvoiceStatus, formatMoney } from "@/lib/invoices/money";
 import { invoiceStatusLabel, shortDate } from "@/lib/format";
-import { AdminHeader, EmptyState, StatCard, StatusPill, adminButton, adminButtonSecondary } from "@/components/admin/ui";
+import { AdminHeader, Card, DataTable, EmptyState, Filter, PageBody, Pager, StatCard, StatusPill, Toolbar, adminButton, adminButtonSecondary, td, tr } from "@/components/admin/ui";
 import { control } from "@/components/admin/form";
 import { requirePermission } from "@/lib/ats/access";
 import { isDatabaseConfigured } from "@/db";
@@ -60,28 +60,24 @@ export default async function InvoicesPage({
               Create invoice
             </Link>
             <Link href="/admin/invoices/clients" className={adminButtonSecondary}>Clients</Link>
-            <a href={`/api/admin/invoices/export?${new URLSearchParams(
-              Object.entries(filters).filter(([k, v]) => v && k !== "page" && v !== "ALL").map(([k, v]) => [k, String(v)]),
-            )}`} className={adminButtonSecondary}>Export CSV</a>
           </>
         }
       />
 
-      <div className="space-y-6 p-5 sm:p-6 lg:p-8">
+      <PageBody>
         <section aria-labelledby="summary">
           <h2 id="summary" className="sr-only">Summary</h2>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <StatCard label="Outstanding" value={formatMoney(summary.outstandingCents)} href="/admin/invoices?status=SENT" />
-            <StatCard label="Overdue" value={formatMoney(summary.overdueCents)} tone="accent" />
+            <StatCard label="Overdue" value={formatMoney(summary.overdueCents)} href="/admin/invoices?status=OVERDUE" tone="critical" />
             <StatCard label="Paid this month" value={formatMoney(summary.paidThisMonthCents)} href="/admin/invoices?status=PAID" />
             <StatCard label="Drafts" value={summary.draftCount} href="/admin/invoices?status=DRAFT" />
           </div>
         </section>
 
         {summary.attention.length > 0 && (
-          <section aria-labelledby="attention">
-            <h2 id="attention" className="text-[0.9375rem] font-medium text-ink-900">Needs attention</h2>
-            <ul className="mt-3 divide-y divide-paper-200 rounded-[4px] border border-paper-300 bg-white">
+          <Card title="Needs attention" className="[&>div]:p-0">
+            <ul className="divide-y divide-paper-200">
               {summary.attention.map(({ invoice, clientName }) => {
                 const status = derivedInvoiceStatus({
                   status: invoice.status, dueDate: invoice.dueDate, totalCents: invoice.totalCents,
@@ -108,35 +104,32 @@ export default async function InvoicesPage({
                 );
               })}
             </ul>
-          </section>
+          </Card>
         )}
 
-        <form className="grid gap-3 rounded-[4px] border border-paper-300 bg-white p-4 sm:grid-cols-2 lg:grid-cols-[1fr_auto_auto_auto_auto]">
-          <div className="relative">
-            <label htmlFor="q" className="sr-only">Search invoices</label>
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-graphite-400" aria-hidden="true" />
-            <input id="q" name="q" type="search" defaultValue={filters.q} placeholder="Invoice number, client or email" className={`${control} pl-9`} />
-          </div>
-          <div>
-            <label htmlFor="status" className="sr-only">Status</label>
-            <select id="status" name="status" defaultValue={filters.status} className={control}>
+        <Toolbar>
+          <Filter label="Search" wide>
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-graphite-400" aria-hidden="true" />
+              <input name="q" type="search" defaultValue={filters.q} placeholder="Invoice number, client or email" className={`${control} pl-9`} />
+            </div>
+          </Filter>
+          <Filter label="Status">
+            <select name="status" defaultValue={filters.status} className={control}>
               <option value="ALL">All statuses</option>
               {invoiceStatuses.map(s => <option key={s} value={s}>{invoiceStatusLabel[s]}</option>)}
             </select>
-          </div>
-          <div>
-            <label htmlFor="clientId" className="sr-only">Client</label>
-            <select id="clientId" name="clientId" defaultValue={filters.clientId ?? ""} className={control}>
+          </Filter>
+          <Filter label="Client">
+            <select name="clientId" defaultValue={filters.clientId ?? ""} className={control}>
               <option value="">All clients</option>
               {clientList.map(c => <option key={c.id} value={c.id}>{c.companyName}</option>)}
             </select>
-          </div>
-          <div>
-            <label htmlFor="from" className="sr-only">Invoiced from</label>
-            <input id="from" name="from" type="date" defaultValue={filters.from} className={control} />
-          </div>
-          <button className={adminButtonSecondary}>Filter</button>
-        </form>
+          </Filter>
+          <Filter label="Invoiced from">
+            <input name="from" type="date" defaultValue={filters.from} className={control} />
+          </Filter>
+        </Toolbar>
 
         {rows.length === 0 ? (
           <EmptyState
@@ -147,48 +140,42 @@ export default async function InvoicesPage({
               : <Link href="/admin/invoices/new" className={adminButton}>Create invoice</Link>}
           />
         ) : (
-          <div className="overflow-x-auto rounded-[4px] border border-paper-300 bg-white">
-            <table className="w-full min-w-[900px] text-left text-xs">
-              <thead>
-                <tr>
-                  {["Invoice", "Client", "Invoice date", "Due date", "Amount", "Balance", "Status", "Created by"].map(h => (
-                    <th key={h} className="border-b border-paper-300 p-3 font-medium">{h}</th>
-                  ))}
+          <DataTable headers={["Invoice", "Client", "Invoice date", "Due date", "Amount", "Balance", "Status", "Created by"]} minWidth="56rem">
+            {rows.map(({ invoice, clientName, creatorName }) => {
+              const status = derivedInvoiceStatus({
+                status: invoice.status, dueDate: invoice.dueDate, totalCents: invoice.totalCents,
+                amountPaidCents: invoice.amountPaidCents, balanceDueCents: invoice.balanceDueCents,
+              });
+              return (
+                <tr key={invoice.id} className={tr}>
+                  <th scope="row" className="px-4 py-2.5 text-left">
+                    <Link href={`/admin/invoices/${invoice.id}`} className="text-[0.8125rem] font-medium text-ink-900 underline-offset-4 hover:underline">
+                      {invoice.invoiceNumber}
+                    </Link>
+                  </th>
+                  <td className={td}>{clientName ?? invoice.billingSnapshot?.companyName ?? "—"}</td>
+                  <td className={`${td} whitespace-nowrap text-graphite-600`}>{shortDate(invoice.invoiceDate)}</td>
+                  <td className={`${td} whitespace-nowrap ${status === "OVERDUE" ? "font-medium text-[#a5382b]" : "text-graphite-600"}`}>{shortDate(invoice.dueDate)}</td>
+                  <td className={`${td} tabular-nums`}>{formatMoney(invoice.totalCents, invoice.currency)}</td>
+                  <td className={`${td} tabular-nums font-medium text-ink-900`}>{formatMoney(invoice.balanceDueCents, invoice.currency)}</td>
+                  <td className="px-4 py-2.5"><StatusPill status={status} label={invoiceStatusLabel[status]} /></td>
+                  <td className={`${td} text-graphite-500`}>{creatorName ?? "—"}</td>
                 </tr>
-              </thead>
-              <tbody>
-                {rows.map(({ invoice, clientName, creatorName }) => {
-                  const status = derivedInvoiceStatus({
-                    status: invoice.status, dueDate: invoice.dueDate, totalCents: invoice.totalCents,
-                    amountPaidCents: invoice.amountPaidCents, balanceDueCents: invoice.balanceDueCents,
-                  });
-                  return (
-                    <tr key={invoice.id} className="border-b border-paper-200 last:border-0">
-                      <td className="p-3">
-                        <Link href={`/admin/invoices/${invoice.id}`} className="font-medium text-ink-900 underline-offset-4 hover:underline">
-                          {invoice.invoiceNumber}
-                        </Link>
-                      </td>
-                      <td className="p-3 text-graphite-700">{clientName ?? invoice.billingSnapshot?.companyName ?? "—"}</td>
-                      <td className="p-3 text-graphite-600">{shortDate(invoice.invoiceDate)}</td>
-                      <td className={`p-3 ${status === "OVERDUE" ? "font-medium text-[#a5382b]" : "text-graphite-600"}`}>{shortDate(invoice.dueDate)}</td>
-                      <td className="p-3 tabular-nums text-graphite-700">{formatMoney(invoice.totalCents, invoice.currency)}</td>
-                      <td className="p-3 tabular-nums text-ink-900">{formatMoney(invoice.balanceDueCents, invoice.currency)}</td>
-                      <td className="p-3"><StatusPill status={status} label={invoiceStatusLabel[status]} /></td>
-                      <td className="p-3 text-graphite-500">{creatorName ?? "—"}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+              );
+            })}
+          </DataTable>
         )}
 
-        <nav className="flex gap-3" aria-label="Invoice pagination">
-          {page > 1 && <Link className={adminButtonSecondary} href={pageHref(page - 1)}>Previous</Link>}
-          {page * pageSize < total && <Link className={adminButtonSecondary} href={pageHref(page + 1)}>Next</Link>}
-        </nav>
-      </div>
+        <Pager page={page} pageCount={Math.ceil(total / pageSize)} href={pageHref} />
+
+        {/* Export reflects the filters above, so it sits after the result it
+            describes rather than in the page header. */}
+        <Card title="Export" description="Comma-separated values for the invoices listed above">
+          <a href={`/api/admin/invoices/export?${new URLSearchParams(
+            Object.entries(filters).filter(([k, v]) => v && k !== "page" && v !== "ALL").map(([k, v]) => [k, String(v)]),
+          )}`} className={adminButtonSecondary}>Download CSV</a>
+        </Card>
+      </PageBody>
     </>
   );
 }

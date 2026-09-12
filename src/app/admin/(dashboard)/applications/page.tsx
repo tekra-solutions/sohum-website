@@ -1,10 +1,10 @@
-import { BulkCandidates } from "@/components/admin/BulkCandidates";
+import Link from "next/link";
+import { CandidateTable } from "@/components/admin/CandidateTable";
 import { recruiterOptions } from "@/lib/ats/data";
 import { permits, sources } from "@/lib/ats/policy";
-import { control } from "@/components/admin/form";
-import Link from "next/link";
+import { btnSecondary, control, t } from "@/components/admin/form";
 import { Search } from "lucide-react";
-import { AdminHeader, EmptyState, StatusPill, adminButtonSecondary } from "@/components/admin/ui";
+import { AdminHeader, EmptyState, Filter, PageBody, Pager } from "@/components/admin/ui";
 import { listApplications } from "@/lib/services/applications";
 import { listAdminJobs } from "@/lib/services/jobs";
 import { applicationStatusLabel, formatDate, relativeTime } from "@/lib/format";
@@ -13,7 +13,7 @@ import { requireAdmin } from "@/lib/auth/session";
 import { isDatabaseConfigured } from "@/db";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Applications" };
+export const metadata = { title: "Candidates" };
 
 export default async function ApplicationsPage({
   searchParams,
@@ -30,10 +30,10 @@ export default async function ApplicationsPage({
   if (!isDatabaseConfigured()) {
     return (
       <>
-        <AdminHeader title="Applications" />
-        <div className="p-5 sm:p-6 lg:p-8">
+        <AdminHeader title="Candidates" />
+        <PageBody>
           <EmptyState title="Database not configured" description="See docs/DEPLOYMENT.md to connect Supabase." />
-        </div>
+        </PageBody>
       </>
     );
   }
@@ -65,137 +65,125 @@ export default async function ApplicationsPage({
     return `/admin/applications?${params}`;
   };
 
+  const filtered = Boolean(
+    filters.q || filters.status !== "ALL" || filters.jobId !== "ALL" || filters.from || filters.to ||
+    filters.location || filters.source || filters.minExperience || filters.maxExperience ||
+    filters.tag || filters.starred || filters.archived,
+  );
+
   return (
     <>
-      <AdminHeader title="Applications" description={`${total} total across all positions.`} />
+      <AdminHeader title="Candidates" description={`${total} application${total === 1 ? "" : "s"} across all positions.`} />
 
-      <div className="p-5 sm:p-6 lg:p-8">
-        <form method="get" className="rounded-[4px] border border-paper-300 bg-white p-4 sm:p-5">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(16rem,1.6fr)_repeat(2,minmax(0,1fr))_auto_auto_auto] lg:items-end">
-            <div>
-              <label htmlFor="q" className="sr-only">Search applications</label>
+      <PageBody>
+        <form method="get" className="rounded-[4px] border border-paper-300 bg-white p-3.5">
+          <div className="flex flex-wrap items-end gap-2.5">
+            <Filter label="Search" wide>
               <div className="relative">
                 <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-graphite-400" aria-hidden="true" />
-                <input id="q" name="q" type="search" defaultValue={filters.q ?? ""}
+                <input name="q" type="search" defaultValue={filters.q ?? ""}
                   placeholder="Name, email, phone, job, skills or location"
-                  className="w-full rounded-[3px] border border-paper-300 py-2.5 pl-9 pr-3 text-[0.875rem] focus:border-flame-500 focus:outline-none focus:ring-2 focus:ring-flame-500/30" />
+                  className={`${control} pl-9`} />
               </div>
-            </div>
-            <div>
-              <label htmlFor="status" className="sr-only">Status</label>
-              <select id="status" name="status" defaultValue={filters.status}
-                className="w-full rounded-[3px] border border-paper-300 bg-white px-3 py-2.5 text-[0.875rem] focus:border-flame-500 focus:outline-none focus:ring-2 focus:ring-flame-500/30">
+            </Filter>
+            <Filter label="Status">
+              <select name="status" defaultValue={filters.status} className={control}>
                 <option value="ALL">All statuses</option>
                 {applicationStatuses.map((s) => (
                   <option key={s} value={s}>{applicationStatusLabel[s]}</option>
                 ))}
               </select>
-            </div>
-            <div>
-              <label htmlFor="jobId" className="sr-only">Job</label>
-              <select id="jobId" name="jobId" defaultValue={filters.jobId}
-                className="w-full rounded-[3px] border border-paper-300 bg-white px-3 py-2.5 text-[0.875rem] focus:border-flame-500 focus:outline-none focus:ring-2 focus:ring-flame-500/30">
+            </Filter>
+            <Filter label="Job">
+              <select name="jobId" defaultValue={filters.jobId} className={control}>
                 <option value="ALL">All jobs</option>
-                {allJobs.map((j) => (
-                  <option key={j.id} value={j.id}>{j.title}</option>
-                ))}
+                {allJobs.map((j) => <option key={j.id} value={j.id}>{j.title}</option>)}
               </select>
-            </div>
-            <div className="lg:w-[9.5rem]">
-              <label htmlFor="from" className="block text-[0.625rem] font-semibold uppercase tracking-[0.08em] text-graphite-500">From</label>
-              <input id="from" name="from" type="date" defaultValue={filters.from ?? ""}
-                className="mt-1 w-full rounded-[3px] border border-paper-300 px-2.5 py-2 text-[0.8125rem] focus:border-flame-500 focus:outline-none focus:ring-2 focus:ring-flame-500/30" />
-            </div>
-            <div className="lg:w-[9.5rem]">
-              <label htmlFor="to" className="block text-[0.625rem] font-semibold uppercase tracking-[0.08em] text-graphite-500">To</label>
-              <input id="to" name="to" type="date" defaultValue={filters.to ?? ""}
-                className="mt-1 w-full rounded-[3px] border border-paper-300 px-2.5 py-2 text-[0.8125rem] focus:border-flame-500 focus:outline-none focus:ring-2 focus:ring-flame-500/30" />
-            </div>
-            <div className="sm:col-span-2 lg:col-span-1 lg:self-end">
-              <button type="submit" className={`${adminButtonSecondary} w-full lg:w-auto`}>
-                Apply
-              </button>
-            </div>
+            </Filter>
+            <Filter label="Sort">
+              <select name="sort" defaultValue={filters.sort} className={control}>
+                <option value="newest">Newest</option>
+                <option value="oldest">Oldest</option>
+                <option value="name">Name A–Z</option>
+                <option value="name-desc">Name Z–A</option>
+              </select>
+            </Filter>
+            <button type="submit" className={btnSecondary}>Filter</button>
           </div>
-          <details className="mt-4"><summary className="cursor-pointer text-xs font-medium text-ink-800">Advanced filters</summary><div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <label className="text-xs">Location<input name="location" defaultValue={filters.location} className={control} /></label>
-            <label className="text-xs">Source<select name="source" defaultValue={filters.source ?? ""} className={control}><option value="">All sources</option>{sources.map(source => <option key={source}>{source}</option>)}</select></label>
-            <label className="text-xs">Minimum years experience<input name="minExperience" type="number" min="0" max="60" defaultValue={filters.minExperience} className={control} /></label>
-            <label className="text-xs">Maximum years experience<input name="maxExperience" type="number" min="0" max="60" defaultValue={filters.maxExperience} className={control} /></label>
-            <label className="text-xs">Tag<input name="tag" defaultValue={filters.tag} className={control} /></label>
-            <label className="text-xs">Sort<select name="sort" defaultValue={filters.sort} className={control}><option value="newest">Newest</option><option value="oldest">Oldest</option><option value="name">Name A–Z</option><option value="name-desc">Name Z–A</option></select></label>
-            <label className="flex items-center gap-2 text-xs"><input name="starred" type="checkbox" value="1" defaultChecked={filters.starred === "1"} />Starred by me</label>
-            <label className="flex items-center gap-2 text-xs"><input name="archived" type="checkbox" value="1" defaultChecked={filters.archived === "1"} />Archived applications</label>
-          </div></details>
+
+          {/* Everything below is for narrowing a large pool — rare enough that
+              it should not occupy the top of the screen on every visit, common
+              enough to keep one click away. */}
+          <details className="mt-3 border-t border-paper-200 pt-3" open={Boolean(filters.location || filters.source || filters.minExperience || filters.maxExperience || filters.tag || filters.starred || filters.archived)}>
+            <summary className={`cursor-pointer ${t.label} font-medium text-graphite-700`}>More filters</summary>
+            <div className="mt-3 flex flex-wrap items-end gap-2.5">
+              <Filter label="Location">
+                <input name="location" defaultValue={filters.location} className={control} />
+              </Filter>
+              <Filter label="Source">
+                <select name="source" defaultValue={filters.source ?? ""} className={control}>
+                  <option value="">All sources</option>
+                  {sources.map(source => <option key={source}>{source}</option>)}
+                </select>
+              </Filter>
+              <Filter label="Tag">
+                <input name="tag" defaultValue={filters.tag} className={control} />
+              </Filter>
+              <Filter label="Experience (min)">
+                <input name="minExperience" type="number" min="0" max="60" defaultValue={filters.minExperience} className={control} />
+              </Filter>
+              <Filter label="Experience (max)">
+                <input name="maxExperience" type="number" min="0" max="60" defaultValue={filters.maxExperience} className={control} />
+              </Filter>
+              <Filter label="Applied from">
+                <input name="from" type="date" defaultValue={filters.from ?? ""} className={control} />
+              </Filter>
+              <Filter label="Applied to">
+                <input name="to" type="date" defaultValue={filters.to ?? ""} className={control} />
+              </Filter>
+              <label className={`flex items-center gap-2 pb-2 ${t.body} text-graphite-700`}>
+                <input name="starred" type="checkbox" value="1" defaultChecked={filters.starred === "1"} className="size-3.5 accent-ink-900" />
+                Starred by me
+              </label>
+              <label className={`flex items-center gap-2 pb-2 ${t.body} text-graphite-700`}>
+                <input name="archived" type="checkbox" value="1" defaultChecked={filters.archived === "1"} className="size-3.5 accent-ink-900" />
+                Archived
+              </label>
+            </div>
+          </details>
         </form>
 
-        <div className="mt-5">
-          {permits(admin.role, "candidates") && rows.length > 0 && <BulkCandidates rows={rows.map(({ application: a }) => ({ id: a.id, name: `${a.firstName} ${a.lastName}` }))} staff={staff.filter(s => permits(s.role, "candidates"))} canAssign={permits(admin.role, "manage")} />}
-          {rows.length === 0 ? (
-            <EmptyState title="No applications found" description="Try a different search, filter or date range." />
-          ) : (
-            <>
-              {/* Desktop table */}
-              <div className="hidden overflow-x-auto rounded-[4px] border border-paper-300 bg-white lg:block">
-                <table className="w-full min-w-[54rem] border-collapse text-left">
-                  <thead>
-                    <tr className="border-b border-paper-300">
-                      {["Candidate","Job","Location","Applied","Status"].map((h) => (
-                        <th key={h} scope="col" className="px-4 py-3 text-[0.625rem] font-semibold uppercase tracking-[0.08em] text-graphite-500">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map(({ application: a, jobTitle, jobLocation }) => (
-                      <tr key={a.id} className="border-b border-paper-200 last:border-0 hover:bg-paper-50">
-                        <th scope="row" className="px-3 py-2.5">
-                          <Link href={`/admin/applications/${a.id}`} className="block">
-                            <span className="block text-[0.8125rem] font-medium text-ink-900">{a.firstName} {a.lastName}</span>
-                            <span className="block text-[0.75rem] text-graphite-600">{a.email}</span>
-                          </Link>
-                        </th>
-                        <td className="px-3 py-2.5 text-[0.8125rem] text-graphite-700">{jobTitle}</td>
-                        <td className="px-3 py-2.5 text-[0.8125rem] text-graphite-600">{jobLocation}</td>
-                        <td className="px-3 py-2.5 text-[0.75rem] text-graphite-600">
-                          <span title={formatDate(a.createdAt)}>{relativeTime(a.createdAt)}</span>
-                        </td>
-                        <td className="px-3 py-2.5"><StatusPill status={a.status} label={applicationStatusLabel[a.status]} /></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+        {rows.length === 0 ? (
+          <EmptyState
+            title={filtered ? "No matching candidates" : "No applications yet"}
+            description={filtered
+              ? "Try a broader search, or clear the filters to see every application."
+              : "Applications appear here as soon as candidates apply to a published position."}
+            action={filtered
+              ? <Link href="/admin/applications" className={btnSecondary}>Clear filters</Link>
+              : <Link href="/admin/jobs" className={btnSecondary}>Manage jobs</Link>}
+          />
+        ) : (
+          <CandidateTable
+            rows={rows.map(({ application: a, jobTitle, jobLocation }) => ({
+              id: a.id,
+              name: `${a.firstName} ${a.lastName}`,
+              email: a.email,
+              jobTitle,
+              jobLocation,
+              status: a.status,
+              statusLabel: applicationStatusLabel[a.status],
+              applied: relativeTime(a.createdAt),
+              appliedTitle: formatDate(a.createdAt),
+            }))}
+            staff={staff.filter(s => permits(s.role, "candidates")).map(({ id, name }) => ({ id, name }))}
+            canBulk={permits(admin.role, "candidates")}
+            canAssign={permits(admin.role, "manage")}
+          />
+        )}
 
-              {/* Mobile cards */}
-              <ul className="grid gap-3 lg:hidden">
-                {rows.map(({ application: a, jobTitle }) => (
-                  <li key={a.id}>
-                    <Link href={`/admin/applications/${a.id}`} className="block rounded-[4px] border border-paper-300 bg-white p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <span className="text-[0.8125rem] font-medium text-ink-900">{a.firstName} {a.lastName}</span>
-                        <StatusPill status={a.status} label={applicationStatusLabel[a.status]} />
-                      </div>
-                      <p className="mt-0.5 truncate text-[0.75rem] text-graphite-600">{a.email}</p>
-                      <p className="mt-2 border-t border-paper-200 pt-2 text-[0.8125rem] text-graphite-700">{jobTitle}</p>
-                      <p className="mt-0.5 text-[0.75rem] text-graphite-500">{relativeTime(a.createdAt)}</p>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-
-              {pageCount > 1 && (
-                <nav className="mt-5 flex items-center justify-between gap-4" aria-label="Pagination">
-                  <p className="text-[0.8125rem] text-graphite-600">Page {page} of {pageCount}</p>
-                  <div className="flex gap-2">
-                    {page > 1 && <Link href={pageHref(page - 1)} className={adminButtonSecondary}>Previous</Link>}
-                    {page < pageCount && <Link href={pageHref(page + 1)} className={adminButtonSecondary}>Next</Link>}
-                  </div>
-                </nav>
-              )}
-            </>
-          )}
-        </div>
-      </div>
+        <Pager page={page} pageCount={pageCount} href={pageHref} />
+      </PageBody>
     </>
   );
 }

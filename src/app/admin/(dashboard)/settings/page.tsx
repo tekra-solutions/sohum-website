@@ -4,7 +4,7 @@ import { recruitingSettings } from "@/db/schema";
 import { permits } from "@/lib/ats/policy";
 import { configureRecruitingAction, configureOfferDefaultsAction } from "@/lib/ats/job-actions";
 import { WorkflowForm, WorkflowField } from "@/components/admin/WorkflowForm";
-import { AdminHeader, StatusPill } from "@/components/admin/ui";
+import { AdminHeader, Card, PageBody, StatusPill } from "@/components/admin/ui";
 import { PasswordForm } from "@/components/admin/PasswordForm";
 import { CreateAdminForm } from "@/components/admin/CreateAdminForm";
 import { btnSecondary, t } from "@/components/admin/form";
@@ -42,27 +42,11 @@ export default async function SettingsPage() {
       <AdminHeader
         title="Settings"
         description="Your profile, admin accounts and system configuration."
-        action={
-          permits(admin.role, "settings") ? (
-            <>
-              <Link href="/admin/settings/email-templates" className={btnSecondary}>
-                Email templates
-              </Link>
-              <Link href="/admin/settings/offer-templates" className={btnSecondary}>
-                Offer templates
-              </Link>
-              <Link href="/admin/settings/invoice-settings" className={btnSecondary}>
-                Invoice settings
-              </Link>
-            </>
-          ) : undefined
-        }
       />
 
-      <div className="max-w-3xl space-y-5 p-5 sm:p-6 lg:p-8">
-        <section className="rounded-[4px] border border-paper-300 bg-white p-5">
-          <h2 className={`${t.sectionTitle} font-medium text-ink-900`}>Profile</h2>
-          <dl className="mt-3">
+      <PageBody className="max-w-3xl">
+        <Card title="Your account">
+          <dl>
             {[["Name", admin.name], ["Email", admin.email], ["Role", roleLabel[admin.role] ?? admin.role]].map(([k, v]) => (
               <div key={k} className="flex justify-between gap-4 border-b border-paper-200 py-2 last:border-0">
                 <dt className={`${t.hint} text-graphite-500`}>{k}</dt>
@@ -70,26 +54,57 @@ export default async function SettingsPage() {
               </div>
             ))}
           </dl>
-        </section>
+          <details className="mt-4 border-t border-paper-200 pt-4">
+            <summary className={`cursor-pointer ${t.label} font-medium text-graphite-700`}>Change password</summary>
+            <div className="mt-4"><PasswordForm /></div>
+          </details>
+        </Card>
 
-        <section className="rounded-[4px] border border-paper-300 bg-white p-5">
-          <h2 className={`${t.sectionTitle} font-medium text-ink-900`}>Change password</h2>
-          <div className="mt-3">
-            <PasswordForm />
-          </div>
-        </section>
+        {permits(admin.role, "settings") && (
+          <Card title="Templates" description="The wording used in outbound email, offer letters and invoices">
+            <div className="flex flex-wrap gap-2">
+              <Link href="/admin/settings/email-templates" className={btnSecondary}>Email templates</Link>
+              <Link href="/admin/settings/offer-templates" className={btnSecondary}>Offer letter templates</Link>
+              <Link href="/admin/settings/invoice-settings" className={btnSecondary}>Invoice settings</Link>
+            </div>
+          </Card>
+        )}
 
-        {permits(admin.role, "settings") && <section className="rounded-[4px] border border-paper-300 bg-white p-5"><h2 className="mb-1 text-sm font-medium">Offer letter defaults</h2><p className="mb-3 text-xs text-graphite-600">Configured once and applied to every new offer, so recruiters only enter compensation and dates. Changing these never alters an offer that has already been issued.</p><WorkflowForm action={configureOfferDefaultsAction} label="Save offer defaults"><WorkflowField name="authorizedRepName" label="Authorized representative" value={recruiting?.authorizedRepName ?? ""} /><WorkflowField name="authorizedRepTitle" label="Representative title" value={recruiting?.authorizedRepTitle ?? ""} /><WorkflowField name="hrContactEmail" label="HR contact email" value={recruiting?.hrContactEmail ?? ""} /><WorkflowField name="defaultBenefitsSummary" label="Standard benefits summary" value={recruiting?.defaultBenefitsSummary ?? ""} multiline /><WorkflowField name="defaultPtoSummary" label="Standard PTO summary" value={recruiting?.defaultPtoSummary ?? ""} multiline /></WorkflowForm></section>}
+        {permits(admin.role, "settings") && (
+          <Card
+            title="Offer letter defaults"
+            description="Applied to every new offer, so recruiters only enter compensation and dates. Changing these never alters an offer already issued."
+          >
+            <WorkflowForm action={configureOfferDefaultsAction} label="Save offer defaults">
+              <WorkflowField name="authorizedRepName" label="Authorized representative" value={recruiting?.authorizedRepName ?? ""} />
+              <WorkflowField name="authorizedRepTitle" label="Representative title" value={recruiting?.authorizedRepTitle ?? ""} />
+              <WorkflowField name="hrContactEmail" label="HR contact email" value={recruiting?.hrContactEmail ?? ""} />
+              <WorkflowField name="defaultBenefitsSummary" label="Standard benefits summary" value={recruiting?.defaultBenefitsSummary ?? ""} multiline />
+              <WorkflowField name="defaultPtoSummary" label="Standard PTO summary" value={recruiting?.defaultPtoSummary ?? ""} multiline />
+            </WorkflowForm>
+          </Card>
+        )}
 
-        {permits(admin.role, "settings") && <section className="rounded-[4px] border border-paper-300 bg-white p-5"><h2 className="mb-3 text-sm font-medium">Job approval workflow</h2><WorkflowForm action={configureRecruitingAction} label="Save recruiting settings"><WorkflowField name="requireJobApproval" label="Approval before publication" value={recruiting?.requireJobApproval ? "1" : "0"} options={[{ value: "0", label: "Disabled — preserve direct publication" }, { value: "1", label: "Enabled — jobs must be approved" }]} /></WorkflowForm></section>}
+        {permits(admin.role, "settings") && (
+          <Card title="Job approval workflow" description="Whether a job must be approved before it can be published">
+            <WorkflowForm action={configureRecruitingAction} label="Save">
+              <WorkflowField
+                name="requireJobApproval"
+                label="Approval before publication"
+                value={recruiting?.requireJobApproval ? "1" : "0"}
+                options={[
+                  { value: "0", label: "Disabled — publish directly" },
+                  { value: "1", label: "Enabled — jobs must be approved" },
+                ]}
+              />
+            </WorkflowForm>
+          </Card>
+        )}
+
         {mayManage && (
           <>
-            <section className="rounded-[4px] border border-paper-300 bg-white p-5">
-              <h2 className={`${t.sectionTitle} font-medium text-ink-900`}>Admin accounts</h2>
-              <p className={`mt-1 ${t.hint} text-graphite-600`}>
-                {team.length} account{team.length === 1 ? "" : "s"}. Deactivating revokes access immediately.
-              </p>
-              <ul className="mt-3">
+            <Card title="Admin accounts" description={`${team.length} account${team.length === 1 ? "" : "s"}. Deactivating revokes access immediately.`}>
+              <ul>
                 {team.map((a) => (
                   <li key={a.id} className="flex flex-wrap items-center justify-between gap-3 border-b border-paper-200 py-2.5 last:border-0">
                     <div className="min-w-0">
@@ -119,27 +134,20 @@ export default async function SettingsPage() {
                   </li>
                 ))}
               </ul>
-            </section>
-
-            <section className="rounded-[4px] border border-paper-300 bg-white p-5">
-              <h2 className={`${t.sectionTitle} font-medium text-ink-900`}>Create an admin</h2>
-              <p className={`mt-1 ${t.hint} text-graphite-600`}>
-                The password is set here and shown to nobody afterwards — pass it to the
-                person directly and have them change it.
-              </p>
-              <div className="mt-4">
-                <CreateAdminForm />
-              </div>
-            </section>
+              <details className="mt-4 border-t border-paper-200 pt-4">
+                <summary className={`cursor-pointer ${t.label} font-medium text-graphite-700`}>Create an admin</summary>
+                <p className={`mt-2 ${t.hint} text-graphite-600`}>
+                  The password is set here and shown to nobody afterwards — pass it to the
+                  person directly and have them change it.
+                </p>
+                <div className="mt-4"><CreateAdminForm /></div>
+              </details>
+            </Card>
           </>
         )}
 
-        <section className="rounded-[4px] border border-paper-300 bg-white p-5">
-          <h2 className={`${t.sectionTitle} font-medium text-ink-900`}>Integrations</h2>
-          <p className={`mt-1 ${t.hint} text-graphite-600`}>
-            Configured through environment variables. Values are never displayed here.
-          </p>
-          <ul className="mt-3">
+        <Card title="Integrations" description="Configured through environment variables. Values are never displayed here.">
+          <ul>
             {integrations.map((i) => (
               <li key={i.name} className="flex items-center justify-between gap-4 border-b border-paper-200 py-2.5 last:border-0">
                 <div>
@@ -150,8 +158,8 @@ export default async function SettingsPage() {
               </li>
             ))}
           </ul>
-        </section>
-      </div>
+        </Card>
+      </PageBody>
     </>
   );
 }

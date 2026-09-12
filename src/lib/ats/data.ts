@@ -44,9 +44,13 @@ export async function upcomingInterviews() {
     .orderBy(asc(interviews.startsAt)).limit(12);
 }
 /**
- * Unread notifications only. The admin shell renders the notification panel
- * on every page, so it must not pay for the full actionCenter() fan-out —
- * that query set belongs to the dashboard, not the chrome.
+ * Unread notifications for the signed-in admin.
+ *
+ * No screen renders these today: the notification strip that used to sit above
+ * every admin page duplicated the dashboard's "Needs attention" list, so the
+ * strip was removed. Notifications are still written on assignment and
+ * interview changes, and markNotificationAction still clears them, so the
+ * history is intact and a future surface (a header bell, say) can read it.
  */
 export async function unreadNotifications() {
   const admin = await requireAdmin();

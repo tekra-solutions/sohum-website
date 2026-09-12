@@ -4,7 +4,6 @@ import { useState, useTransition } from "react";
 import { candidateAction } from "@/lib/ats/actions";
 import { applicationStatusLabel } from "@/lib/format";
 import { allowedTransitions, type Stage } from "@/lib/ats/transitions";
-import { control } from "./form";
 type Card = { id: string; name: string; job: string; date: string; location: string; experience: number | null; resume: boolean; interview: boolean; status: string; hasEmployee: boolean };
 export function PipelineBoard({ columns, canMove }: { columns: { status: string; total: number; cards: Card[]; href: string }[]; canMove: boolean }) {
   const [pending, startTransition] = useTransition();
@@ -37,37 +36,102 @@ export function PipelineBoard({ columns, canMove }: { columns: { status: string;
     });
   }
 
-  return <><p className="mb-3 text-xs text-graphite-600">{canMove ? "Drag a candidate to a stage, or use the stage selector on each card." : "Candidates for your assigned positions."} Showing up to 20 candidates per stage.</p>
-    <p role="status" aria-live="polite" className={`mb-3 min-h-5 text-sm ${message?.tone === "error" ? "text-[#8e2c20]" : "text-ink-800"}`}>
-      {pending ? "Updating candidate…" : message?.text ?? ""}
-    </p>
-    <div className="flex gap-4 overflow-x-auto pb-5" aria-label="Candidate pipeline" aria-busy={pending}>
-      {columns.map(column => {
-        const accepts = dragging ? legal(dragging, column.status) : false;
-        return <section key={column.status}
-          className={`w-64 shrink-0 rounded-[4px] border bg-paper-50 transition-colors ${dragging ? (accepts ? "border-ink-600 bg-white" : "border-paper-300 opacity-50") : "border-paper-300"}`}
-          onDragOver={e => { if (canMove && accepts) e.preventDefault(); }}
-          onDrop={e => { e.preventDefault(); if (dragging) move(dragging, column.status); }}>
-        <div className="flex items-center justify-between border-b border-paper-300 px-4 py-3"><h2 className="text-xs font-semibold uppercase tracking-wide text-ink-900">{applicationStatusLabel[column.status]}</h2><span className="text-xs text-graphite-600">{column.total}</span></div>
-        <ul className="space-y-3 p-3">{column.cards.map(card => {
-          const moves = allowedTransitions(card.status as Stage, { hasEmployee: card.hasEmployee });
-          return <li key={card.id} draggable={canMove && !pending && moves.length > 0} onDragStart={() => setDragging(card)} onDragEnd={() => setDragging(null)} className="rounded-[3px] border border-paper-300 bg-white p-3">
-          <Link href={`/admin/applications/${card.id}`} className="text-sm font-medium text-ink-900 hover:underline">{card.name}</Link>
-          <p className="mt-1 text-xs text-graphite-700">{card.job}</p><p className="mt-3 text-xs text-graphite-500">Applied {card.date}</p>
-          {card.location && <p className="mt-1 text-xs text-graphite-500">{card.location}</p>}
-          {card.experience !== null && <p className="mt-1 text-xs text-graphite-500">{card.experience} years experience</p>}
-          <p className="mt-2 text-xs text-ink-600">{[card.resume ? "Resume attached" : "No resume", card.interview ? "Interview scheduled" : ""].filter(Boolean).join(" · ")}</p>
-          {canMove && (moves.length > 0
-            ? <label className="mt-3 block"><span className="sr-only">Move {card.name} to stage</span>
-                <select className={control} value={card.status} disabled={pending} onChange={e => move(card, e.target.value)}>
-                  <option value={card.status}>{applicationStatusLabel[card.status]}</option>
-                  {moves.map(s => <option key={s} value={s}>Move to {applicationStatusLabel[s]}</option>)}
-                </select>
-              </label>
-            : <p className="mt-3 text-xs text-graphite-500">{card.hasEmployee ? "Converted to employee" : "No further stages"}</p>)}
-        </li>; })}</ul>
-        {!column.cards.length && <p className="px-4 pb-4 text-xs text-graphite-500">No candidates in this stage.</p>}
-        {column.total > 20 && <Link href={column.href} className="block px-4 pb-4 text-xs font-medium underline">View all {column.total} candidates</Link>}
-      </section>; })}
-    </div></>;
+  return (
+    <>
+      <p role="status" aria-live="polite" className={`mb-3 min-h-5 text-[0.8125rem] ${message?.tone === "error" ? "text-[#a5382b]" : "text-ink-800"}`}>
+        {pending ? "Updating candidate…" : message?.text ?? ""}
+      </p>
+
+      <div className="flex gap-4 overflow-x-auto pb-5" aria-label="Candidate pipeline" aria-busy={pending}>
+        {columns.map(column => {
+          const accepts = dragging ? legal(dragging, column.status) : false;
+          return (
+            <section
+              key={column.status}
+              className={`flex w-[17rem] shrink-0 flex-col self-start rounded-[4px] border bg-paper-50 transition-colors ${
+                dragging ? (accepts ? "border-ink-600 bg-white" : "border-paper-300 opacity-50") : "border-paper-300"
+              }`}
+              onDragOver={e => { if (canMove && accepts) e.preventDefault(); }}
+              onDrop={e => { e.preventDefault(); if (dragging) move(dragging, column.status); }}
+            >
+              <div className="flex items-center justify-between gap-2 border-b border-paper-300 px-4 py-2.5">
+                <h2 className="text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-ink-900">
+                  {applicationStatusLabel[column.status]}
+                </h2>
+                <span className="text-[0.6875rem] tabular-nums text-graphite-600">{column.total}</span>
+              </div>
+
+              <ul className="flex-1 space-y-2 p-2.5">
+                {column.cards.map(card => {
+                  const moves = allowedTransitions(card.status as Stage, { hasEmployee: card.hasEmployee });
+                  return (
+                    <li
+                      key={card.id}
+                      draggable={canMove && !pending && moves.length > 0}
+                      onDragStart={() => setDragging(card)}
+                      onDragEnd={() => setDragging(null)}
+                      className="rounded-[3px] border border-paper-300 bg-white p-3"
+                    >
+                      <Link href={`/admin/applications/${card.id}`} className="text-[0.8125rem] font-medium text-ink-900 hover:underline">
+                        {card.name}
+                      </Link>
+                      <p className="mt-0.5 truncate text-[0.75rem] text-graphite-600">{card.job}</p>
+
+                      {/* One metadata line instead of four stacked ones — the
+                          full detail is a click away on the profile. */}
+                      <p className="mt-2 text-[0.6875rem] text-graphite-500">
+                        {[
+                          card.date,
+                          card.location,
+                          card.experience !== null ? `${card.experience}y` : "",
+                        ].filter(Boolean).join(" · ")}
+                      </p>
+
+                      {card.interview && (
+                        <p className="mt-1.5 text-[0.6875rem] font-medium text-ink-600">Interview scheduled</p>
+                      )}
+
+                      {canMove && (moves.length > 0 ? (
+                        <label className="mt-2.5 block">
+                          <span className="sr-only">Move {card.name} to stage</span>
+                          <select
+                            className="w-full rounded-[3px] border border-paper-300 bg-white px-2 py-1.5 text-[0.75rem] text-graphite-700 transition-colors focus:border-flame-500 focus:outline-none focus:ring-2 focus:ring-flame-500/25"
+                            value={card.status}
+                            disabled={pending}
+                            onChange={e => move(card, e.target.value)}
+                          >
+                            <option value={card.status}>Move to…</option>
+                            {moves.map(s => <option key={s} value={s}>{applicationStatusLabel[s]}</option>)}
+                          </select>
+                        </label>
+                      ) : (
+                        <p className="mt-2.5 text-[0.6875rem] text-graphite-500">
+                          {card.hasEmployee ? "Converted to employee" : "No further stages"}
+                        </p>
+                      ))}
+                    </li>
+                  );
+                })}
+
+                {!column.cards.length && (
+                  <li className="px-1.5 py-4 text-center text-[0.75rem] text-graphite-500">No candidates</li>
+                )}
+              </ul>
+
+              {column.total > 20 && (
+                <Link href={column.href} className="border-t border-paper-300 px-4 py-2.5 text-[0.75rem] font-medium text-ink-900 underline underline-offset-4">
+                  View all {column.total}
+                </Link>
+              )}
+            </section>
+          );
+        })}
+      </div>
+
+      <p className="mt-1 text-[0.6875rem] text-graphite-500">
+        {canMove ? "Drag a candidate between stages, or use the selector on a card. " : "Candidates for your assigned positions. "}
+        Showing up to 20 per stage.
+      </p>
+    </>
+  );
 }

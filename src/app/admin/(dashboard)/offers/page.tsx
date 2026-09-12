@@ -4,8 +4,8 @@ import { listOffers } from "@/lib/offers/data";
 import { listAdminJobs } from "@/lib/services/jobs";
 import { recruiterOptions } from "@/lib/ats/data";
 import { offerStatuses } from "@/lib/offers/policy";
-import { offerStatusLabel, formatCurrency, shortDate } from "@/lib/format";
-import { AdminHeader, EmptyState, StatusPill, adminButtonSecondary } from "@/components/admin/ui";
+import { offerStatusLabel, formatCurrency } from "@/lib/format";
+import { AdminHeader, DataTable, EmptyState, Filter, PageBody, Pager, StatusPill, Toolbar, td, tr } from "@/components/admin/ui";
 import { control } from "@/components/admin/form";
 import { requirePermission } from "@/lib/ats/access";
 import { isDatabaseConfigured } from "@/db";
@@ -29,9 +29,9 @@ export default async function OffersPage({
     return (
       <>
         <AdminHeader title="Offers" />
-        <div className="p-5 sm:p-6 lg:p-8">
+        <PageBody>
           <EmptyState title="Database not configured" description="See docs/DEPLOYMENT.md to connect Supabase." />
-        </div>
+        </PageBody>
       </>
     );
   }
@@ -58,69 +58,69 @@ export default async function OffersPage({
   return (
     <>
       <AdminHeader title="Offers" description={`${total} offer${total === 1 ? "" : "s"}.`} />
-      <div className="space-y-5 p-5 sm:p-6 lg:p-8">
-        <form className="grid gap-3 rounded-[4px] border border-paper-300 bg-white p-4 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_auto_auto_auto_auto]">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-graphite-400" aria-hidden="true" />
-            <input aria-label="Search offers" name="q" type="search" defaultValue={filters.q} placeholder="Candidate, email or job title" className={`${control} pl-9`} />
-          </div>
-          <select aria-label="Offer status" name="status" defaultValue={filters.status} className={control}>
-            <option value="ALL">All statuses</option>
-            <option value="AWAITING_RESPONSE">Awaiting response</option>
-            {offerStatuses.map(s => <option key={s} value={s}>{offerStatusLabel[s]}</option>)}
-          </select>
-          <select aria-label="Job" name="jobId" defaultValue={filters.jobId ?? ""} className={control}>
-            <option value="">All jobs</option>
-            {jobs.map(j => <option key={j.id} value={j.id}>{j.title}</option>)}
-          </select>
-          <select aria-label="Recruiter" name="recruiterId" defaultValue={filters.recruiterId ?? ""} className={control}>
-            <option value="">All recruiters</option>
-            {staff.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-          </select>
-          <button className={adminButtonSecondary}>Filter</button>
-        </form>
+      <PageBody>
+        <Toolbar>
+          <Filter label="Search" wide>
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-graphite-400" aria-hidden="true" />
+              <input name="q" type="search" defaultValue={filters.q} placeholder="Candidate, email or job title" className={`${control} pl-9`} />
+            </div>
+          </Filter>
+          <Filter label="Status">
+            <select name="status" defaultValue={filters.status} className={control}>
+              <option value="ALL">All statuses</option>
+              <option value="AWAITING_RESPONSE">Awaiting response</option>
+              {offerStatuses.map(s => <option key={s} value={s}>{offerStatusLabel[s]}</option>)}
+            </select>
+          </Filter>
+          <Filter label="Job">
+            <select name="jobId" defaultValue={filters.jobId ?? ""} className={control}>
+              <option value="">All jobs</option>
+              {jobs.map(j => <option key={j.id} value={j.id}>{j.title}</option>)}
+            </select>
+          </Filter>
+          <Filter label="Recruiter">
+            <select name="recruiterId" defaultValue={filters.recruiterId ?? ""} className={control}>
+              <option value="">All recruiters</option>
+              {staff.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+          </Filter>
+        </Toolbar>
 
         {rows.length === 0 ? (
           <EmptyState title="No offers found" description="Create an offer from a candidate's profile once they reach the Offer stage." />
         ) : (
-          <div className="overflow-x-auto rounded-[4px] border border-paper-300 bg-white">
-            <table className="w-full min-w-[900px] text-left text-xs">
-              <thead>
-                <tr>
-                  {["Candidate", "Position", "Salary", "Start date", "Status", "Created", "Expires", "Created by"].map(h => (
-                    <th key={h} className="border-b border-paper-300 p-3 font-medium">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map(({ offer, version, application, jobTitle, creatorName }) => (
-                  <tr key={offer.id} className="border-b border-paper-200 last:border-0">
-                    <td className="p-3">
-                      <Link href={`/admin/offers/${offer.id}`} className="font-medium text-ink-900 underline-offset-4 hover:underline">
-                        {application.firstName} {application.lastName}
-                      </Link>
-                    </td>
-                    <td className="p-3 text-graphite-600">{version?.jobTitle ?? jobTitle}</td>
-                    <td className="p-3 tabular-nums text-graphite-700">
-                      {version?.annualSalaryCents != null ? formatCurrency(version.annualSalaryCents) : version?.hourlyRateCents != null ? `${formatCurrency(version.hourlyRateCents)}/hr` : "—"}
-                    </td>
-                    <td className="p-3 text-graphite-600">{version ? version.startDate.toLocaleDateString("en-US", { timeZone: "UTC" }) : "—"}</td>
-                    <td className="p-3"><StatusPill status={offer.status} label={offerStatusLabel[offer.status]} /></td>
-                    <td className="p-3 text-graphite-500">{shortDate(offer.createdAt)}</td>
-                    <td className="p-3 text-graphite-500">{version ? version.expirationDate.toLocaleDateString("en-US", { timeZone: "UTC" }) : "—"}</td>
-                    <td className="p-3 text-graphite-500">{creatorName ?? "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <DataTable headers={["Candidate", "Position", "Salary", "Start date", "Status", "Expires", "Created by"]} minWidth="52rem">
+            {rows.map(({ offer, version, application, jobTitle, creatorName }) => (
+              <tr key={offer.id} className={tr}>
+                <th scope="row" className="px-4 py-2.5 text-left">
+                  <Link href={`/admin/offers/${offer.id}`} className="text-[0.8125rem] font-medium text-ink-900 underline-offset-4 hover:underline">
+                    {application.firstName} {application.lastName}
+                  </Link>
+                </th>
+                <td className={td}>{version?.jobTitle ?? jobTitle}</td>
+                <td className={`${td} tabular-nums`}>
+                  {version?.annualSalaryCents != null
+                    ? formatCurrency(version.annualSalaryCents)
+                    : version?.hourlyRateCents != null
+                      ? `${formatCurrency(version.hourlyRateCents)}/hr`
+                      : "—"}
+                </td>
+                <td className={`${td} whitespace-nowrap text-graphite-600`}>
+                  {version ? version.startDate.toLocaleDateString("en-US", { timeZone: "UTC" }) : "—"}
+                </td>
+                <td className="px-4 py-2.5"><StatusPill status={offer.status} label={offerStatusLabel[offer.status]} /></td>
+                <td className={`${td} whitespace-nowrap text-graphite-600`}>
+                  {version ? version.expirationDate.toLocaleDateString("en-US", { timeZone: "UTC" }) : "—"}
+                </td>
+                <td className={`${td} text-graphite-500`}>{creatorName ?? "—"}</td>
+              </tr>
+            ))}
+          </DataTable>
         )}
 
-        <nav className="flex gap-3" aria-label="Offers pagination">
-          {page > 1 && <Link className={adminButtonSecondary} href={pageHref(page - 1)}>Previous</Link>}
-          {page * pageSize < total && <Link className={adminButtonSecondary} href={pageHref(page + 1)}>Next</Link>}
-        </nav>
-      </div>
+        <Pager page={page} pageCount={Math.ceil(total / pageSize)} href={pageHref} />
+      </PageBody>
     </>
   );
 }

@@ -1,25 +1,55 @@
 "use client";
 
-import { permits } from "@/lib/ats/policy";
+import { permits, type Permission } from "@/lib/ats/policy";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Briefcase, FileText, IdCard, LayoutDashboard, LogOut, Menu, Receipt, Settings, Users, X } from "lucide-react";
+import { BarChart3, Briefcase, FileText, IdCard, KanbanSquare, LayoutDashboard, LogOut, Menu, Receipt, ScrollText, Settings, Users, X } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { logoutAction } from "@/lib/services/auth-actions";
 
-const items = [
-  { href: "/admin", label: "Dashboard", Icon: LayoutDashboard, exact: true },
-  { href: "/admin/jobs", label: "Jobs", Icon: Briefcase },
-  { href: "/admin/pipeline", label: "Pipeline", Icon: LayoutDashboard },
-  { href: "/admin/applications", label: "Applications", Icon: Users },
-  { href: "/admin/offers", label: "Offers", Icon: FileText },
-  { href: "/admin/invoices", label: "Invoices", Icon: Receipt },
-  { href: "/admin/employees", label: "Employees", Icon: IdCard },
-  { href: "/admin/reports", label: "Reports", Icon: LayoutDashboard },
-  { href: "/admin/audit", label: "Audit log", Icon: IdCard },
-  { href: "/admin/settings", label: "Settings", Icon: Settings },
+/**
+ * Sidebar contents, in three groups.
+ *
+ * Ten flat items read as an undifferentiated list, and three of them shared the
+ * same icon (Dashboard, Pipeline and Reports were all LayoutDashboard) while
+ * Audit borrowed the Employees icon — so nothing was scannable by shape.
+ * Grouping separates daily recruiting work from business records and from the
+ * settings a recruiter opens once a quarter.
+ *
+ * `permission` gates the item; items without one are visible to every admin.
+ */
+const groups: {
+  label: string;
+  items: { href: string; label: string; Icon: typeof LayoutDashboard; exact?: boolean; permission?: Permission }[];
+}[] = [
+  {
+    label: "Recruiting",
+    items: [
+      { href: "/admin", label: "Dashboard", Icon: LayoutDashboard, exact: true },
+      { href: "/admin/jobs", label: "Jobs", Icon: Briefcase },
+      { href: "/admin/applications", label: "Candidates", Icon: Users },
+      { href: "/admin/pipeline", label: "Pipeline", Icon: KanbanSquare },
+      { href: "/admin/offers", label: "Offers", Icon: FileText, permission: "offers" },
+    ],
+  },
+  {
+    label: "Business",
+    items: [
+      { href: "/admin/invoices", label: "Invoices", Icon: Receipt, permission: "invoices" },
+      { href: "/admin/employees", label: "Employees", Icon: IdCard, permission: "employees" },
+      { href: "/admin/reports", label: "Reports", Icon: BarChart3, permission: "reports" },
+    ],
+  },
+  {
+    label: "Administration",
+    items: [
+      { href: "/admin/audit", label: "Audit log", Icon: ScrollText, permission: "audit" },
+      { href: "/admin/settings", label: "Settings", Icon: Settings },
+    ],
+  },
 ];
+
 
 export function AdminNav({ adminName, role }: { adminName: string; role: string }) {
   const pathname = usePathname();
@@ -36,27 +66,40 @@ export function AdminNav({ adminName, role }: { adminName: string; role: string 
     exact ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
 
   const links = (
-    <ul className="space-y-1">
-      {items.filter(item => (item.href !== "/admin/employees" || permits(role, "employees")) && (item.href !== "/admin/reports" || permits(role, "reports")) && (item.href !== "/admin/audit" || permits(role, "audit")) && (item.href !== "/admin/offers" || permits(role, "offers")) && (item.href !== "/admin/invoices" || permits(role, "invoices"))).map(({ href, label, Icon, exact }) => {
-        const active = isActive(href, exact);
+    <div className="space-y-6">
+      {groups.map((group) => {
+        const visible = group.items.filter((item) => !item.permission || permits(role, item.permission));
+        if (!visible.length) return null;
         return (
-          <li key={href}>
-            <Link
-              href={href}
-              aria-current={active ? "page" : undefined}
-              className={`flex items-center gap-3 rounded-[3px] px-3 py-2.5 text-[0.9375rem] transition-colors ${
-                active
-                  ? "bg-white/10 font-medium text-white"
-                  : "text-white/65 hover:bg-white/[0.06] hover:text-white"
-              }`}
-            >
-              <Icon className="size-4 shrink-0" strokeWidth={1.75} aria-hidden="true" />
-              {label}
-            </Link>
-          </li>
+          <div key={group.label}>
+            <p className="px-3 pb-2 text-[0.625rem] font-semibold uppercase tracking-[0.14em] text-white/35">
+              {group.label}
+            </p>
+            <ul className="space-y-0.5">
+              {visible.map(({ href, label, Icon, exact }) => {
+                const active = isActive(href, exact);
+                return (
+                  <li key={href}>
+                    <Link
+                      href={href}
+                      aria-current={active ? "page" : undefined}
+                      className={`flex items-center gap-3 rounded-[3px] px-3 py-2 text-[0.875rem] transition-colors ${
+                        active
+                          ? "bg-white/10 font-medium text-white"
+                          : "text-white/65 hover:bg-white/[0.06] hover:text-white"
+                      }`}
+                    >
+                      <Icon className="size-4 shrink-0" strokeWidth={1.75} aria-hidden="true" />
+                      {label}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
         );
       })}
-    </ul>
+    </div>
   );
 
   const footer = (
@@ -66,7 +109,7 @@ export function AdminNav({ adminName, role }: { adminName: string; role: string 
       <form action={logoutAction} className="mt-3">
         <button
           type="submit"
-          className="flex w-full items-center gap-3 rounded-[3px] px-3 py-2.5 text-[0.9375rem] text-white/65 transition-colors hover:bg-white/[0.06] hover:text-white"
+          className="flex w-full items-center gap-3 rounded-[3px] px-3 py-2 text-[0.875rem] text-white/65 transition-colors hover:bg-white/[0.06] hover:text-white"
         >
           <LogOut className="size-4 shrink-0" strokeWidth={1.75} aria-hidden="true" />
           Sign out

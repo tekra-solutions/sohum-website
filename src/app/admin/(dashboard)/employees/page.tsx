@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Plus, Search } from "lucide-react";
-import { AdminHeader, EmptyState, StatCard, StatusPill } from "@/components/admin/ui";
-import { btn, btnSecondary, control, t } from "@/components/admin/form";
+import { AdminHeader, DataTable, EmptyState, Filter, PageBody, Pager, StatCard, StatusPill, Toolbar, td, tr } from "@/components/admin/ui";
+import { btn, control, t } from "@/components/admin/form";
 import { employeeDepartments, employeeStats, listEmployees } from "@/lib/services/employees";
 import { employmentTypeLabel, shortDate } from "@/lib/format";
 import { employmentStatuses } from "@/lib/validation/schemas";
@@ -64,7 +64,7 @@ export default async function EmployeesPage({
         }
       />
 
-      <div className="space-y-5 p-5 sm:p-6 lg:p-8">
+      <PageBody>
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <StatCard label="Total" value={stats.total} />
           <StatCard label="Active" value={stats.active} href="/admin/employees?status=ACTIVE" />
@@ -72,50 +72,33 @@ export default async function EmployeesPage({
           <StatCard label="Terminated" value={stats.terminated} href="/admin/employees?status=TERMINATED" />
         </div>
 
-        <form method="get" className="rounded-[4px] border border-paper-300 bg-white p-4">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(14rem,1.6fr)_repeat(3,minmax(0,1fr))_auto] lg:items-end">
-            <div>
-              <label htmlFor="q" className="sr-only">Search employees</label>
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-graphite-400" aria-hidden="true" />
-                <input
-                  id="q" name="q" type="search" defaultValue={filters.q ?? ""}
-                  placeholder="Name, email or employee ID"
-                  className={`${control} border-paper-300 pl-8`}
-                />
-              </div>
+        <Toolbar action="Apply">
+          <Filter label="Search" wide>
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-graphite-400" aria-hidden="true" />
+              <input name="q" type="search" defaultValue={filters.q ?? ""} placeholder="Name, email or employee ID" className={`${control} pl-9`} />
             </div>
-            <div>
-              <label htmlFor="status" className="sr-only">Status</label>
-              <select id="status" name="status" defaultValue={filters.status} className={`${control} border-paper-300`}>
-                <option value="ALL">All statuses</option>
-                {employmentStatuses.map((s) => (
-                  <option key={s} value={s}>{statusLabel[s]}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label htmlFor="department" className="sr-only">Department</label>
-              <select id="department" name="department" defaultValue={filters.department} className={`${control} border-paper-300`}>
-                <option value="ALL">All departments</option>
-                {departments.map((d) => (
-                  <option key={d} value={d}>{d}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label htmlFor="sort" className="sr-only">Sort</label>
-              <select id="sort" name="sort" defaultValue={filters.sort} className={`${control} border-paper-300`}>
-                <option value="name">Name</option>
-                <option value="employeeId">Employee ID</option>
-                <option value="newest">Newest</option>
-              </select>
-            </div>
-            <div className="sm:col-span-2 lg:col-span-1">
-              <button type="submit" className={`${btnSecondary} w-full lg:w-auto`}>Apply</button>
-            </div>
-          </div>
-        </form>
+          </Filter>
+          <Filter label="Status">
+            <select name="status" defaultValue={filters.status} className={control}>
+              <option value="ALL">All statuses</option>
+              {employmentStatuses.map((s) => <option key={s} value={s}>{statusLabel[s]}</option>)}
+            </select>
+          </Filter>
+          <Filter label="Department">
+            <select name="department" defaultValue={filters.department} className={control}>
+              <option value="ALL">All departments</option>
+              {departments.map((d) => <option key={d} value={d}>{d}</option>)}
+            </select>
+          </Filter>
+          <Filter label="Sort">
+            <select name="sort" defaultValue={filters.sort} className={control}>
+              <option value="name">Name</option>
+              <option value="employeeId">Employee ID</option>
+              <option value="newest">Newest</option>
+            </select>
+          </Filter>
+        </Toolbar>
 
         {rows.length === 0 ? (
           <EmptyState
@@ -126,44 +109,29 @@ export default async function EmployeesPage({
         ) : (
           <>
             {/* Desktop table */}
-            <div className="hidden overflow-x-auto rounded-[4px] border border-paper-300 bg-white lg:block">
-              <table className="w-full min-w-[50rem] border-collapse text-left">
-                <thead>
-                  <tr className="border-b border-paper-300">
-                    {["Employee ID","Name","Job title","Department","Type","Started","Status"].map((h) => (
-                      <th key={h} scope="col" className={`whitespace-nowrap px-3 py-2.5 ${t.hint} font-semibold uppercase tracking-[0.08em] text-graphite-500`}>
-                        {h}
-                      </th>
-                    ))}
+            <div className="hidden lg:block">
+              <DataTable headers={["Employee ID", "Name", "Job title", "Department", "Type", "Started", "Status"]} minWidth="50rem">
+                {rows.map((emp) => (
+                  <tr key={emp.id} className={tr}>
+                    <td className={`${td} whitespace-nowrap font-mono text-[0.75rem] tabular-nums`}>{emp.employeeId}</td>
+                    <th scope="row" className="px-4 py-2.5 text-left">
+                      <Link href={`/admin/employees/${emp.id}`} className={`block ${t.body} font-medium text-ink-900 hover:underline underline-offset-4`}>
+                        {emp.firstName} {emp.lastName}
+                      </Link>
+                      <span className={`block ${t.hint} font-normal text-graphite-600`}>{emp.workEmail}</span>
+                    </th>
+                    <td className={td}>{emp.jobTitle}</td>
+                    <td className={`${td} text-graphite-600`}>{emp.department}</td>
+                    <td className={`${td} whitespace-nowrap text-graphite-600`}>
+                      {employmentTypeLabel[emp.employmentType] ?? emp.employmentType}
+                    </td>
+                    <td className={`${td} whitespace-nowrap text-graphite-600`}>{emp.startDate ? shortDate(emp.startDate) : "—"}</td>
+                    <td className="whitespace-nowrap px-4 py-2.5">
+                      <StatusPill status={emp.status} label={statusLabel[emp.status]} />
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {rows.map((emp) => (
-                    <tr key={emp.id} className="border-b border-paper-200 last:border-0 hover:bg-paper-50">
-                      <td className={`whitespace-nowrap px-3 py-2.5 font-mono ${t.hint} tabular-nums text-graphite-700`}>
-                        {emp.employeeId}
-                      </td>
-                      <th scope="row" className="px-3 py-2.5">
-                        <Link href={`/admin/employees/${emp.id}`} className={`block ${t.body} font-medium text-ink-900 hover:underline underline-offset-4`}>
-                          {emp.firstName} {emp.lastName}
-                        </Link>
-                        <span className={`block ${t.hint} text-graphite-600`}>{emp.workEmail}</span>
-                      </th>
-                      <td className={`px-3 py-2.5 ${t.body} text-graphite-700`}>{emp.jobTitle}</td>
-                      <td className={`px-3 py-2.5 ${t.body} text-graphite-600`}>{emp.department}</td>
-                      <td className={`whitespace-nowrap px-3 py-2.5 ${t.body} text-graphite-600`}>
-                        {employmentTypeLabel[emp.employmentType] ?? emp.employmentType}
-                      </td>
-                      <td className={`whitespace-nowrap px-3 py-2.5 ${t.hint} text-graphite-600`}>
-                        {emp.startDate ? shortDate(emp.startDate) : "—"}
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-2.5">
-                        <StatusPill status={emp.status} label={statusLabel[emp.status]} />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                ))}
+              </DataTable>
             </div>
 
             {/* Mobile cards */}
@@ -184,18 +152,10 @@ export default async function EmployeesPage({
               ))}
             </ul>
 
-            {pageCount > 1 && (
-              <nav className="flex items-center justify-between gap-4" aria-label="Pagination">
-                <p className={`${t.body} text-graphite-600`}>Page {page} of {pageCount}</p>
-                <div className="flex gap-2">
-                  {page > 1 && <Link href={pageHref(page - 1)} className={btnSecondary}>Previous</Link>}
-                  {page < pageCount && <Link href={pageHref(page + 1)} className={btnSecondary}>Next</Link>}
-                </div>
-              </nav>
-            )}
+            <Pager page={page} pageCount={pageCount} href={pageHref} />
           </>
         )}
-      </div>
+      </PageBody>
     </>
   );
 }

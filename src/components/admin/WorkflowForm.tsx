@@ -30,8 +30,11 @@ export function WorkflowForm({ children, applicationId, kind, label = "Save", ac
     {applicationId && <input type="hidden" name="applicationId" value={applicationId} />}
     {kind && <input type="hidden" name="kind" value={kind} />}
     {children}{confirm ? <ConfirmSubmit label={label} message={confirm.message} tone={confirm.tone} confirmLabel={confirm.confirmLabel} /> : <Submit label={label} />}
-    {state.error && <p role="alert" className="text-sm text-red-700">{state.error}</p>}
-    {state.success && <p role="status" className="text-sm text-ink-700">{state.success}</p>}
+    {/* Feedback uses the palette already in the product: the deep red of a
+        form-field error, and the green of the HIRED/ACCEPTED status pill.
+        `text-red-700` was a raw Tailwind value used nowhere else. */}
+    {state.error && <p role="alert" className="text-[0.8125rem] text-[#c0392b]">{state.error}</p>}
+    {state.success && <p role="status" className="text-[0.8125rem] text-[#1e7a4d]">{state.success}</p>}
   </form>;
 }
 export function WorkflowField({ label, name, value, type = "text", options, multiline, required = false }: {

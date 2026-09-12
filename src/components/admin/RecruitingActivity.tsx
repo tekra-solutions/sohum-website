@@ -1,13 +1,82 @@
 import Link from "next/link";
-import { actionCenter, unreadNotifications, upcomingInterviews } from "@/lib/ats/data";
+import { actionCenter, upcomingInterviews } from "@/lib/ats/data";
 import { formatDateTime } from "@/lib/format";
-import { markNotificationAction } from "@/lib/ats/actions";
-import { adminButtonSecondary } from "./ui";
-export async function RecruitingActivity() {
-  const [upcoming, actions] = await Promise.all([upcomingInterviews(), actionCenter()]);
-  return <div className="grid gap-6 xl:grid-cols-2"><section><h2 className="mb-4 text-[0.9375rem] font-medium text-ink-900">Upcoming interviews</h2><ul className="divide-y divide-paper-200 rounded-[4px] border border-paper-300 bg-white">{upcoming.map(({ interview: i, name, job }) => <li key={i.id}><Link href={`/admin/applications/${i.applicationId}#interviews`} className="block px-4 py-3 hover:bg-paper-50"><p className="text-sm font-medium text-ink-900">{name} · {i.type}</p><p className="mt-1 text-xs text-graphite-600">{job}</p><p className="mt-1 text-xs text-graphite-500">{i.startsAt.toLocaleString("en-US", { timeZone: i.timezone })} ({i.timezone})</p></Link></li>)}{!upcoming.length && <li className="p-4 text-sm text-graphite-500">No upcoming interviews.</li>}</ul></section><section><h2 className="mb-4 text-[0.9375rem] font-medium text-ink-900">Needs attention</h2><ul className="divide-y divide-paper-200 rounded-[4px] border border-paper-300 bg-white">{actions.tasks.map(({ task, name }) => <li key={task.id}><Link href={`/admin/applications/${task.applicationId}`} className="block p-4 text-sm"><span className="font-medium">{task.title}</span><span className="mt-1 block text-xs text-graphite-500">{name} · Due {formatDateTime(task.dueAt)}</span></Link></li>)}{actions.feedbackDue.map((f, index) => <li key={`${f.id}-${index}`}><Link href={`/admin/applications/${f.id}#interviews`} className="block p-4 text-sm"><span className="font-medium">Interview feedback required</span><span className="mt-1 block text-xs text-graphite-500">{f.name} · {f.type}</span></Link></li>)}{actions.offerApprovals.map(o => <li key={o.id}><Link href={`/admin/offers/${o.id}`} className="block p-4 text-sm hover:bg-paper-50"><span className="font-medium">Offer pending your approval</span><span className="mt-1 block text-xs text-graphite-500">{o.name} · {o.job}</span></Link></li>)}{actions.offerExpiring.map(o => <li key={`exp-${o.id}`}><Link href={`/admin/offers/${o.id}`} className="block p-4 text-sm hover:bg-paper-50"><span className="font-medium">Offer expiring soon</span><span className="mt-1 block text-xs text-graphite-500">{o.name} · expires {formatDateTime(o.expiresAt)}</span></Link></li>)}{!actions.tasks.length && !actions.feedbackDue.length && !actions.offerApprovals.length && !actions.offerExpiring.length && <li className="p-4 text-sm text-graphite-500">Nothing needs your attention right now.</li>}</ul></section></div>;
+import { Card } from "./ui";
+
+/**
+ * The dashboard's two working lists.
+ *
+ * These were previously one dense component plus a `NotificationPanel` pinned
+ * above every admin screen. The panel listed the same offer approvals and
+ * expiring offers as "Needs attention" below it, so the same work appeared
+ * twice — and appeared on Invoices and Settings, where it is noise. The panel
+ * is gone; this is the single place unfinished work is surfaced.
+ */
+
+function Item({ href, title, meta }: { href: string; title: string; meta: string }) {
+  return (
+    <li>
+      <Link href={href} className="block px-5 py-3 transition-colors hover:bg-paper-50">
+        <p className="text-[0.8125rem] font-medium text-ink-900">{title}</p>
+        <p className="mt-0.5 text-[0.75rem] text-graphite-600">{meta}</p>
+      </Link>
+    </li>
+  );
 }
-export async function NotificationPanel() {
-  const alerts = await unreadNotifications();
-  return <details className="border-b border-paper-300 bg-white px-5 py-2 sm:px-8"><summary className="cursor-pointer text-xs font-medium text-ink-800">Notifications {alerts.length ? `(${alerts.length}${alerts.length === 20 ? "+" : ""} unread)` : "(0 unread)"}</summary><ul className="mt-2 max-h-80 divide-y divide-paper-200 overflow-y-auto">{alerts.map(alert => <li key={alert.id} className="flex flex-wrap items-center justify-between gap-2 py-3"><Link href={alert.href} className="text-sm underline">{alert.title}</Link><form action={markNotificationAction}><input type="hidden" name="id" value={alert.id} /><button className={adminButtonSecondary}>Mark read</button></form></li>)}{!alerts.length && <li className="py-3 text-xs text-graphite-500">You’re all caught up.</li>}</ul></details>;
+
+function List({ children, empty }: { children: React.ReactNode[]; empty: string }) {
+  const items = children.flat().filter(Boolean);
+  if (!items.length) {
+    return <p className="px-5 py-6 text-center text-[0.8125rem] text-graphite-500">{empty}</p>;
+  }
+  return <ul className="divide-y divide-paper-200">{items}</ul>;
+}
+
+export async function NeedsAttention() {
+  const actions = await actionCenter();
+  const count =
+    actions.tasks.length + actions.feedbackDue.length +
+    actions.offerApprovals.length + actions.offerExpiring.length;
+
+  return (
+    <Card
+      title="Needs attention"
+      description={count ? `${count} item${count === 1 ? "" : "s"} waiting on you` : undefined}
+      className="[&>div]:p-0"
+    >
+      <List empty="Nothing needs your attention right now.">
+        {actions.offerApprovals.map((o) => (
+          <Item key={`ap-${o.id}`} href={`/admin/offers/${o.id}`} title="Offer pending your approval" meta={`${o.name} · ${o.job}`} />
+        ))}
+        {actions.offerExpiring.map((o) => (
+          <Item key={`exp-${o.id}`} href={`/admin/offers/${o.id}`} title="Offer expiring soon" meta={`${o.name} · expires ${formatDateTime(o.expiresAt)}`} />
+        ))}
+        {actions.feedbackDue.map((f, i) => (
+          <Item key={`fb-${f.id}-${i}`} href={`/admin/applications/${f.id}#interviews`} title="Interview feedback required" meta={`${f.name} · ${f.type}`} />
+        ))}
+        {actions.tasks.map(({ task, name }) => (
+          <Item key={`t-${task.id}`} href={`/admin/applications/${task.applicationId}`} title={task.title} meta={`${name} · due ${formatDateTime(task.dueAt)}`} />
+        ))}
+      </List>
+    </Card>
+  );
+}
+
+export async function UpcomingInterviews() {
+  const upcoming = await upcomingInterviews();
+
+  return (
+    <Card title="Upcoming interviews" className="[&>div]:p-0">
+      <List empty="No interviews scheduled.">
+        {upcoming.map(({ interview: i, name, job }) => (
+          <Item
+            key={i.id}
+            href={`/admin/applications/${i.applicationId}#interviews`}
+            title={`${name} · ${i.type}`}
+            meta={`${job} — ${i.startsAt.toLocaleString("en-US", { timeZone: i.timezone, dateStyle: "medium", timeStyle: "short" })} (${i.timezone})`}
+          />
+        ))}
+      </List>
+    </Card>
+  );
 }

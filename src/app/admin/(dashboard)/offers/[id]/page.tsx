@@ -8,7 +8,7 @@ import { requireOffer } from "@/lib/offers/access";
 import { permits } from "@/lib/ats/policy";
 import { canApprove, canEditOffer, canSend, canSubmitForApproval, canWithdraw, type OfferStatus } from "@/lib/offers/policy";
 import { approveOfferAction, extendOfferAction, rejectOfferAction, requestOfferChangesAction, sendOfferAction, submitOfferForApprovalAction, withdrawOfferAction } from "@/lib/offers/actions";
-import { AdminHeader, StatusPill } from "@/components/admin/ui";
+import { AdminHeader, Card, PageBody, StatusPill } from "@/components/admin/ui";
 import { WorkflowForm, WorkflowField } from "@/components/admin/WorkflowForm";
 import { t, btnSecondary } from "@/components/admin/form";
 import { offerStatusLabel, offerEventLabel, formatCurrency, formatDateTime, shortDate } from "@/lib/format";
@@ -46,16 +46,15 @@ export default async function OfferDetailPage({ params }: { params: Promise<{ id
         description={version.jobTitle}
         action={<StatusPill status={status} label={offerStatusLabel[status]} />}
       />
-      <div className="space-y-5 p-5 sm:p-6 lg:p-8">
+      <PageBody>
         <Link href={`/admin/applications/${application.id}`} className={`inline-flex items-center gap-1.5 ${t.body} font-medium text-graphite-700 hover:text-ink-900`}>
           <ArrowLeft className="size-3.5" aria-hidden="true" />
           Candidate profile
         </Link>
 
         <div className="grid gap-5 xl:grid-cols-2">
-          <section className="rounded-[4px] border border-paper-300 bg-white p-5">
-            <h2 className={`${t.sectionTitle} font-medium text-ink-900`}>Offer summary</h2>
-            <dl className="mt-3 space-y-2.5">
+          <Card title="Offer summary">
+            <dl className="space-y-2.5">
               {[
                 ["Candidate", `${application.firstName} ${application.lastName}`],
                 ["Position", version.jobTitle],
@@ -78,10 +77,10 @@ export default async function OfferDetailPage({ params }: { params: Promise<{ id
                 <Link href={`/admin/offers/${id}/edit`} className={btnSecondary}>Edit offer</Link>
               )}
             </div>
-          </section>
+          </Card>
 
-          <section className="space-y-4 rounded-[4px] border border-paper-300 bg-white p-5">
-            <h2 className={`${t.sectionTitle} font-medium text-ink-900`}>Workflow</h2>
+          <Card title="Workflow" description="What can happen to this offer next">
+            <div className="space-y-4">
 
             {canSubmitForApproval(status) && permits(admin.role, "candidates") && (
               <WorkflowForm action={submitOfferForApprovalAction} label="Submit for approval">
@@ -121,46 +120,58 @@ export default async function OfferDetailPage({ params }: { params: Promise<{ id
               </WorkflowForm>
             )}
 
-            {canWithdraw(status) && canManage && (
-              <WorkflowForm
-                action={withdrawOfferAction}
-                label="Withdraw offer"
-                confirm={{
-                  message: "Withdrawing immediately invalidates the candidate's link — if they open it again they will see only that the offer is no longer available. This cannot be undone; you would need to create a new offer.",
-                  tone: "danger",
-                }}
-              >
-                <input type="hidden" name="offerId" value={id} />
-              </WorkflowForm>
-            )}
-
-            {["SENT", "VIEWED", "APPROVED", "EXPIRED"].includes(status) && canManage && (
-              <WorkflowForm action={extendOfferAction} label="Extend expiration">
-                <input type="hidden" name="offerId" value={id} />
-                <p className={`${t.hint} text-graphite-600`}>
-                  Moves the deadline only. The terms, the approval and the candidate&rsquo;s existing
-                  link all stay as they are, and the change is recorded.
-                </p>
-                <WorkflowField
-                  name="expirationDate"
-                  label="New expiration date"
-                  type="date"
-                  value={version.expirationDate.toISOString().slice(0, 10)}
-                  required
-                />
-              </WorkflowForm>
-            )}
-
             {!canSubmitForApproval(status) && !canApprove(status) && !canSend(status) && !canWithdraw(status) && (
               <p className={`${t.body} text-graphite-500`}>No workflow actions available for this offer.</p>
             )}
-          </section>
+
+            {/* Extending and withdrawing are corrections to an offer already in
+                flight — rarer than the forward path above and, in the case of
+                withdrawal, irreversible. They sit behind a disclosure so the
+                common action is never one slip away from the destructive one. */}
+            {((canWithdraw(status) && canManage) || (["SENT", "VIEWED", "APPROVED", "EXPIRED"].includes(status) && canManage)) && (
+              <details className="border-t border-paper-200 pt-4">
+                <summary className={`cursor-pointer ${t.label} font-medium text-graphite-700`}>Change or withdraw this offer</summary>
+                <div className="mt-4 space-y-4">
+                  {["SENT", "VIEWED", "APPROVED", "EXPIRED"].includes(status) && canManage && (
+                    <WorkflowForm action={extendOfferAction} label="Extend expiration">
+                      <input type="hidden" name="offerId" value={id} />
+                      <p className={`${t.hint} text-graphite-600`}>
+                        Moves the deadline only. The terms, the approval and the candidate&rsquo;s existing
+                        link all stay as they are, and the change is recorded.
+                      </p>
+                      <WorkflowField
+                        name="expirationDate"
+                        label="New expiration date"
+                        type="date"
+                        value={version.expirationDate.toISOString().slice(0, 10)}
+                        required
+                      />
+                    </WorkflowForm>
+                  )}
+
+                  {canWithdraw(status) && canManage && (
+                    <WorkflowForm
+                      action={withdrawOfferAction}
+                      label="Withdraw offer"
+                      confirm={{
+                        message: "Withdrawing immediately invalidates the candidate's link — if they open it again they will see only that the offer is no longer available. This cannot be undone; you would need to create a new offer.",
+                        tone: "danger",
+                      }}
+                    >
+                      <input type="hidden" name="offerId" value={id} />
+                    </WorkflowForm>
+                  )}
+                </div>
+              </details>
+            )}
+            </div>
+          </Card>
         </div>
 
         {signature && (
           <section className="rounded-[4px] border border-[#1e7a4d]/30 bg-[#1e7a4d]/[0.05] p-5">
             <h2 className={`${t.sectionTitle} font-medium text-ink-900`}>Electronic signature</h2>
-            <dl className="mt-3 space-y-2">
+            <dl className="mt-4 space-y-2">
               {[
                 ["Signed by", signature.candidateLegalName],
                 ["Email", signature.candidateEmail],
@@ -195,40 +206,44 @@ export default async function OfferDetailPage({ params }: { params: Promise<{ id
           </section>
         )}
 
-        <section className="rounded-[4px] border border-paper-300 bg-white p-5">
-          <h2 className={`${t.sectionTitle} font-medium text-ink-900`}>Version history</h2>
-          <ul className="mt-3 divide-y divide-paper-200">
-            {versions.map(v => (
-              <li key={v.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
-                <span className={`${t.body} text-ink-900`}>
-                  Version {v.versionNumber}
-                  {offer.acceptedVersionId === v.id && <span className="ml-2 text-[#1e7a4d]">· Accepted (frozen)</span>}
-                </span>
-                <span className={`${t.hint} text-graphite-500`}>{formatDateTime(v.createdAt)}{v.pdfStoragePath ? " · PDF generated" : ""}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
+        <div className="grid items-start gap-5 xl:grid-cols-2">
+          <Card title="Version history">
+            <ul className="divide-y divide-paper-200">
+              {versions.map(v => (
+                <li key={v.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5 first:pt-0 last:pb-0">
+                  <span className={`${t.body} text-ink-900`}>
+                    Version {v.versionNumber}
+                    {offer.acceptedVersionId === v.id && <span className="ml-2 text-[#1e7a4d]">· Accepted (frozen)</span>}
+                  </span>
+                  <span className={`${t.hint} text-graphite-500`}>
+                    {formatDateTime(v.createdAt)}{v.pdfStoragePath ? " · PDF generated" : ""}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </Card>
 
-        <section className="rounded-[4px] border border-paper-300 bg-white p-5">
-          <h2 className={`${t.sectionTitle} font-medium text-ink-900`}>Activity</h2>
-          <ol className="mt-3 space-y-3">
-            {activity.map(({ event: e, author }) => (
-              <li key={e.id} className="border-l-2 border-paper-300 pl-3">
-                <p className={`${t.body} font-medium text-ink-900`}>{offerEventLabel[e.action] ?? e.action.replace(/^OFFER_/, "").replaceAll("_", " ").toLowerCase()}</p>
-                <p className={`mt-0.5 ${t.hint} text-graphite-500`}>{author ?? "Candidate"} · {formatDateTime(e.createdAt)}</p>
-              </li>
-            ))}
-            {!activity.length && <li className={`${t.body} text-graphite-500`}>No activity yet.</li>}
-          </ol>
-        </section>
+          <Card title="Activity">
+            <ol className="space-y-3">
+              {activity.map(({ event: e, author }) => (
+                <li key={e.id} className="border-l-2 border-paper-300 pl-3">
+                  <p className={`${t.body} font-medium text-ink-900`}>
+                    {offerEventLabel[e.action] ?? e.action.replace(/^OFFER_/, "").replaceAll("_", " ").toLowerCase()}
+                  </p>
+                  <p className={`mt-0.5 ${t.hint} text-graphite-500`}>{author ?? "Candidate"} · {formatDateTime(e.createdAt)}</p>
+                </li>
+              ))}
+              {!activity.length && <li className={`${t.body} text-graphite-500`}>No activity yet.</li>}
+            </ol>
+          </Card>
+        </div>
 
         {templates.length === 0 && (
           <p className={`${t.hint} text-graphite-500`}>
             No offer letter templates exist yet. <Link href="/admin/settings/offer-templates" className="underline">Create one</Link>.
           </p>
         )}
-      </div>
+      </PageBody>
     </>
   );
 }
