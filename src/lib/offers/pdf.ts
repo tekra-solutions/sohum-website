@@ -34,11 +34,41 @@ async function resolveLaunchOptions() {
   return { args: chromium.args, executablePath: await chromium.executablePath(), headless: true };
 }
 
+/**
+ * Raised when the browser itself could not start.
+ *
+ * Distinguished from a rendering failure because the cause and the fix are
+ * completely different: a launch failure is almost always a deployment problem
+ * (the Chromium binary was not traced into this function's bundle), while a
+ * render failure is a problem with the document. Callers surface different
+ * messages for the two.
+ */
+export class PdfEngineError extends Error {
+  constructor(message: string, readonly cause?: unknown) {
+    super(message);
+    this.name = "PdfEngineError";
+  }
+}
+
 export async function renderOfferPdf(
   html: string,
   options?: { headerTemplate?: string; footerTemplate?: string; margin?: { top: string; bottom: string; left: string; right: string } },
 ): Promise<Buffer> {
-  const browser = await puppeteer.launch(await resolveLaunchOptions());
+  let browser;
+  try {
+    browser = await puppeteer.launch(await resolveLaunchOptions());
+  } catch (error) {
+    // The message Chromium gives here ("Failed to launch the browser process",
+    // "spawn ENOENT", "Could not find Chromium") is meaningless to whoever is
+    // reading the logs, so say what it actually means and where to look.
+    throw new PdfEngineError(
+      "The PDF engine could not start. On Vercel this means the Chromium binary " +
+      "was not bundled with this function — check outputFileTracingIncludes in " +
+      "next.config.ts covers this route. Locally, install Chrome or set " +
+      "CHROME_EXECUTABLE_PATH.",
+      error,
+    );
+  }
   try {
     const page = await browser.newPage();
     await page.setJavaScriptEnabled(false);

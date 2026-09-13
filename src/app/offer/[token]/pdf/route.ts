@@ -5,6 +5,9 @@ import { offerVersions, offerSignatures } from "@/db/schema";
 import { resolveOfferToken } from "@/lib/offers/data";
 import { hasVerifiedOfferSession } from "@/lib/offers/candidate-session";
 import { downloadOfferPdf } from "@/lib/storage/offers";
+import { renderOfferPdf, PdfEngineError } from "@/lib/offers/pdf";
+import { letterheadFooterTemplate, letterheadHeaderTemplate } from "@/lib/documents/chrome";
+import { sohumLetterheadDataUri } from "@/lib/documents/logo";
 import { audit } from "@/lib/audit";
 
 /**
@@ -28,6 +31,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
   // it, so both remain retrievable.
   const wantsSigned = new URL(request.url).searchParams.get("signed") === "1";
   let storagePath: string | null = null;
+  let renderFallbackHtml: string | null = null;
   let filename = "offer-letter.pdf";
 
   if (wantsSigned) {
@@ -39,12 +43,26 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
     const versionId = row.offer.acceptedVersionId ?? row.offer.currentVersionId;
     if (!versionId) return NextResponse.json({ error: "Not found" }, { status: 404 });
     const [version] = await db.select().from(offerVersions).where(eq(offerVersions.id, versionId));
-    if (!version?.pdfStoragePath) return NextResponse.json({ error: "Not found" }, { status: 404 });
-    storagePath = version.pdfStoragePath;
+    if (!version) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    // The stored PDF is written when the offer is sent. If it is missing —
+    // an older offer, or a storage write that failed — render it from the
+    // frozen HTML rather than telling the candidate their letter is "not
+    // found". The bytes are identical either way, since both come from the
+    // same renderedHtml.
+    if (version.pdfStoragePath) {
+      storagePath = version.pdfStoragePath;
+    } else {
+      renderFallbackHtml = version.renderedHtml;
+    }
   }
 
   try {
-    const blob = await downloadOfferPdf(storagePath);
+    const blob = storagePath
+      ? await downloadOfferPdf(storagePath)
+      : new Blob([new Uint8Array(await renderOfferPdf(renderFallbackHtml!, {
+          headerTemplate: letterheadHeaderTemplate(sohumLetterheadDataUri),
+          footerTemplate: letterheadFooterTemplate(),
+        }))]);
     await audit({
       adminId: null,
       action: "OFFER_VIEWED",
@@ -61,7 +79,18 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
       },
     });
   } catch (err) {
-    console.error("[offer-pdf] download failed", { offerId: row.offer.id, error: err instanceof Error ? err.message : String(err) });
-    return NextResponse.json({ error: "Could not retrieve the file." }, { status: 502 });
+    console.error("[offer-pdf] download failed", {
+      offerId: row.offer.id,
+      rendered: !storagePath,
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return NextResponse.json(
+      {
+        error: err instanceof PdfEngineError
+          ? "The PDF could not be generated right now. Please try again shortly."
+          : "Could not retrieve the file.",
+      },
+      { status: 502 },
+    );
   }
 }
