@@ -347,3 +347,46 @@ describe("automatic offer generation", () => {
     expect(html).toContain("SOHUM");
   });
 });
+
+describe("offer letter template selection", () => {
+  const form = readFileSync(
+    new URL("../src/components/admin/OfferForm.tsx", import.meta.url),
+    "utf8",
+  );
+
+  it("submits the template the recruiter chose, not a hidden default", () => {
+    // The selector used to live inside the "Adjust" disclosure while a hidden
+    // input carrying templates[0] stood in whenever that panel was closed.
+    // Choosing a template and collapsing the panel therefore submitted a
+    // different template than the one on screen, and the offer was generated
+    // from the wrong letter with nothing to indicate it.
+    expect(form).not.toMatch(/type="hidden"\s+name="templateId"/);
+    // The value is React state, so it survives the panel being toggled.
+    expect(form).toMatch(/const \[templateId, setTemplateId\] = useState/);
+    expect(form).toMatch(/value=\{templateId\}/);
+  });
+
+  it("shows which template an offer will use", () => {
+    // A silent selection is what made this look broken: nothing on the page
+    // said which letter would be produced.
+    expect(form).toMatch(/Using\b/);
+  });
+
+  it("summarises a template body as readable preview text", async () => {
+    const { templatePreview } = await import("@/lib/offers/variables");
+    const preview = templatePreview(
+      "<p>Dear {{candidate_first_name}},</p><p>We offer you {{job_title}} at {{salary}}.</p>",
+    );
+    expect(preview).toContain("Dear candidate first name");
+    expect(preview).toContain("job title");
+    // Tags and conditional markers never reach the recruiter.
+    expect(preview).not.toContain("<");
+    expect(preview).not.toContain("{{");
+  });
+
+  it("drops conditional blocks from the preview", async () => {
+    const { templatePreview } = await import("@/lib/offers/variables");
+    expect(templatePreview("<p>Hello{{#if bonus}} plus {{bonus}}{{/if}}.</p>"))
+      .not.toMatch(/#if|\/if/);
+  });
+});

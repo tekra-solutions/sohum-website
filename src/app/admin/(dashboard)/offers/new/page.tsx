@@ -11,6 +11,7 @@ import { AdminHeader } from "@/components/admin/ui";
 import { OfferForm } from "@/components/admin/OfferForm";
 import { t } from "@/components/admin/form";
 import { eq } from "drizzle-orm";
+import { templatePreview } from "@/lib/offers/variables";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Create offer" };
@@ -25,13 +26,23 @@ export default async function NewOfferPage({ searchParams }: { searchParams: Pro
 
   const admin = await requireAdmin();
   const [templateRows, settingsRow] = await Promise.all([
-    db.select({ id: offerTemplates.id, name: offerTemplates.name })
-      .from(offerTemplates).where(eq(offerTemplates.isActive, true)),
+    db.select({
+      id: offerTemplates.id, name: offerTemplates.name,
+      category: offerTemplates.category, bodyHtml: offerTemplates.bodyHtml,
+    }).from(offerTemplates).where(eq(offerTemplates.isActive, true)),
     db.select().from(recruitingSettings).limit(1).then(r => r[0]),
   ]);
   // The standard template is offered first so the default path needs no choice.
-  const templates = [...templateRows].sort((a, b) =>
-    Number(b.name.startsWith("Sohum Systems Standard")) - Number(a.name.startsWith("Sohum Systems Standard")));
+  // Each option carries a short plain-text preview of its opening line, so the
+  // recruiter can tell the templates apart by what they actually say rather
+  // than by name alone.
+  const templates = [...templateRows]
+    .sort((a, b) =>
+      Number(b.name.startsWith("Sohum Systems Standard")) - Number(a.name.startsWith("Sohum Systems Standard")))
+    .map(({ id, name, category, bodyHtml }) => ({
+      id, name, category,
+      preview: templatePreview(bodyHtml),
+    }));
 
   return (
     <>

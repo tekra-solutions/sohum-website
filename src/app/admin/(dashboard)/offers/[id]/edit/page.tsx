@@ -9,6 +9,7 @@ import { permits } from "@/lib/ats/policy";
 import { canEditOffer, type OfferStatus } from "@/lib/offers/policy";
 import { AdminHeader } from "@/components/admin/ui";
 import { OfferForm } from "@/components/admin/OfferForm";
+import { templatePreview } from "@/lib/offers/variables";
 import { t } from "@/components/admin/form";
 
 export const dynamic = "force-dynamic";
@@ -23,10 +24,17 @@ export default async function EditOfferPage({ params }: { params: Promise<{ id: 
     offer.currentVersionId
       ? db.select().from(offerVersions).where(eq(offerVersions.id, offer.currentVersionId)).then(r => r[0])
       : undefined,
-    db.select({ id: offerTemplates.id, name: offerTemplates.name }).from(offerTemplates).where(eq(offerTemplates.isActive, true)),
+    db.select({
+      id: offerTemplates.id, name: offerTemplates.name,
+      category: offerTemplates.category, bodyHtml: offerTemplates.bodyHtml,
+    }).from(offerTemplates).where(eq(offerTemplates.isActive, true)),
     db.select().from(recruitingSettings).limit(1).then(r => r[0]),
   ]);
   if (!version) notFound();
+
+  const templateOptions = templates.map(({ id: tplId, name, category, bodyHtml }) => ({
+    id: tplId, name, category, preview: templatePreview(bodyHtml),
+  }));
 
   return (
     <>
@@ -50,7 +58,11 @@ export default async function EditOfferPage({ params }: { params: Promise<{ id: 
               phone: application.phone,
             }}
             version={version}
-            templates={templates}
+            templates={templateOptions}
+            /* Without this the edit form defaulted to the first template in the
+               list, so re-saving an offer silently swapped its letter for a
+               different one. */
+            selectedTemplateId={offer.templateId}
             defaults={{
               authorizedRepName: settingsRow?.authorizedRepName ?? null,
               benefitsConfigured: Boolean(settingsRow?.defaultBenefitsSummary?.trim()),

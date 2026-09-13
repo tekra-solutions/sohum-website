@@ -4,7 +4,7 @@ import { useActionState, useState } from "react";
 import { AlertCircle, CheckCircle2, Loader2, Save, SlidersHorizontal } from "lucide-react";
 import Link from "next/link";
 import { createOfferAction, updateOfferAction, type OfferActionState } from "@/lib/offers/actions";
-import { Field, FormSection, Select, TextArea, btn, spanAll, t } from "@/components/admin/form";
+import { Field, FormSection, Select, TextArea, btn, control, spanAll, t } from "@/components/admin/form";
 import { employmentTypeLabel, remoteTypeLabel } from "@/lib/format";
 import { employmentTypes, remoteTypes } from "@/lib/validation/schemas";
 
@@ -37,6 +37,15 @@ export type OfferFormVersion = {
   additionalTerms?: string | null;
 };
 
+/** A selectable offer letter template. */
+export type OfferFormTemplate = {
+  id: string;
+  name: string;
+  category?: string | null;
+  /** First line of the template body, as a plain-text preview. */
+  preview?: string | null;
+};
+
 /** Company defaults from Settings, shown so the recruiter can see what the
  *  letter will say without having to retype it. */
 export type OfferFormDefaults = {
@@ -58,17 +67,31 @@ function Fact({ label, value }: { label: string; value: string }) {
 }
 
 export function OfferForm({
-  applicationId, offerId, candidate, version, templates, defaults,
+  applicationId, offerId, candidate, version, templates, defaults, selectedTemplateId,
 }: {
   applicationId: string;
   offerId?: string;
+  /** The template this offer already uses, when editing. */
+  selectedTemplateId?: string | null;
   candidate: OfferFormCandidate;
   version?: OfferFormVersion;
-  templates: { id: string; name: string }[];
+  templates: OfferFormTemplate[];
   defaults: OfferFormDefaults;
 }) {
   const action = offerId ? updateOfferAction : createOfferAction;
   const [state, formAction, pending] = useActionState(action, initial);
+
+  /* The chosen template is state, not a defaultValue on a conditionally
+     rendered <select>.
+     Before, the selector lived inside the "Adjust" panel and a hidden input
+     carrying templates[0] took its place whenever that panel was closed. So
+     choosing a template and then collapsing the panel silently submitted a
+     different template than the one on screen — the offer came out with the
+     wrong letter and nothing said so. */
+  const [templateId, setTemplateId] = useState(
+    () => selectedTemplateId ?? templates[0]?.id ?? "",
+  );
+  const chosen = templates.find(tpl => tpl.id === templateId);
   // Position and standard terms come from the job and from Settings. They stay
   // adjustable for the occasional exception, but are collapsed by default so
   // the common case is three inputs, not seventeen.
@@ -157,6 +180,54 @@ export function OfferForm({
         </div>
       )}
 
+      {/* The letter template decides what the candidate actually reads, so it
+          belongs in the main flow — not behind a disclosure where a recruiter
+          cannot tell which template an offer will use. */}
+      <FormSection title="Letter template" columns={1}
+        description={templates.length ? "The wording of the letter. Position and compensation below are merged into it." : undefined}>
+        {templates.length === 0 ? (
+          <div className={`${spanAll} rounded-[3px] border border-[#7a5c00]/30 bg-[#f0a93c]/[0.08] p-3`}>
+            <p className={`${t.body} font-medium text-[#7a5c00]`}>No offer letter templates exist yet.</p>
+            <p className={`mt-1 ${t.hint} text-[#7a5c00]`}>
+              This offer will contain the position and compensation terms only.{" "}
+              {defaults.canEditSettings ? (
+                <Link href="/admin/settings/offer-templates" className="font-medium underline underline-offset-2">
+                  Add a template
+                </Link>
+              ) : "Ask an administrator to add one"}
+              {" "}to control the wording of the letter.
+            </p>
+          </div>
+        ) : (
+          <div className={spanAll}>
+            <label htmlFor="f-templateId" className={`block ${t.label} font-medium text-ink-800`}>
+              Template
+            </label>
+            <select
+              id="f-templateId"
+              name="templateId"
+              value={templateId}
+              onChange={e => setTemplateId(e.target.value)}
+              className={`${control} mt-1.5 border-paper-300`}
+            >
+              {templates.map(tpl => (
+                <option key={tpl.id} value={tpl.id}>
+                  {tpl.name}{tpl.category && tpl.category !== "CUSTOM" ? ` · ${tpl.category.replaceAll("_", " ").toLowerCase()}` : ""}
+                </option>
+              ))}
+              <option value="">— None (position and compensation only) —</option>
+            </select>
+            {/* Confirms in words which letter this offer will produce, so a
+                wrong selection is visible before the offer is created. */}
+            <p className={`mt-1.5 ${t.hint} text-graphite-600`}>
+              {chosen
+                ? <>Using <span className="font-medium text-ink-900">{chosen.name}</span>{chosen.preview ? <>: &ldquo;{chosen.preview}&rdquo;</> : null}</>
+                : "No template — the letter will state the position and compensation only."}
+            </p>
+          </div>
+        )}
+      </FormSection>
+
       <FormSection title="Compensation" description="The only figures this offer needs.">
         <Field
           name="annualSalaryCents" label="Annual salary" type="number" inputMode="numeric"
@@ -191,7 +262,7 @@ export function OfferForm({
           className={`inline-flex items-center gap-2 ${t.body} font-medium text-graphite-700 hover:text-ink-900`}
         >
           <SlidersHorizontal className="size-3.5" aria-hidden="true" />
-          {showOverrides ? "Hide" : "Adjust"} position, terms and template for this offer
+          {showOverrides ? "Hide" : "Adjust"} position and terms for this offer
         </button>
 
         {showOverrides && (
@@ -228,24 +299,9 @@ export function OfferForm({
               <TextArea name="additionalTerms" label="Additional approved terms" defaultValue={version?.additionalTerms} className={spanAll} hint="Anything beyond the template's standard language, subject to legal review." />
             </FormSection>
 
-            {templates.length > 0 && (
-              <FormSection title="Letter template" columns={1}>
-                <Select
-                  name="templateId" label="Template" className={spanAll}
-                  defaultValue={templates[0]?.id ?? ""}
-                  options={[...templates.map(tpl => ({ value: tpl.id, label: tpl.name })), { value: "", label: "— None (plain terms only) —" }]}
-                />
-              </FormSection>
-            )}
           </div>
         )}
       </div>
-
-      {/* Without the disclosure open the template still has to be chosen, so
-          the default travels as a hidden input. */}
-      {!showOverrides && templates.length > 0 && (
-        <input type="hidden" name="templateId" value={templates[0]?.id ?? ""} />
-      )}
 
       <div className="border-t border-paper-200 pt-5">
         <button type="submit" disabled={pending} className={btn}>

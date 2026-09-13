@@ -89,3 +89,22 @@ export function renderOfferTemplate(text: string, values: Record<string, string>
     return escapeHtml(values[key]);
   }));
 }
+
+/**
+ * A short plain-text preview of a template body.
+ *
+ * Templates are chosen by name in a dropdown, and names like "Full-Time
+ * Employee" and "Sohum Systems Standard Offer" do not say how the letters
+ * differ. This takes the first sentence of the body — tags stripped, variables
+ * left as their readable names — so the option can show what it will produce.
+ */
+export function templatePreview(bodyHtml: string, max = 90): string {
+  const text = bodyHtml
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\{\{#if[^}]*\}\}|\{\{\/if\}\}/g, "")
+    .replace(/\{\{\s*([a-z_]+)\s*\}\}/g, (_, k: string) => k.replaceAll("_", " "))
+    .replace(/&[a-z]+;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return text.length > max ? `${text.slice(0, max).trimEnd()}…` : text;
+}
