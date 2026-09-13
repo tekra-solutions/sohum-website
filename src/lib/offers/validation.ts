@@ -1,18 +1,25 @@
 import { z } from "zod";
-import { validateOfferTemplate } from "./variables";
+import { offerTemplateProblem } from "./variables";
 import { employmentTypeEnum, remoteTypeEnum } from "@/db/schema";
+
+/** Reports a template field's first problem, naming the field and the token. */
+const templateIssue = (field: string) => (value: string, ctx: z.RefinementCtx) => {
+  const problem = offerTemplateProblem(value);
+  if (problem) ctx.addIssue({ code: "custom", message: `${field}: ${problem}` });
+};
 
 export const offerTemplateSchema = z.object({
   name: z.string().trim().min(1).max(120),
   category: z.enum(["FULL_TIME", "CONTRACT", "REMOTE", "INTERNSHIP", "CUSTOM"]),
-  subject: z.string().trim().min(1).max(300).refine(v => !/[\r\n]/.test(v)).refine(validateOfferTemplate, "Unknown or invalid variable"),
-  bodyHtml: z.string().trim().min(1).max(20000).refine(validateOfferTemplate, "Unknown or invalid variable"),
+  subject: z.string().trim().min(1).max(300).refine(v => !/[\r\n]/.test(v))
+    .superRefine(templateIssue("Subject")),
+  bodyHtml: z.string().trim().min(1).max(20000).superRefine(templateIssue("Page 1 body")),
   // Pages 2 and 3 of the offer document. Optional: when a template leaves
   // them empty the document says so rather than substituting invented terms.
   termsHtml: z.preprocess(v => (typeof v === "string" && v.trim() === "" ? null : v),
-    z.string().trim().max(20000).refine(validateOfferTemplate, "Unknown or invalid variable").nullable().optional()),
+    z.string().trim().max(20000).superRefine(templateIssue("Page 2 terms")).nullable().optional()),
   acknowledgementsHtml: z.preprocess(v => (typeof v === "string" && v.trim() === "" ? null : v),
-    z.string().trim().max(20000).refine(validateOfferTemplate, "Unknown or invalid variable").nullable().optional()),
+    z.string().trim().max(20000).superRefine(templateIssue("Page 3 acknowledgements")).nullable().optional()),
   isActive: z.boolean(),
 });
 

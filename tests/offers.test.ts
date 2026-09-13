@@ -390,3 +390,52 @@ describe("offer letter template selection", () => {
       .not.toMatch(/#if|\/if/);
   });
 });
+
+describe("offer template content survives saving", () => {
+  it("keeps paragraph structure when a template uses divs", async () => {
+    const { sanitizeOfferBody } = await import("@/lib/offers/sanitize");
+    // <div> was not on the allowlist, so it was dropped along with the break
+    // it implied: a template written with divs — what most editors and most
+    // hand-written HTML produce — collapsed into one run-on paragraph, which
+    // read as though the template content had not come through.
+    const out = sanitizeOfferBody("<div>Dear Amara,</div><div>We offer you the role.</div>");
+    expect(out).toBe("<p>Dear Amara,</p><p>We offer you the role.</p>");
+  });
+
+  it("turns plain text with blank lines into paragraphs", async () => {
+    const { sanitizeOfferBody } = await import("@/lib/offers/sanitize");
+    // Newlines carry no meaning in HTML, so a template typed as plain prose
+    // rendered as a single undifferentiated block.
+    const out = sanitizeOfferBody("Dear Amara,\n\nWe offer you the role.\n\nRegards");
+    expect(out).toContain("<p>Dear Amara,</p>");
+    expect(out).toContain("<p>We offer you the role.</p>");
+  });
+
+  it("still strips scripts, links and attributes", async () => {
+    const { sanitizeOfferBody } = await import("@/lib/offers/sanitize");
+    const out = sanitizeOfferBody(
+      '<p style="color:red">Hi <a href="http://x">link</a></p><script>alert(1)</script>',
+    );
+    expect(out).not.toContain("script");
+    expect(out).not.toContain("href");
+    expect(out).not.toContain("style");
+    // The link's text is kept; only the element goes.
+    expect(out).toContain("link");
+  });
+
+  it("names the offending variable when a template will not save", async () => {
+    const { offerTemplateProblem } = await import("@/lib/offers/variables");
+    // "Unknown or invalid variable" gave no indication of which token was
+    // wrong or in which field, so a single typo blocked the template from
+    // saving and it then never appeared when creating an offer.
+    const problem = offerTemplateProblem("<p>Dear {{candidate_firstname}}</p>");
+    expect(problem).toContain("candidate_firstname");
+    expect(problem).toContain("candidate_first_name");
+    expect(offerTemplateProblem("<p>Dear {{candidate_first_name}}</p>")).toBeNull();
+  });
+
+  it("reports a stray brace rather than failing silently", async () => {
+    const { offerTemplateProblem } = await import("@/lib/offers/variables");
+    expect(offerTemplateProblem("<p>Cost is {50}</p>")).toMatch(/stray/i);
+  });
+});

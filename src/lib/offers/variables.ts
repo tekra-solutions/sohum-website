@@ -56,6 +56,38 @@ const optionalVariables = new Set<string>([
 /** `{{#if name}}` … `{{/if}}` — the block is dropped when the value is empty. */
 const CONDITIONAL = /{{#if\s+([a-z_]+)\s*}}([\s\S]*?){{\/if}}/g;
 
+/**
+ * Names the first thing wrong with a template, or null when it is valid.
+ *
+ * `validateOfferTemplate` answers only yes/no, which meant a save failed with
+ * "Unknown or invalid variable" and no indication of which token was wrong —
+ * so a single typo like {{position}} for {{job_title}} silently blocked the
+ * template from ever being saved, and it then never appeared when creating an
+ * offer. This returns a message an admin can act on.
+ */
+export function offerTemplateProblem(text: string): string | null {
+  for (const [, name] of text.matchAll(CONDITIONAL)) {
+    if (!(offerTemplateVariables as readonly string[]).includes(name)) {
+      return `{{#if ${name}}} is not a known variable.`;
+    }
+  }
+  const body = text.replace(CONDITIONAL, (_, __, inner: string) => inner);
+  for (const [, token] of body.matchAll(/{{\s*([^{}]+?)\s*}}/g)) {
+    if (!(offerTemplateVariables as readonly string[]).includes(token)) {
+      const suggestion = offerTemplateVariables.find(
+        v => v.replaceAll("_", "") === token.replaceAll("_", "").replaceAll(" ", ""),
+      );
+      return `{{${token}}} is not a known variable.${suggestion ? ` Did you mean {{${suggestion}}}?` : ""}`;
+    }
+  }
+  // A stray brace that is not part of a {{variable}} would render literally.
+  const leftovers = body.replace(/{{\s*([^{}]+?)\s*}}/g, "");
+  if (/[{}]/.test(leftovers)) {
+    return "Remove the stray { or } — braces are only used to write {{variables}}.";
+  }
+  return null;
+}
+
 export function validateOfferTemplate(text: string) {
   // Conditionals are checked first, then removed, so the plain-variable scan
   // below sees only ordinary tokens.
