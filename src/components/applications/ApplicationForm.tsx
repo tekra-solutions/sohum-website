@@ -91,7 +91,7 @@ export function ApplicationForm({
 }: {
   jobId: string;
   jobTitle: string;
-  onSuccess: (reference: string) => void;
+  onSuccess: () => void;
 }) {
   const [state, action, pending] = useActionState(submitApplicationAction, initial);
   const summaryRef = useRef<HTMLDivElement>(null);
@@ -102,8 +102,10 @@ export function ApplicationForm({
 
   // Announce success upward, and move focus to any error summary.
   useEffect(() => {
-    if (state.ok && state.reference) {
-      onSuccess(state.reference);
+    // The reference is still assigned and stored; it is simply not shown to
+    // the applicant, who has no use for it and cannot act on it.
+    if (state.ok) {
+      onSuccess();
       return;
     }
     if (state.message || state.duplicateWarning || state.errors) {

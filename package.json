@@ -14,7 +14,8 @@
     "create-admin": "tsx --env-file=.env.local scripts/create-admin.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:integration": "sh scripts/itest.sh"
+    "test:integration": "sh scripts/itest.sh",
+    "seed:jobs": "tsx --env-file=.env.local scripts/seed-jobs.ts"
   },
   "dependencies": {
     "@sparticuz/chromium": "^147.0.0",

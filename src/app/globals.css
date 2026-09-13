@@ -232,6 +232,18 @@
 .offer-preview li { margin-bottom: 0.15em; }
 .offer-preview strong { font-weight: 600; color: var(--color-ink-900); }
 
+/* ---- Application confirmation ----
+   ApplyClient sets data-application-submitted on <html> once the application
+   is in. The page then drops the "Apply for <role>" hero and the back link,
+   and the form's panel loses its border so the confirmation reads as the page
+   rather than as a card inside a card. */
+[data-application-submitted="true"] .apply-chrome { display: none; }
+[data-application-submitted="true"] .apply-panel {
+  border-color: transparent;
+  background: transparent;
+  padding-block: 2.5rem;
+}
+
 /* Underline that draws in on hover — used on text links */
 @utility link-underline {
   position: relative;

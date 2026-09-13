@@ -55,6 +55,21 @@ credential exists anywhere in the codebase.
 
 Sign in at `/admin/login`.
 
+## 5b. Seed test jobs (local only)
+
+For local testing, populate fifteen realistic open positions across engineering,
+data, GIS, security, design and programme delivery:
+
+```bash
+npm run seed:jobs              # adds any that are missing
+npm run seed:jobs -- --reset   # removes seeded jobs with no applications, then re-adds
+```
+
+Idempotent — re-running adds only what is absent. `--reset` skips any seeded
+job that already has applications, since that is real data. The script refuses
+to run against a non-local `DATABASE_URL` unless `SEED_ALLOW_REMOTE=1` is set,
+so it cannot quietly populate production.
+
 ## 6. Email
 
 Set `RESEND_API_KEY` **or** the `SMTP_*` variables, plus `EMAIL_FROM` and
