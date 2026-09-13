@@ -134,7 +134,7 @@ export function SectionHeading({
         </Eyebrow>
       )}
       <h2
-        className={`mt-5 text-[1.75rem] leading-[1.15] sm:text-[2.125rem] lg:text-[2.5rem] ${
+        className={`mt-4 text-[1.5rem] leading-[1.18] sm:text-[1.75rem] lg:text-[2rem] ${
           tone === "dark" ? "text-ink-900" : "text-white"
         }`}
       >
@@ -142,7 +142,7 @@ export function SectionHeading({
       </h2>
       {lede && (
         <p
-          className={`mt-5 text-[1.0625rem] leading-[1.65] ${
+          className={`mt-3.5 text-[1rem] leading-[1.65] ${
             tone === "dark" ? "text-graphite-600" : "text-white/65"
           }`}
         >

@@ -78,7 +78,7 @@ export default function HomePage() {
 
       {/* ================================================= Positioning statement */}
       <section className="border-b border-paper-200 bg-white">
-        <div className="container-page py-16 sm:py-20">
+        <div className="container-page section-y-tight">
           <Reveal>
             <div className="grid gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:gap-16">
               <div className="self-start">
@@ -112,7 +112,7 @@ export default function HomePage() {
       {/* ================================================= Capability pillars */}
       <section className="relative overflow-hidden bg-paper-50">
         <div aria-hidden="true" className="absolute inset-0 grid-fine-light" />
-        <div className="container-page relative py-20 sm:py-28">
+        <div className="container-page relative section-y">
           <Reveal>
             <div className="flex flex-col justify-between gap-8 lg:flex-row lg:items-end">
               <SectionHeading
@@ -213,7 +213,7 @@ export default function HomePage() {
             background: "radial-gradient(circle, rgba(242,88,6,0.11) 0%, transparent 68%)",
           }}
         />
-        <div className="container-page relative py-20 sm:py-28">
+        <div className="container-page relative section-y">
           <Reveal>
             <SectionHeading
               tone="light"
@@ -270,7 +270,7 @@ export default function HomePage() {
 
       {/* ================================================= Past performance */}
       <section className="border-b border-paper-200 bg-white">
-        <div className="container-page py-20 sm:py-28">
+        <div className="container-page section-y">
           <div className="grid gap-14 lg:grid-cols-[0.9fr_1.1fr] lg:gap-20">
             <Reveal>
               <div>
@@ -339,7 +339,7 @@ export default function HomePage() {
 
       {/* ================================================= Contract vehicles */}
       <section className="bg-paper-100">
-        <div className="container-page py-20 sm:py-28">
+        <div className="container-page section-y">
           <Reveal>
             <div className="flex flex-col justify-between gap-8 lg:flex-row lg:items-end">
               <SectionHeading
@@ -395,7 +395,7 @@ export default function HomePage() {
 
       {/* ================================================= Trust / certifications */}
       <section className="border-y border-paper-200 bg-white">
-        <div className="container-page py-20 sm:py-28">
+        <div className="container-page section-y">
           <Reveal>
             <SectionHeading
               eyebrow="Trust center"
@@ -412,7 +412,7 @@ export default function HomePage() {
 
       {/* ================================================= Leadership */}
       <section className="bg-paper-50">
-        <div className="container-page py-20 sm:py-28">
+        <div className="container-page section-y">
           <Reveal>
             <div className="flex flex-col justify-between gap-8 lg:flex-row lg:items-end">
               <SectionHeading
@@ -457,7 +457,7 @@ export default function HomePage() {
       {/* ================================================= Careers */}
       <section className="relative overflow-hidden bg-ink-850 text-white">
         <div aria-hidden="true" className="absolute inset-0 grid-fine opacity-40" />
-        <div className="container-page relative py-20 sm:py-24">
+        <div className="container-page relative section-y">
           <div className="grid items-center gap-12 lg:grid-cols-[1.1fr_0.9fr]">
             <Reveal>
               <div>
@@ -516,7 +516,7 @@ export default function HomePage() {
 
       {/* ================================================= Contact CTA */}
       <section className="bg-white">
-        <div className="container-page py-20 sm:py-28">
+        <div className="container-page section-y">
           <Reveal>
             <div className="relative overflow-hidden rounded-[4px] border border-paper-300 bg-paper-50">
               <div aria-hidden="true" className="absolute inset-0 grid-fine-light" />

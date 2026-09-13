@@ -106,6 +106,36 @@
   }
 }
 
+/* ------------------------------------------------------------------
+   Section rhythm.
+
+   Every page section used to hand-roll its own vertical padding, ranging from
+   py-16 to py-28 (64px to 112px a side, so up to 224px of dead space between
+   two blocks of text). At laptop width that pushed the careers page to roughly
+   five screens of scrolling for six short sections, and read as though content
+   were missing rather than spaced.
+
+   One utility now owns the rhythm so it is consistent page to page and can be
+   tuned in a single place. `section-y-tight` is for secondary bands (EEO,
+   CTA); `section-y` is the default.
+   ------------------------------------------------------------------ */
+@utility section-y {
+  padding-block: 3.5rem;
+  @media (width >= 640px) {
+    padding-block: 4.5rem;
+  }
+  @media (width >= 1024px) {
+    padding-block: 5rem;
+  }
+}
+
+@utility section-y-tight {
+  padding-block: 3rem;
+  @media (width >= 640px) {
+    padding-block: 3.75rem;
+  }
+}
+
 @utility container-page {
   width: 100%;
   margin-inline: auto;

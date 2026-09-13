@@ -31,7 +31,7 @@ export default function LocationsPage() {
       />
 
       <section className="bg-white">
-        <div className="container-page py-18 sm:py-24">
+        <div className="container-page section-y">
           <ul className="grid gap-6 md:grid-cols-3">
             {locations.map((loc, i) => (
               <Reveal key={loc.slug} as="li" delay={i * 70} className="h-full">

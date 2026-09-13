@@ -47,7 +47,7 @@ export default async function ApplyPage({ params }: { params: Promise<{ slug: st
       />
 
       <section className="bg-paper-50">
-        <div className="container-page py-14 sm:py-20">
+        <div className="container-page section-y-tight">
           <div className="mx-auto max-w-3xl">
             <Link
               href={`/careers/${job.slug}`}

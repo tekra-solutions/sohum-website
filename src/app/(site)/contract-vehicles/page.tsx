@@ -55,7 +55,7 @@ export default function ContractVehiclesPage() {
 
       {/* ---- Fastest path callout ---- */}
       <section className="border-b border-paper-200 bg-white">
-        <div className="container-page py-14 sm:py-16">
+        <div className="container-page section-y-tight">
           <Reveal>
             <div className="grid gap-8 rounded-[4px] border border-flame-500/30 bg-flame-500/[0.045] p-7 sm:p-9 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
               <div>
@@ -87,7 +87,7 @@ export default function ContractVehiclesPage() {
 
       {/* ---- Active vehicles ---- */}
       <section className="bg-paper-50">
-        <div className="container-page py-20 sm:py-24">
+        <div className="container-page section-y">
           <Reveal>
             <SectionHeading
               eyebrow="Active vehicles"
@@ -182,7 +182,7 @@ export default function ContractVehiclesPage() {
 
       {/* ---- Prior vehicles: disclosed honestly ---- */}
       <section className="border-y border-paper-200 bg-white">
-        <div className="container-page py-20 sm:py-24">
+        <div className="container-page section-y">
           <Reveal>
             <SectionHeading
               eyebrow="Prior vehicles"
@@ -264,7 +264,7 @@ export default function ContractVehiclesPage() {
 
       {/* ---- Codes + POC ---- */}
       <section className="bg-paper-50">
-        <div className="container-page py-20 sm:py-24">
+        <div className="container-page section-y">
           <div className="grid gap-14 lg:grid-cols-2 lg:gap-20">
             <Reveal>
               <div>

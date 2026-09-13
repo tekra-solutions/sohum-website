@@ -81,7 +81,7 @@ export default function AboutPage() {
 
       {/* ---- Story ---- */}
       <section className="border-b border-paper-200 bg-white">
-        <div className="container-page py-18 sm:py-24">
+        <div className="container-page section-y">
           <div className="grid gap-12 lg:grid-cols-[0.32fr_0.68fr] lg:gap-16">
             <Reveal className="lg:sticky lg:top-40 lg:self-start">
               <Eyebrow>Our story</Eyebrow>
@@ -128,7 +128,7 @@ export default function AboutPage() {
           className="absolute left-1/2 top-0 h-[500px] w-[900px] -translate-x-1/2 blur-3xl"
           style={{ background: "radial-gradient(ellipse, rgba(242,88,6,0.09) 0%, transparent 70%)" }}
         />
-        <div className="container-page relative py-20 sm:py-28">
+        <div className="container-page relative section-y">
           <Reveal>
             <div className="mx-auto max-w-3xl text-center">
               <Quote
@@ -180,7 +180,7 @@ export default function AboutPage() {
 
       {/* ---- Leadership ---- */}
       <section id="leadership" className="scroll-mt-36 border-b border-paper-200 bg-white">
-        <div className="container-page py-20 sm:py-24">
+        <div className="container-page section-y">
           <Reveal>
             <SectionHeading
               eyebrow="Leadership"
@@ -233,7 +233,7 @@ export default function AboutPage() {
 
       {/* ---- Credentials ---- */}
       <section className="bg-paper-50">
-        <div className="container-page py-20 sm:py-24">
+        <div className="container-page section-y">
           <Reveal>
             <SectionHeading
               eyebrow="Credentials"

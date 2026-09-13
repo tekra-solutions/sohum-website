@@ -21,7 +21,7 @@ export function LegalLayout({
     <>
       <PageHero eyebrow={eyebrow} title={title} lede={lede} crumbs={crumbs} />
       <section className="bg-white">
-        <div className="container-page py-16 sm:py-20">
+        <div className="container-page section-y-tight">
           <div className="max-w-2xl">
             <p className="text-[0.8125rem] text-graphite-500">Last updated {updated}</p>
             <div

@@ -43,7 +43,7 @@ export default function ContactPage() {
       />
 
       <section className="bg-white">
-        <div className="container-page py-18 sm:py-24">
+        <div className="container-page section-y">
           <div className="grid gap-14 lg:grid-cols-[1.15fr_0.85fr] lg:gap-20">
             {/* ---- Form ---- */}
             <Reveal>

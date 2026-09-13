@@ -24,7 +24,7 @@ export function CtaBand({
         className="absolute right-[-8%] bottom-[-50%] h-[520px] w-[520px] rounded-full blur-3xl"
         style={{ background: "radial-gradient(circle, rgba(242,88,6,0.11) 0%, transparent 68%)" }}
       />
-      <div className="container-page relative py-16 sm:py-20">
+      <div className="container-page relative section-y-tight">
         <div className="flex flex-col gap-10 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-2xl">
             <Eyebrow tone="light">{eyebrow}</Eyebrow>

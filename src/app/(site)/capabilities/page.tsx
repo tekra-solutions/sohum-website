@@ -46,7 +46,7 @@ export default function CapabilitiesPage() {
 
       {/* ---- Pillar-organized capability index ---- */}
       <section className="bg-white">
-        <div className="container-page py-20 sm:py-24">
+        <div className="container-page section-y">
           {pillars.map((pillar, pi) => {
             const items = capabilities.filter((c) => c.pillar === pillar.id);
             return (
@@ -102,7 +102,7 @@ export default function CapabilitiesPage() {
 
       {/* ---- How we deliver ---- */}
       <section className="border-t border-paper-200 bg-paper-50">
-        <div className="container-page py-20 sm:py-24">
+        <div className="container-page section-y">
           <Reveal>
             <SectionHeading
               eyebrow="How we deliver"

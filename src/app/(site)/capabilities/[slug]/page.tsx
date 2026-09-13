@@ -112,7 +112,7 @@ export default async function CapabilityPage({
 
       {/* ---- The problem ---- */}
       <section className="border-b border-paper-200 bg-white">
-        <div className="container-page py-18 sm:py-24">
+        <div className="container-page section-y">
           <Reveal>
             <div className="grid gap-8 lg:grid-cols-[0.32fr_0.68fr] lg:gap-16">
               <div className="self-start">
@@ -130,7 +130,7 @@ export default async function CapabilityPage({
       {/* ---- Our approach ---- */}
       <section className="relative overflow-hidden bg-ink-900 text-white">
         <div aria-hidden="true" className="absolute inset-0 grid-fine opacity-45" />
-        <div className="container-page relative py-18 sm:py-24">
+        <div className="container-page relative section-y">
           <div className="grid gap-10 lg:grid-cols-[0.32fr_0.68fr] lg:gap-16">
             <Reveal className="lg:sticky lg:top-40 lg:self-start">
               <Eyebrow tone="light">Our approach</Eyebrow>
@@ -163,7 +163,7 @@ export default async function CapabilityPage({
 
       {/* ---- Services + outcomes ---- */}
       <section className="border-b border-paper-200 bg-white">
-        <div className="container-page py-18 sm:py-24">
+        <div className="container-page section-y">
           <div className="grid gap-14 lg:grid-cols-2 lg:gap-20">
             <Reveal>
               <div>
@@ -222,7 +222,7 @@ export default async function CapabilityPage({
 
       {/* ---- Procurement path ---- */}
       <section className="bg-paper-50">
-        <div className="container-page py-16 sm:py-20">
+        <div className="container-page section-y-tight">
           <Reveal>
             <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
               <div className="max-w-xl">
@@ -253,7 +253,7 @@ export default async function CapabilityPage({
       {/* ---- Related ---- */}
       {related.length > 0 && (
         <section className="border-t border-paper-200 bg-white">
-          <div className="container-page py-16 sm:py-20">
+          <div className="container-page section-y-tight">
             <Reveal>
               <div className="flex items-baseline justify-between gap-6">
                 <h2 className="text-[1.375rem] font-medium text-ink-900">

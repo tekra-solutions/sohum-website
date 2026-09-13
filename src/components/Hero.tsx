@@ -55,7 +55,7 @@ export function Hero() {
       />
 
       <div className="container-page relative">
-        <div className="grid items-center gap-16 py-20 sm:py-24 lg:grid-cols-[1.08fr_0.92fr] lg:gap-20 lg:py-32">
+        <div className="grid items-center gap-16 section-y lg:grid-cols-[1.08fr_0.92fr] lg:gap-20 lg:py-32">
           {/* ---- Copy ---- */}
           <div>
             <p className="eyebrow text-flame-400">

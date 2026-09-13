@@ -146,7 +146,7 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
       />
 
       <section className="bg-white">
-        <div className="container-page py-16 sm:py-20">
+        <div className="container-page section-y-tight">
           <div className="grid gap-12 lg:grid-cols-[1fr_20rem] lg:gap-16">
             {/* ---- Description ---- */}
             <Reveal>

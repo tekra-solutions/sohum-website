@@ -80,7 +80,7 @@ export function PageHero({
         </nav>
 
         <div
-          className={`grid gap-12 pb-16 pt-10 sm:pb-20 sm:pt-14 ${
+          className={`grid gap-10 pb-12 pt-8 sm:pb-16 sm:pt-10 ${
             aside ? "lg:grid-cols-[1.15fr_0.85fr] lg:gap-16" : ""
           }`}
         >
@@ -89,11 +89,11 @@ export function PageHero({
               <span aria-hidden="true" className="h-px w-8 bg-flame-500/60" />
               {eyebrow}
             </p>
-            <h1 className="mt-6 text-[2.125rem] font-medium leading-[1.08] tracking-[-0.03em] sm:text-[2.875rem] lg:text-[3.25rem]">
+            <h1 className="mt-5 text-[1.875rem] font-medium leading-[1.1] tracking-[-0.03em] sm:text-[2.375rem] lg:text-[2.75rem]">
               {title}
             </h1>
             {lede && (
-              <p className="mt-6 max-w-2xl text-[1.0625rem] leading-[1.7] text-white/60 sm:text-[1.125rem]">
+              <p className="mt-4 max-w-2xl text-[1rem] leading-[1.65] text-white/60 sm:text-[1.0625rem]">
                 {lede}
               </p>
             )}

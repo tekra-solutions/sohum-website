@@ -85,7 +85,7 @@ export default async function CareersPage({
 
       {/* ---- Value proposition ---- */}
       <section className="border-b border-paper-200 bg-white">
-        <div className="container-page py-18 sm:py-24">
+        <div className="container-page section-y">
           <Reveal>
             <div className="grid gap-8 lg:grid-cols-[0.32fr_0.68fr] lg:gap-16">
               <div className="self-start">
@@ -93,11 +93,11 @@ export default async function CareersPage({
                 <h2 className="sr-only">Why work at Sohum Systems</h2>
               </div>
               <div>
-                <p className="max-w-3xl text-[1.25rem] font-medium leading-[1.55] tracking-[-0.015em] text-ink-900 sm:text-[1.4375rem]">
+                <p className="max-w-3xl text-[1.125rem] font-medium leading-[1.55] tracking-[-0.015em] text-ink-900 sm:text-[1.25rem]">
                   At a small firm, your work is visible. There is no layer between what you build and
                   the program that uses it.
                 </p>
-                <p className="mt-6 max-w-2xl text-[1.0625rem] leading-[1.7] text-graphite-600">
+                <p className="mt-4 max-w-2xl text-[1rem] leading-[1.7] text-graphite-600">
                   We are selective about hiring — every applicant goes through a thorough interview
                   process — and deliberate about what happens afterward. Everyone we hire joins our
                   ongoing training programs and becomes an automatic member of our mentorship
@@ -108,7 +108,7 @@ export default async function CareersPage({
             </div>
           </Reveal>
 
-          <div className="mt-16 grid gap-x-10 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-10 grid gap-x-8 gap-y-8 sm:grid-cols-2 lg:grid-cols-4">
             {[
               {
                 Icon: Users2,
@@ -132,16 +132,16 @@ export default async function CareersPage({
               },
             ].map((item, i) => (
               <Reveal key={item.h} delay={i * 60}>
-                <div className="border-t border-paper-300 pt-6">
+                <div className="border-t border-paper-300 pt-5">
                   <item.Icon
                     className="size-5 text-ink-500"
                     strokeWidth={1.5}
                     aria-hidden="true"
                   />
-                  <h3 className="mt-4 text-[1.0625rem] font-medium leading-snug text-ink-900">
+                  <h3 className="mt-3.5 text-[1rem] font-medium leading-snug text-ink-900">
                     {item.h}
                   </h3>
-                  <p className="mt-2.5 text-[0.9375rem] leading-[1.65] text-graphite-600">
+                  <p className="mt-2 text-[0.9375rem] leading-[1.6] text-graphite-600">
                     {item.p}
                   </p>
                 </div>
@@ -153,7 +153,7 @@ export default async function CareersPage({
 
       {/* ---- Open roles ---- */}
       <section id="openings" className="scroll-mt-36 bg-paper-50">
-        <div className="container-page py-20 sm:py-24">
+        <div className="container-page section-y">
           <Reveal>
             <SectionHeading
               eyebrow="Open positions"
@@ -162,11 +162,11 @@ export default async function CareersPage({
             />
           </Reveal>
 
-          <Reveal delay={60} className="mt-10">
+          <Reveal delay={60} className="mt-8">
             <JobFilters facets={facets} total={openRoles.length} />
           </Reveal>
 
-          <div className="mt-6">
+          <div className="mt-5">
             {openRoles.length === 0 ? (
               <div className="rounded-[4px] border border-dashed border-paper-300 bg-white p-10 text-center">
                 <p className="text-[1.0625rem] text-ink-900">
@@ -181,9 +181,13 @@ export default async function CareersPage({
                 </p>
               </div>
             ) : (
-              <ul className="grid gap-px overflow-hidden rounded-[4px] border border-paper-300 bg-paper-300 md:grid-cols-2">
+              // A single column with rules, not a two-up grid: the grid drew its
+              // dividers with a grey background showing through 1px gaps, so an
+              // odd number of roles left a full empty grey cell — with three
+              // open positions that read as a broken tile rather than a layout.
+              <ul className="divide-y divide-paper-200 overflow-hidden rounded-[4px] border border-paper-300 bg-white">
                 {openRoles.map((job, i) => (
-                  <Reveal key={job.id} as="li" delay={i * 40} className="bg-white">
+                  <Reveal key={job.id} as="li" delay={i * 40}>
                     <JobCard job={job} />
                   </Reveal>
                 ))}
@@ -201,7 +205,7 @@ export default async function CareersPage({
       {/* ---- Benefits ---- */}
       <section className="relative overflow-hidden border-y border-paper-200 bg-ink-900 text-white">
         <div aria-hidden="true" className="absolute inset-0 grid-fine opacity-45" />
-        <div className="container-page relative py-20 sm:py-24">
+        <div className="container-page relative section-y">
           <Reveal>
             <SectionHeading
               tone="light"
@@ -211,12 +215,12 @@ export default async function CareersPage({
             />
           </Reveal>
 
-          <div className="mt-14 grid gap-x-10 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-10 grid gap-x-8 gap-y-8 sm:grid-cols-2 lg:grid-cols-4">
             {benefits.map((group, i) => (
               <Reveal key={group.group} delay={i * 60}>
-                <div className="border-t border-white/15 pt-6">
+                <div className="border-t border-white/15 pt-5">
                   <p className="eyebrow text-flame-400">{group.group}</p>
-                  <ul className="mt-5 space-y-2.5">
+                  <ul className="mt-4 space-y-2">
                     {group.items.map((item) => (
                       <li key={item} className="flex items-start gap-2.5 text-[0.9375rem] text-white/70">
                         <span
@@ -236,16 +240,16 @@ export default async function CareersPage({
 
       {/* ---- EEO ---- */}
       <section className="bg-white">
-        <div className="container-page py-18 sm:py-20">
+        <div className="container-page section-y-tight">
           <Reveal>
-            <div className="grid gap-8 rounded-[4px] border border-paper-300 bg-paper-50 p-8 sm:p-10 lg:grid-cols-[0.35fr_0.65fr] lg:gap-14">
+            <div className="grid gap-6 rounded-[4px] border border-paper-300 bg-paper-50 p-7 sm:p-8 lg:grid-cols-[0.35fr_0.65fr] lg:gap-12">
               <div>
                 <Eyebrow>Equal opportunity</Eyebrow>
-                <h2 className="mt-4 text-[1.375rem] font-medium leading-snug text-ink-900">
+                <h2 className="mt-3 text-[1.25rem] font-medium leading-snug text-ink-900">
                   The best person for the role.
                 </h2>
               </div>
-              <p className="text-[1.0625rem] leading-[1.75] text-graphite-600">
+              <p className="text-[1rem] leading-[1.7] text-graphite-600">
                 Our goal is always to employ the best person for the right job, regardless of
                 background, nationality, age, sex, race, disability, ethnic origin, religion, or any
                 other parameter or circumstance. We are committed to equal employment opportunity for

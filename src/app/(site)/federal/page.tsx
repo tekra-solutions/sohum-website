@@ -85,7 +85,7 @@ export default function FederalPage() {
 
       {/* ---- The constraint we design around ---- */}
       <section className="border-b border-paper-200 bg-white">
-        <div className="container-page py-18 sm:py-24">
+        <div className="container-page section-y">
           <Reveal>
             <div className="grid gap-8 lg:grid-cols-[0.32fr_0.68fr] lg:gap-16">
               <div className="self-start">
@@ -114,7 +114,7 @@ export default function FederalPage() {
 
       {/* ---- Mission areas ---- */}
       <section className="bg-paper-50">
-        <div className="container-page py-20 sm:py-24">
+        <div className="container-page section-y">
           <Reveal>
             <SectionHeading
               eyebrow="Where we work"
@@ -159,7 +159,7 @@ export default function FederalPage() {
 
       {/* ---- Organizations ---- */}
       <section className="border-t border-paper-200 bg-white">
-        <div className="container-page py-20 sm:py-24">
+        <div className="container-page section-y">
           <Reveal>
             <SectionHeading
               eyebrow="Organizations"
@@ -184,7 +184,7 @@ export default function FederalPage() {
       {/* ---- Security & compliance posture ---- */}
       <section className="relative overflow-hidden bg-ink-900 text-white">
         <div aria-hidden="true" className="absolute inset-0 grid-fine opacity-45" />
-        <div className="container-page relative py-20 sm:py-24">
+        <div className="container-page relative section-y">
           <Reveal>
             <SectionHeading
               tone="light"
@@ -234,7 +234,7 @@ export default function FederalPage() {
 
       {/* ---- Engagement model ---- */}
       <section className="border-b border-paper-200 bg-white">
-        <div className="container-page py-20 sm:py-24">
+        <div className="container-page section-y">
           <Reveal>
             <SectionHeading
               eyebrow="Engagement"

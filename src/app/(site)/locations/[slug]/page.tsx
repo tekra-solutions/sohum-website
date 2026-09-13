@@ -120,7 +120,7 @@ export default async function LocationPage({
 
       {/* ---- Narrative ---- */}
       <section className="border-b border-paper-200 bg-white">
-        <div className="container-page py-18 sm:py-24">
+        <div className="container-page section-y">
           <div className="grid gap-10 lg:grid-cols-[0.32fr_0.68fr] lg:gap-16">
             <Reveal className="self-start">
               <Eyebrow>Working with us</Eyebrow>
@@ -148,7 +148,7 @@ export default async function LocationPage({
 
       {/* ---- Capabilities available locally ---- */}
       <section className="bg-paper-50">
-        <div className="container-page py-20 sm:py-24">
+        <div className="container-page section-y">
           <Reveal>
             <SectionHeading
               eyebrow="Capabilities"
@@ -186,7 +186,7 @@ export default async function LocationPage({
 
       {/* ---- Areas served ---- */}
       <section className="border-y border-paper-200 bg-white">
-        <div className="container-page py-16 sm:py-20">
+        <div className="container-page section-y-tight">
           <Reveal>
             <div className="grid gap-8 lg:grid-cols-[0.32fr_0.68fr] lg:gap-16">
               <div className="self-start">
@@ -212,7 +212,7 @@ export default async function LocationPage({
 
       {/* ---- Credentials ---- */}
       <section className="bg-paper-50">
-        <div className="container-page py-20 sm:py-24">
+        <div className="container-page section-y">
           <Reveal>
             <SectionHeading
               eyebrow="Credentials"

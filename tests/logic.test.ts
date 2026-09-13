@@ -2,6 +2,7 @@
  * Pure logic that the recruitment flow depends on: slugs, references, rate
  * limiting and display formatting.
  */
+import { readFileSync } from "node:fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { slugify } from "@/lib/services/jobs";
 import { formatReference } from "@/lib/services/applications";
@@ -117,5 +118,33 @@ describe("resume storage paths", () => {
       expect(path).not.toContain("?");
       expect(/\.(pdf|doc|docx|bin)$/.test(path), `${name} -> ${path}`).toBe(true);
     }
+  });
+});
+
+describe("scroll reveal", () => {
+  /**
+   * The careers page shipped with 15 of its 16 revealed blocks stuck at
+   * opacity 0 — whole sections (the benefits grid, the job list, the EEO
+   * panel) rendered as blank bands until the user happened to scroll past
+   * them, and screenshots, print and crawlers saw nothing at all.
+   *
+   * Two properties prevent that, and both are easy to regress while tuning an
+   * animation, so they are asserted against the source directly: no ratio
+   * threshold (a block taller than the viewport can never reach one), and a
+   * timer that shows the content regardless of whether the observer fires.
+   */
+  const source = readFileSync(
+    new URL("../src/components/Reveal.tsx", import.meta.url),
+    "utf8",
+  );
+
+  it("does not gate revealing on an intersection ratio", () => {
+    expect(source).not.toMatch(/threshold\s*:/);
+  });
+
+  it("shows content even if the observer never fires", () => {
+    expect(source).toMatch(/setTimeout\(\s*\(\)\s*=>\s*setShown\(true\)/);
+    // ...and when IntersectionObserver is unavailable at all.
+    expect(source).toMatch(/typeof IntersectionObserver === "undefined"/);
   });
 });
