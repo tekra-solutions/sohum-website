@@ -23,6 +23,9 @@ import sanitizeHtml from "sanitize-html";
 const allowedTags = [
   "p", "br", "strong", "b", "em", "i", "u", "h2", "h3", "ul", "ol", "li",
   "blockquote", "table", "thead", "tbody", "tr", "th", "td",
+  // Carries the one highlight the letter uses: the sign-and-return deadline,
+  // which the company's own letters show on a yellow ground.
+  "mark",
 ];
 
 /** True when the value carries no HTML tags at all. */

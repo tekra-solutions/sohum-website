@@ -20,10 +20,12 @@ import { sanitizeOfferBody } from "./sanitize";
  * language on the company's behalf.
  */
 import { site } from "@/lib/site";
-import { employmentTypeLabel, remoteTypeLabel, formatCurrency } from "@/lib/format";
+
 import { escapeHtml } from "@/lib/ats/policy";
+import { formatCurrency } from "@/lib/format";
 import { renderOfferTemplate } from "@/lib/offers/variables";
-import { documentHeader, documentBaseCss } from "@/lib/documents/chrome";
+import { documentBaseCss } from "@/lib/documents/chrome";
+import { sohumLetterheadDataUri } from "@/lib/documents/logo";
 
 /** The acceptance record, present only once the candidate has signed. */
 export type OfferSignatureBlock = {
@@ -41,6 +43,9 @@ export type OfferSignatureBlock = {
 
 export type OfferHtmlInput = {
   candidateName: string;
+  /** Used for the "Dear <name>," greeting; falls back to the full name. */
+  candidateFirstName?: string | null;
+  candidatePhone?: string | null;
   candidateAddress?: string | null;
   candidateEmail?: string | null;
   jobTitle: string;
@@ -83,7 +88,9 @@ export type OfferHtmlInput = {
 // day depending on the server's local timezone. The letter's issue date is a
 // real instant, so it formats in local time as usual.
 const fmtCalendarDate = (d: Date) => d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" });
-const fmtDate = (d: Date) => d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+/* The letter's own date. The company's letters use a short numeric date
+   ("7/22/2021") in the Date: line, not a spelled-out one. */
+const fmtDate = (d: Date) => d.toLocaleDateString("en-US", { month: "numeric", day: "numeric", year: "numeric" });
 const fmtTimestamp = (d: Date) =>
   `${d.toLocaleString("en-US", { dateStyle: "long", timeStyle: "short", timeZone: "UTC" })} UTC`;
 
@@ -100,30 +107,26 @@ export function renderOfferHtml(input: OfferHtmlInput): string {
 
   // Optional compensation lines are omitted entirely when absent, rather
   // than rendering an empty row.
-  const compensation = [
-    row("Annual salary", input.annualSalaryCents != null ? formatCurrency(input.annualSalaryCents) : undefined),
-    row("Hourly rate", input.hourlyRateCents != null ? `${formatCurrency(input.hourlyRateCents)} / hour` : undefined),
-    row("Pay frequency", input.payFrequency),
-    row("Bonus", input.bonusCents != null ? formatCurrency(input.bonusCents) : undefined),
-    row("Sign-on bonus", input.signOnBonusCents != null ? formatCurrency(input.signOnBonusCents) : undefined),
-    row("Other compensation", input.otherCompensation),
-  ].filter(Boolean).join("");
 
-  const position = [
-    row("Position", input.jobTitle),
-    row("Department", input.department),
-    row("Employment type", employmentTypeLabel[input.employmentType] ?? input.employmentType),
-    row("Work arrangement", remoteTypeLabel[input.remoteType] ?? input.remoteType),
-    row("Work location", input.workLocation ?? input.location),
-    row("Reporting manager", input.reportsTo ?? input.hiringManagerName),
-    row("Proposed start date", fmtCalendarDate(input.startDate)),
-  ].filter(Boolean).join("");
 
-  // Benefits and PTO are narrated on page 1 by the template body, which reads
-  // them from the same fields; repeating them here as a table restated whole
-  // paragraphs verbatim and pushed the letter onto a fifth page. Only
-  // additional terms — which no other section renders — remains.
+  /* The offer's own terms, as a short table.
+     The template normally states compensation and dates in prose, so this is
+     omitted when it would merely repeat them. When a template does not — and
+     for every field no template renders — the figures appear here. This is not
+     only presentational: the signed document's SHA-256 covers the rendered
+     HTML, so terms that appear nowhere in it would let compensation change
+     without changing the hash that evidences what was accepted. */
+  const allProse = `${input.templateBodyHtml} ${input.templateTermsHtml ?? ""} ${input.templateAcknowledgementsHtml ?? ""}`;
+  const money = (cents?: number | null) => (cents == null ? undefined : formatCurrency(cents));
+  const statesPay = /salary|hourly|per hour|compensat/i.test(allProse);
+  const statesDates = /start date|no later than|expires/i.test(allProse);
   const structuredTerms = [
+    statesPay ? "" : row("Annual salary", money(input.annualSalaryCents)),
+    statesPay ? "" : row("Hourly rate", input.hourlyRateCents != null ? `${money(input.hourlyRateCents)} / hour` : undefined),
+    statesPay ? "" : row("Sign-on bonus", money(input.signOnBonusCents)),
+    statesPay ? "" : row("Performance bonus", money(input.bonusCents)),
+    statesDates ? "" : row("Start date", fmtCalendarDate(input.startDate)),
+    statesDates ? "" : row("Offer expires", fmtCalendarDate(input.expirationDate)),
     row("Additional terms", input.additionalTerms),
   ].filter(Boolean).join("");
 
@@ -138,8 +141,10 @@ export function renderOfferHtml(input: OfferHtmlInput): string {
     ? sanitizeOfferBody(input.templateAcknowledgementsHtml)
     : "";
 
+  /* The acceptance sentence the company's own letters carry above the
+     signature rules. Still overridable per template. */
   const acceptanceStatement = input.acceptanceStatement?.trim()
-    || "I acknowledge that I have reviewed this offer and accept the terms described in this Offer of Employment.";
+    || "I have received this letter and I accept the terms contained herein.";
 
   const sig = input.signature;
 
@@ -147,42 +152,8 @@ export function renderOfferHtml(input: OfferHtmlInput): string {
   // an unsigned copy shows ruled lines to sign; the countersigned copy shows
   // the recorded acceptance. Both come from this single function so the
   // signed PDF is provably the same document plus the signature.
-  const signatureBlock = sig
-    ? `<table class="kv">
-        ${row("Candidate legal name", sig.candidateLegalName)}
-        ${row("Candidate email", sig.candidateEmail)}
-        ${row("Signed", fmtTimestamp(sig.signedAt))}
-      </table>
-      <div class="signed-mark">
-        <div class="signed-name">${escapeHtml(sig.signatureValue)}</div>
-        <div class="signed-rule"></div>
-        <div class="small muted">Electronically signed by ${escapeHtml(sig.candidateLegalName)}</div>
-      </div>`
-    : `<table class="kv">
-        ${row("Candidate legal name", input.candidateName)}
-        ${row("Candidate email", input.candidateEmail)}
-      </table>
-      <div class="sign-line"><div class="rule"></div><div class="caption">Signature</div></div>
-      <div class="sign-line"><div class="rule"></div><div class="caption">Date</div></div>`;
 
-  // The summary tables are always rendered.
-  //
-  // They used to be suppressed whenever the template prose mentioned salary or
-  // "the position of" — which the standard template always does, so in practice
-  // every offer lost them, and facts a candidate scans for (department,
-  // employment type, work arrangement, start date) appeared nowhere as
-  // structured data. Prose and a summary table serve different readers: one is
-  // the letter, the other is what someone checks at a glance. The duplication
-  // this avoided is real but minor; losing the summary entirely was worse.
 
-  const representative = input.authorizedRepresentative
-    ? `<h2>Company representative</h2>
-       <table class="kv">
-         ${row("Authorized representative", input.authorizedRepresentative.name)}
-         ${row("Title", input.authorizedRepresentative.title)}
-       </table>
-       ${sig ? "" : `<div class="sign-line"><div class="rule"></div><div class="caption">Signature</div></div>`}`
-    : "";
 
   // The electronic acceptance record. Deliberately carries no tokens or
   // session identifiers — only what evidences the acceptance itself.
@@ -201,6 +172,30 @@ export function renderOfferHtml(input: OfferHtmlInput): string {
       </div>`
     : "";
 
+  /* The sign-and-return deadline.
+     The company's letter always states it ("please sign and return this letter
+     no later than <date>") with the date highlighted. Most templates say it
+     themselves via {{offer_expiration_date}}; when a template does not, the
+     letter adds the sentence rather than issuing an offer with no stated
+     deadline — that date governs when the offer lapses. */
+  const bodyMentionsExpiry = /no later than|expires|expiration/i
+    .test(`${input.templateBodyHtml} ${input.templateTermsHtml ?? ""} ${input.templateAcknowledgementsHtml ?? ""}`);
+  const deadline = bodyMentionsExpiry
+    ? ""
+    : `<p>If you agree to accept this offer, please sign and return this letter no later than
+       <mark>${escapeHtml(fmtCalendarDate(input.expirationDate))}</mark>.</p>`;
+
+  // Recipient block: Date / Name / Email / Phone, as on the company's own
+  // letterhead — not a formal postal address block.
+  const recipient = [
+    ["Date", today],
+    ["Name", input.candidateName],
+    ["Email", input.candidateEmail],
+    ["Phone", input.candidatePhone],
+  ].filter(([, v]) => v)
+    .map(([k, v]) => `<div><span class="rk">${escapeHtml(String(k))}:</span> <strong>${escapeHtml(String(v))}</strong></div>`)
+    .join("");
+
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -208,111 +203,136 @@ export function renderOfferHtml(input: OfferHtmlInput): string {
 <title>Offer of Employment — ${escapeHtml(input.jobTitle)}</title>
 <style>
 ${documentBaseCss}
-  .letter-date { font-family: -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 9pt; color: #5b6a80; margin-bottom: 11px; }
-  .party { margin-bottom: 11px; line-height: 1.4; }
-  .party strong { font-weight: 600; }
-  .subject { font-weight: 700; margin: 0 0 9px; }
-  .body-copy { margin: 12px 0 0; }
-  /* A ruled line to sign on, with its label underneath. */
-  .sign-line { margin-top: 22px; }
-  .sign-line .rule { border-bottom: 1px solid #16233f; height: 32px; width: 3.4in; }
-  .sign-line .caption {
-    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
-    font-size: 8.5pt; color: #5b6a80; margin-top: 4px;
+  /* ------------------------------------------------------------------
+     This letter follows the format Sohum Systems already issues offers in:
+     a letterhead lockup above a rule, the recipient block as Date / Name /
+     Email / Phone, numbered terms, the at-will paragraph, the eligibility
+     conditions as diamond bullets, and a "Sincerely" close over the HR
+     signature and the candidate's own signature and date lines. The running
+     footer carries the office address, site, phone and fax on every page.
+     ------------------------------------------------------------------ */
+  /* Top margin clears the running letterhead, bottom the running footer;
+     both are drawn by Chromium as page furniture on every page. */
+  @page { margin: 1.35in 0.8in 1.05in; }
+  body { font-size: 10.5pt; line-height: 1.42; }
+
+  .letterhead { margin: 0 0 4px; }
+  /* The PDF draws the letterhead and footer as running page furniture, so the
+     in-flow copies are suppressed there to avoid printing them twice. */
+  @media print { .screen-only { display: none; } }
+  .letterhead img { display: block; width: 100%; max-width: 5.7in; margin: 0 auto; }
+  .letterhead .rule {
+    border-top: 1.1px solid #3b3f8f; margin-top: 7px;
+    /* The letterhead rule fades from navy to orange, as on the original. */
+    background: linear-gradient(to right, #3b3f8f 0%, #3b3f8f 55%, #e8622a 100%);
+    height: 1.1px; border: 0;
   }
-  .signed-mark { margin-top: 12px; }
+
+  .recipient { margin: 20px 0 16px; line-height: 1.55; }
+  .recipient .rk { color: #16233f; }
+  .greeting { margin: 0 0 12px; }
+
+  .body-copy p { margin: 0 0 10px; }
+  .body-copy ol { margin: 4px 0 10px; padding-left: 20px; }
+  .body-copy ol li { margin-bottom: 6px; padding-left: 3px; }
+  /* Eligibility conditions are set with the diamond bullet the letterhead
+     uses, rather than a disc. */
+  .body-copy ul { margin: 4px 0 10px; padding-left: 18px; list-style: none; }
+  .body-copy ul li { margin-bottom: 3px; position: relative; padding-left: 14px; }
+  .body-copy ul li::before {
+    content: "♦"; position: absolute; left: 0; top: 0; color: #16233f; font-size: 9pt;
+  }
+  .body-copy h3 {
+    font-family: inherit; font-size: 10.5pt; font-weight: 700; color: #16233f;
+    margin: 12px 0 5px;
+  }
+  .body-copy h3:first-child { margin-top: 0; }
+
+  /* The return-by date is highlighted on the company's letter. */
+  /* The sign-and-return deadline, highlighted as on the company's letter. */
+  .body-copy mark { background: #fff3a3; color: inherit; padding: 0 2px; font-weight: 700; }
+
+  .close { margin-top: 18px; }
+  .close .sincerely { margin: 0 0 4px; }
+  .rep-name { margin-top: 34px; line-height: 1.4; }
+  .rep-name strong { font-weight: 400; }
+
+  .accept-line { margin: 26px 0 4px; }
+  .sign-row {
+    display: flex; gap: 0.5in; margin-top: 42px; break-inside: avoid; page-break-inside: avoid;
+  }
+  .sign-row .field { flex: 0 0 3.6in; }
+  .sign-row .field.date { flex: 1; }
+  .sign-row .rule { border-bottom: 1px solid #16233f; height: 0; }
+  .sign-row .caption { font-size: 9.5pt; margin-top: 4px; }
   .signed-name {
     font-family: "Snell Roundhand", "Apple Chancery", "Segoe Script", "Brush Script MT", cursive;
-    font-size: 18pt; color: #16233f; line-height: 1.2; padding-bottom: 4px;
+    font-size: 19pt; color: #16233f; line-height: 1; padding-bottom: 3px; white-space: nowrap;
   }
-  .signed-rule { border-bottom: 1px solid #16233f; width: 3.4in; }
-  .record { margin-top: 12px; padding: 10px 13px; border: 1px solid #d9dfe8; background: #f7f8fa; }
-  .record h2 { margin-top: 0; border-bottom-color: #c9d2de; break-after: avoid; page-break-after: avoid; }
-  /* The acceptance record is evidentiary, not decorative: let its rows flow across
-     a page boundary rather than shunting the whole block to a near-empty page. */
+
+  .record { margin-top: 18px; padding: 10px 13px; border: 1px solid #d9dfe8; background: #f7f8fa; }
+  .record h2 {
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 9pt;
+    letter-spacing: 0.08em; text-transform: uppercase; margin: 0 0 6px;
+    padding-bottom: 4px; border-bottom: 1px solid #c9d2de;
+  }
   .record, .record table.kv, .record tbody { break-inside: auto; page-break-inside: auto; }
   .record table.kv td { padding: 2.5px 0; }
   .record table.kv td.k { font-size: 8.2pt; }
   .record table.kv td.v { font-size: 9.5pt; }
-  /* A 64-char hash wraps to two serif lines; a condensed mono face keeps it to one. */
   .hash { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 8.2pt; letter-spacing: -0.01em; }
-  .expiry { margin: 11px 0; padding: 8px 12px; border-left: 3px solid #e8622a; background: #fff6f2; }
-  .body-copy h3 {
-    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
-    font-size: 9.5pt; font-weight: 700; color: #16233f; margin: 10px 0 4px;
-    letter-spacing: 0.02em;
-  }
-  .body-copy h3:first-child { margin-top: 0; }
-  .body-copy ul { margin: 0 0 9px; padding-left: 18px; }
-  /* The two page-1 reference tables sit side by side: stacked full-width they
-     ran the letter onto a fourth page for no gain in legibility, since each
-     table is short label/value pairs rather than prose. */
-  .summary-pair { display: flex; gap: 26px; align-items: flex-start; break-inside: avoid; page-break-inside: avoid; margin-bottom: 4px; }
-  .summary-pair > section { flex: 1; min-width: 0; }
-  .summary-pair h2 { margin-top: 0; margin-bottom: 5px; }
-  .summary-pair table.kv td { padding: 2.5px 0; line-height: 1.35; }
-  .summary-pair table.kv td.k { width: 47%; padding-right: 8px; }
-  .summary-pair table.kv td.v { width: 53%; font-size: 9.8pt; }
 </style>
 </head>
 <body>
 
-${documentHeader({ title: "Offer of Employment", logoDataUri: input.logoDataUri, subtitle: reference || null })}
+  <!-- In print the letterhead is drawn by Chromium's running header so it
+       repeats on every page; this copy is for the on-screen preview, which has
+       no running header, and is hidden when printing. -->
+  <header class="letterhead screen-only">
+    <img src="${sohumLetterheadDataUri}" alt="${escapeHtml(site.legalName)}">
+    <div class="rule"></div>
+  </header>
 
-  <div class="letter-date">${today}</div>
+  <div class="recipient">${recipient}</div>
 
-  <div class="party">
-    <strong>${escapeHtml(input.candidateName)}</strong>${input.candidateEmail ? `<br>${escapeHtml(input.candidateEmail)}` : ""}
-    ${input.candidateAddress ? `<br>${escapeHtml(input.candidateAddress).replaceAll("\n", "<br>")}` : ""}
-  </div>
-
-  <p class="subject">Subject: Offer of Employment &ndash; ${escapeHtml(input.jobTitle)}</p>
+  <p class="greeting">Dear <strong>${escapeHtml(input.candidateFirstName || input.candidateName)}</strong>,</p>
 
   <div class="body-copy">${sanitizeOfferBody(input.templateBodyHtml)}</div>
 
-  <!-- ============== PAGE 2: SUMMARY TABLES AND EMPLOYMENT TERMS ============== -->
-  <div class="page-break"></div>
+  ${termsProse === "" ? "" : `<div class="body-copy">${termsProse}</div>`}
 
-  <div class="summary-pair">
-    <section>
-      <h2>Position summary</h2>
-      <table class="kv">${position}</table>
-    </section>
-    <section>
-      <h2>Compensation summary</h2>
-      <table class="kv">${compensation || `<tr><td class="k">Compensation</td><td class="v muted">To be confirmed</td></tr>`}</table>
-    </section>
-  </div>
+  ${acknowledgements ? `<div class="body-copy">${acknowledgements}</div>` : ""}
 
-  <h2>Employment terms</h2>
-  <div class="body-copy">${termsProse}</div>
+  ${deadline ? `<div class="body-copy">${deadline}</div>` : ""}
+
   ${structuredTerms ? `<h2>Summary of terms</h2><table class="kv">${structuredTerms}</table>` : ""}
 
-  <!-- ================== PAGE 3: ACCEPTANCE AND SIGNATURE =================== -->
-  <div class="page-break"></div>
-  ${acknowledgements ? `<h2>Acknowledgements</h2><div class="body-copy">${acknowledgements}</div>` : ""}
-
-  <div class="expiry no-break">
-    <strong>This offer expires on ${fmtCalendarDate(input.expirationDate)}.</strong>
-    ${sig ? "" : " Please complete your acceptance on or before this date."}
+  <div class="close no-break">
+    <p class="sincerely">Sincerely,</p>
+    ${input.authorizedRepresentative
+      ? `<div class="rep-name">
+           ${escapeHtml(input.authorizedRepresentative.name)},<br>
+           ${escapeHtml(input.authorizedRepresentative.title ?? "")}
+         </div>`
+      : `<div class="rep-name">${escapeHtml(site.legalName)}</div>`}
   </div>
 
-  <div class="no-break">
-    <h2>Candidate acceptance</h2>
-    <p>${escapeHtml(acceptanceStatement)}</p>
-    ${signatureBlock}
-  </div>
+  <p class="accept-line">${escapeHtml(acceptanceStatement)}</p>
 
-  ${representative ? `<div class="no-break">${representative}</div>` : ""}
+  <div class="sign-row">
+    <div class="field">
+      ${sig ? `<div class="signed-name">${escapeHtml(sig.signatureValue)}</div>` : ""}
+      <div class="rule"></div>
+      <div class="caption">Signature</div>
+    </div>
+    <div class="field date">
+      ${sig ? `<div class="signed-name">&nbsp;</div>` : ""}
+      <div class="rule"></div>
+      <div class="caption">Date</div>
+    </div>
+  </div>
 
   ${acceptanceRecord}
-
-  <div class="legal-note">
-    This document was generated by ${escapeHtml(site.legalName)}&rsquo;s recruiting system from a
-    configurable template. Its content has not been reviewed by counsel for this
-    specific offer. Terms of employment are those stated above together with any
-    written company policies referenced in them.
-  </div>
 
 </body>
 </html>`;

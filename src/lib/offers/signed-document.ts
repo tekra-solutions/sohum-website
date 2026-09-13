@@ -23,7 +23,8 @@ import { createHash } from "node:crypto";
 import type { offerVersions } from "@/db/schema";
 import { renderOfferHtml, type OfferSignatureBlock } from "./render-html";
 import { renderOfferPdf } from "./pdf";
-import { pdfFooterTemplate } from "@/lib/documents/chrome";
+import { letterheadFooterTemplate, letterheadHeaderTemplate } from "@/lib/documents/chrome";
+import { sohumLetterheadDataUri } from "@/lib/documents/logo";
 import { uploadOfferPdf } from "@/lib/storage/offers";
 
 type Version = typeof offerVersions.$inferSelect;
@@ -31,6 +32,8 @@ type Version = typeof offerVersions.$inferSelect;
 export type SignedDocumentInput = {
   version: Version;
   candidateName: string;
+  candidateFirstName?: string | null;
+  candidatePhone?: string | null;
   candidateEmail: string;
   candidateAddress?: string | null;
   offerReference?: string | null;
@@ -47,6 +50,10 @@ export function renderSignedOfferHtml(input: SignedDocumentInput): string {
   const v = input.version;
   return renderOfferHtml({
     candidateName: input.candidateName,
+    // The greeting takes the first word of the legal name when a separate
+    // first name was not carried onto the signed record.
+    candidateFirstName: input.candidateFirstName ?? input.candidateName.split(" ")[0],
+    candidatePhone: input.candidatePhone ?? null,
     candidateEmail: input.candidateEmail,
     candidateAddress: input.candidateAddress ?? null,
     // Frozen with the version; falls back to a neutral line for versions
@@ -110,9 +117,9 @@ export async function generateSignedOfferPdf(input: SignedDocumentInput) {
   const documentHash = hashDocument(Buffer.from(contentHtml, "utf8"));
 
   const html = renderSignedOfferHtml({ ...input, signature: { ...input.signature, documentHash } });
-  const reference = input.offerReference ?? `Offer ${input.version.offerId}`;
   const pdf = await renderOfferPdf(html, {
-    footerTemplate: pdfFooterTemplate(`${reference} · ${input.candidateName}`),
+    headerTemplate: letterheadHeaderTemplate(sohumLetterheadDataUri),
+    footerTemplate: letterheadFooterTemplate(),
   });
   // The stored-file hash is recorded separately so the bytes in storage can
   // also be checked for tampering.

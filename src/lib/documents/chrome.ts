@@ -120,6 +120,37 @@ export const documentBaseCss = `
   }
 `;
 
+/**
+ * The offer letter's running letterhead, repeated on every page.
+ *
+ * The company's own offer letters carry the lockup at the top of each page,
+ * not only the first. Chromium's headerTemplate cannot reach the document's
+ * stylesheet or its data URIs, so the mark is passed in and the whole header
+ * is styled inline.
+ */
+export function letterheadHeaderTemplate(logoDataUri: string) {
+  return `<div style="width:100%;padding:0 0.8in;margin-top:0.22in;">
+    <img src="${logoDataUri}" style="display:block;width:4.6in;margin:0 auto 5px;">
+    <div style="height:1px;background:#3b3f8f;"></div>
+  </div>`;
+}
+
+/**
+ * The offer letter's running footer: office address, site, phone and fax,
+ * between two rules — the footer the company's own letterhead carries on every
+ * page. Passed to Chromium's page.pdf() so it repeats on each page rather than
+ * being laid out once in the flow.
+ */
+export function letterheadFooterTemplate() {
+  return `<div style="width:100%;padding:0 0.8in;font-family:Georgia,'Times New Roman',serif;
+    font-size:7.5pt;color:#16233f;text-align:center;line-height:1.35;">
+    <div style="border-top:1px solid #3b3f8f;margin-bottom:4px;"></div>
+    <div>${escapeHtml(contact.officeAlt)}.</div>
+    <div>${escapeHtml(site.url.replace(/^https?:\/\//, ""))} &nbsp;
+      <strong>Ph: ${escapeHtml(contact.phone)}, Fax: ${escapeHtml(contact.fax)}</strong></div>
+  </div>`;
+}
+
 /** Footer template for page numbering, passed to Chromium's page.pdf(). */
 export function pdfFooterTemplate(reference: string) {
   return `<div style="font-size:8pt;width:100%;padding:0 0.7in;color:#5b6a80;

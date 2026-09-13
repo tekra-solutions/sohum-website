@@ -36,7 +36,7 @@ async function resolveLaunchOptions() {
 
 export async function renderOfferPdf(
   html: string,
-  options?: { footerTemplate?: string; margin?: { top: string; bottom: string; left: string; right: string } },
+  options?: { headerTemplate?: string; footerTemplate?: string; margin?: { top: string; bottom: string; left: string; right: string } },
 ): Promise<Buffer> {
   const browser = await puppeteer.launch(await resolveLaunchOptions());
   try {
@@ -57,7 +57,7 @@ export async function renderOfferPdf(
       format: "Letter",
       printBackground: true,
       displayHeaderFooter: true,
-      headerTemplate: "<span></span>",
+      headerTemplate: options?.headerTemplate ?? "<span></span>",
       footerTemplate: options?.footerTemplate ??
         '<div style="font-size:9px;width:100%;text-align:center;color:#5b6a80;font-family:-apple-system,Segoe UI,Roboto,sans-serif;">' +
         'Page <span class="pageNumber"></span> of <span class="totalPages"></span></div>',

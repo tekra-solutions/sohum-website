@@ -38,42 +38,40 @@ const standardOffer = {
   category: "FULL_TIME" as const,
   subject: "Employment Offer — {{job_title}} — {{company_name}}",
 
-  // Page 1 — introduction, position, compensation, benefits.
-  bodyHtml: `<p>Dear {{candidate_first_name}},</p>
-<p>{{company_legal_name}} is pleased to offer you the {{employment_type}} position of <strong>{{job_title}}</strong> in our {{department}} team{{#if manager_name}}, reporting to {{manager_name}}{{/if}}. We were impressed by your background and believe you will make a strong contribution to our work supporting mission-critical federal programs.</p>
-<p>Your anticipated start date is <strong>{{start_date}}</strong>. This letter sets out the terms of our offer, which remains open until <strong>{{offer_expiration_date}}</strong>.</p>
-<h3>Compensation</h3>
-{{#if salary}}<p>Your annual base salary will be <strong>{{salary}}</strong>, paid {{pay_frequency}} and subject to applicable withholdings and deductions.</p>{{/if}}
-{{#if hourly_rate}}<p>You will be compensated at an hourly rate of <strong>{{hourly_rate}}</strong>, paid {{pay_frequency}} for hours worked and subject to applicable withholdings and deductions.</p>{{/if}}
-{{#if sign_on_bonus}}<p>You will receive a one-time sign-on bonus of <strong>{{sign_on_bonus}}</strong>, payable with your first regular paycheck and subject to the repayment terms described in your onboarding materials.</p>{{/if}}
-{{#if bonus}}<p>You will be eligible for a performance bonus of up to <strong>{{bonus}}</strong>, awarded at the company's discretion based on individual and company performance.</p>{{/if}}
-{{#if other_compensation}}<p>{{other_compensation}}</p>{{/if}}
-<h3>Benefits</h3>
+  /* Wording follows the offer letter Sohum Systems already issues: the
+     opening paragraph, the numbered terms, the at-will paragraph, the
+     eligibility conditions and the sign-and-return deadline. Optional content
+     sits in conditional blocks so an offer without a bonus reads as though
+     those sentences were never written. Still sample content pending legal
+     review, like every template here. */
+  bodyHtml: `<p>We are very excited about the opportunity to work together with you. We feel that you will be a valuable asset to {{company_name}} and to our future growth. Therefore, we are pleased to confirm the following with regards to the responsibilities and compensation for the position of <strong>{{job_title}}</strong> with the start date of <strong>{{start_date}}</strong>.</p>
+<p>Please note that this arrangement supersedes any previous arrangements that may have been made:</p>
+<ol>
+{{#if salary}}<li>Your position as <strong>{{job_title}}</strong> is a {{employment_type}} position paid at <strong>{{salary}}</strong> annually.</li>{{/if}}
+{{#if hourly_rate}}<li>Your position as <strong>{{job_title}}</strong> is a {{employment_type}} position paid at an hourly rate of <strong>{{hourly_rate}}</strong> for hours worked.</li>{{/if}}
+<li>You will be paid in {{pay_frequency}} installments, according to the Company payroll cycle. State and Federal laws require us to withhold State and Federal taxes in accordance with instructions you will file with us pertaining to your tax status for your paychecks.</li>
+<li>During the first ninety days of employment, you will work on an introductory basis. The introductory period is intended to give you the opportunity to demonstrate your ability to achieve a satisfactory level of performance and to determine whether the new position meets your expectations. {{company_name}} uses this period to do an initial evaluation of your capabilities, work habits and overall performance.</li>
+{{#if sign_on_bonus}}<li>You will receive a one-time sign-on bonus of <strong>{{sign_on_bonus}}</strong>, payable with your first regular paycheck and subject to the repayment terms described in your onboarding materials.</li>{{/if}}
+{{#if bonus}}<li>You will be eligible for a performance bonus of up to <strong>{{bonus}}</strong>, awarded at the company's discretion based on individual and company performance.</li>{{/if}}
+{{#if other_compensation}}<li>{{other_compensation}}</li>{{/if}}
+</ol>`,
+
+  termsHtml: `<p>It is important to note that employment with the Company is based on mutual consent, is for an unspecified term, and is employment at will (employment-at-will). Accordingly, either you or the Company &mdash; with or without cause or advance notice &mdash; can terminate the employment relationship, at any time with or without cause or with or without notice. {{company_name}} also has the right to change the terms and conditions of your employment with or without notice including but not limited to termination, demotion, promotion, transfer, compensation, benefits, duties and location of work. No person, other than the CEO by written agreement, has the right to enter an expressed or implied agreement on any other basis.</p>
+<p>The above information is conditioned on, and this offer is contingent upon, your complying with the following requirements:</p>
+<ul>
+<li>You are legally eligible for work in the United States; and</li>
+<li>You are able to obtain and maintain a government security clearance.</li>
+<li>You are able to successfully clear the background check, including criminal and credit check.</li>
+</ul>
+<p>As it is necessary for you to successfully clear your background check, we ask that you do not give your current employer, if applicable, notice of your resignation until you received clearance from our team.</p>
+<p>As {{job_title}}, you will perform the duties and responsibilities customarily associated with this role and such other responsibilities as may reasonably be assigned{{#if reports_to}} by {{reports_to}}{{/if}}. Your employment is also subject to the Company&rsquo;s written policies, as described in the employee handbook and updated from time to time, and to the security, conduct and reporting requirements of any client you support.</p>
+<p>As a condition of employment you will be asked to sign the Company&rsquo;s confidentiality and intellectual property agreement. You will have access to confidential information belonging to {{company_name}}, its clients and its partners, and you agree to protect that information both during and after your employment. Work product you create within the scope of your employment belongs to the Company.</p>
 {{#if benefits_summary}}<p>{{benefits_summary}}</p>{{/if}}
 {{#if pto_summary}}<p>{{pto_summary}}</p>{{/if}}
-<p>Full details of all benefit programs, including eligibility dates and enrollment windows, are provided in the employee handbook and plan documents, which govern in the event of any difference from this summary.</p>`,
+{{#if additional_terms}}<p>{{additional_terms}}</p>{{/if}}`,
 
-  // Page 2 — employment terms, responsibilities, policies, contingencies.
-  termsHtml: `<h3>Position and responsibilities</h3>
-<p>As {{job_title}}, you will perform the duties customarily associated with this role and such other responsibilities as may reasonably be assigned{{#if reports_to}} by {{reports_to}}{{/if}}. You agree to devote your full professional attention to {{company_name}} during working hours.</p>
-<h3>Work location and arrangement</h3>
-<p>This position is based in {{location}} on a {{work_arrangement}} basis.{{#if work_location}} Your primary work location will be {{work_location}}.{{/if}} Work location and arrangement may change as business and client needs require.</p>
-<h3>Employment classification</h3>
-<p>This is a {{employment_type}} position. Employment with {{company_legal_name}} is at will, meaning either you or the company may end the employment relationship at any time, with or without cause or notice. Nothing in this letter creates a contract of employment for any fixed term.</p>
-<h3>Confidentiality and intellectual property</h3>
-<p>As a condition of employment you will be asked to sign the company's confidentiality and intellectual property agreement. You will have access to confidential information belonging to {{company_name}}, its clients and its partners, and you agree to protect that information both during and after your employment. Work product you create within the scope of your employment belongs to the company.</p>
-<h3>Company and client policies</h3>
-<p>Because {{company_name}} supports federal agencies, your employment is subject to both company policy and the security, conduct and reporting requirements of the clients you support. This includes any site-specific access rules, training obligations and codes of conduct applicable to a client engagement. Company policies are described in the employee handbook and may be updated from time to time.</p>
-<h3>Eligibility and contingencies</h3>
-<p>This offer is contingent upon: verification of your identity and authorization to work in the United States, including timely completion of Form I-9; satisfactory completion of a background check and reference checks; and, where a client engagement requires it, your ability to obtain and maintain the necessary clearance or public trust determination. If any contingency is not satisfied, this offer may be withdrawn or employment terminated.</p>
-{{#if additional_terms}}<h3>Additional terms</h3><p>{{additional_terms}}</p>{{/if}}`,
-
-  // Page 3 — acknowledgements preceding the signature block.
-  acknowledgementsHtml: `<p>By accepting this offer you acknowledge that you have read and understood this letter, the referenced company policies, and the contingencies described above.</p>
-<p>You confirm that your acceptance is voluntary, and that no promises or representations have been made to you other than those contained in this document. You further confirm that accepting this position will not breach any agreement you have with a current or former employer.</p>
-<p>This letter, once accepted, represents the complete offer of employment and supersedes any prior discussions, whether written or verbal.</p>
-{{#if hr_contact_email}}<p>If you have questions before accepting, please contact us at {{hr_contact_email}}.</p>{{/if}}
-<p>We look forward to welcoming you to {{company_name}}.</p>`,
+  acknowledgementsHtml: `<p>If you agree to accept this offer, please sign and return this letter no later than <mark>{{offer_expiration_date}}</mark>. We believe that you will make a significant contribution to our Company and, at the same time, will realize both the personal and professional growth you seek.</p>
+<p>We look forward to working with you and are pleased to invite you to be a member of our team.</p>`,
 };
 
 export const defaultOfferTemplates = [

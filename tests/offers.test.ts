@@ -295,7 +295,7 @@ describe("automatic offer generation", () => {
     expect(offerVersionInputSchema.safeParse({ ...base, annualSalaryCents: "145000", hourlyRateCents: "65" }).success).toBe(false);
   });
 
-  it("always states position and compensation as structured summaries", async () => {
+  it("always states the offer's own terms somewhere in the document", async () => {
     const { renderOfferHtml } = await import("@/lib/offers/render-html");
     const common = {
       candidateName: "Ada Lovelace", candidateEmail: "ada@example.com",
@@ -310,14 +310,14 @@ describe("automatic offer generation", () => {
     // employment type and start date appeared nowhere as structured data.
     const rich = renderOfferHtml({ ...common, templateBodyHtml: "<p>the position of Engineer</p><p>Your annual base salary will be $145,000.</p>" });
     const sparse = renderOfferHtml({ ...common, templateBodyHtml: "<p>We are pleased to write to you.</p>" });
-    for (const html of [rich, sparse]) {
-      expect(html).toContain("Position summary");
-      expect(html).toContain("Compensation summary");
-      // The facts a candidate scans for, regardless of how the prose reads.
-      expect(html).toContain("Engineering");
-      expect(html).toContain("Principal Quality Engineer");
-      expect(html).toContain("$145,000");
-    }
+    // The letter follows the company's own format: the template prose states
+    // the position and pay. When a template does not, the renderer adds a
+    // terms table rather than issuing a letter that omits them — the signed
+    // document's hash covers this HTML, so terms absent from it could change
+    // without changing the hash that evidences what was accepted.
+    expect(rich).toContain("$145,000");
+    expect(sparse).toContain("$145,000");
+    expect(sparse).toContain("Summary of terms");
   });
 
   it("never opens an issued offer with the template review warning", async () => {
@@ -340,11 +340,40 @@ describe("automatic offer generation", () => {
       startDate: new Date("2026-10-05"), expirationDate: new Date("2026-09-25"),
       annualSalaryCents: 14500000, templateBodyHtml: "<p>Hello.</p>",
     });
-    // The logo plumbing existed but no caller ever supplied a URI, so issued
-    // documents went out unbranded. The header now defaults to the mark.
-    expect(html).toContain('class="doc-logo"');
+    // The letterhead carries the mark, the "Sohum Systems LLC" wordmark and
+    // the tagline, matching the letterhead the company issues offers on.
+    expect(html).toContain('class="letterhead');
     expect(html).toContain("data:image/svg+xml");
-    expect(html).toContain("SOHUM");
+    expect(html).toContain("Sohum%20Systems%20LLC");
+    expect(html).toContain("Experience%20the%20Expertize");
+  });
+
+  it("lays the letter out in the company's own format", async () => {
+    const { renderOfferHtml } = await import("@/lib/offers/render-html");
+    const html = renderOfferHtml({
+      candidateName: "Ada Lovelace", candidateFirstName: "Ada",
+      candidatePhone: "913-555-0100", candidateEmail: "ada@example.com",
+      jobTitle: "Engineer", department: "Engineering", location: "KC",
+      employmentType: "FULL_TIME", remoteType: "HYBRID",
+      startDate: new Date("2026-10-05"), expirationDate: new Date("2026-09-25"),
+      annualSalaryCents: 14500000, templateBodyHtml: "<p>Hello.</p>",
+      authorizedRepresentative: { name: "Sindhura Vemuri", title: "HR Manager" },
+    });
+    // Recipient block, not a postal address block.
+    expect(html).toMatch(/Date:<\/span>|Date:/);
+    expect(html).toContain("Name:");
+    expect(html).toContain("913-555-0100");
+    // Greeting uses the first name.
+    expect(html).toContain("Dear <strong>Ada</strong>");
+    // Sincerely / representative / candidate signature and date rules.
+    expect(html).toContain("Sincerely,");
+    expect(html).toContain("Sindhura Vemuri");
+    expect(html).toContain("HR Manager");
+    expect(html).toContain("I have received this letter and I accept the terms contained herein.");
+    expect(html).toContain(">Signature<");
+    expect(html).toContain(">Date<");
+    // The sign-and-return deadline is always stated, highlighted.
+    expect(html).toMatch(/<mark>[^<]*2026<\/mark>/);
   });
 });
 

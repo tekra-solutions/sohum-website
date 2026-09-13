@@ -19,6 +19,8 @@ import { generateOfferToken, hashOfferToken } from "./tokens";
 import { renderOfferHtml } from "./render-html";
 import { renderOfferTemplate } from "./variables";
 import { renderOfferPdf } from "./pdf";
+import { letterheadFooterTemplate, letterheadHeaderTemplate } from "@/lib/documents/chrome";
+import { sohumLetterheadDataUri } from "@/lib/documents/logo";
 import { uploadOfferPdf, buildOfferPdfPath } from "@/lib/storage/offers";
 import { offerSentEmail } from "./email-templates";
 import { send } from "@/lib/email";
@@ -146,6 +148,8 @@ async function buildRenderedHtml(
   };
   const renderedHtml = renderOfferHtml({
     candidateName: `${app.firstName} ${app.lastName}`,
+    candidateFirstName: app.firstName,
+    candidatePhone: app.phone,
     candidateEmail: app.email,
     candidateAddress: [app.address, [app.city, app.state, app.zipCode].filter(Boolean).join(", ")].filter(Boolean).join("\n") || null,
     templateBodyHtml,
@@ -344,7 +348,12 @@ export async function sendOfferAction(_: OfferActionState, form: FormData): Prom
   if (deadline <= new Date()) return { error: "This offer has expired. Update the dates and obtain approval again." };
   let pdf: Buffer;
   try {
-    pdf = await renderOfferPdf(version.renderedHtml);
+    // The letterhead footer repeats the office address, site, phone and fax
+    // on every page, as the company's own offer letters do.
+    pdf = await renderOfferPdf(version.renderedHtml, {
+      headerTemplate: letterheadHeaderTemplate(sohumLetterheadDataUri),
+      footerTemplate: letterheadFooterTemplate(),
+    });
   } catch (err) {
     console.error("[offers] PDF generation failed", { offerId, error: err instanceof Error ? err.message : String(err) });
     return { error: "Could not generate the offer PDF. Please try again." };
