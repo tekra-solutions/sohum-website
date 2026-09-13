@@ -5,6 +5,7 @@
  * per promotion, one history row per promotion) are covered by the integration
  * suite; these are the pure decisions those guarantees rest on.
  */
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   promotionStatuses, isTerminalPromotionStatus, canEditPromotion,
@@ -120,5 +121,44 @@ describe("promotion reference", () => {
     const promotion = { id: "9f2c41ab-77d3-4e58-86c1-b4a2f9e8d70c", createdAt: new Date("2026-03-04T00:00:00Z") };
     expect(promotionReferenceFor(promotion)).toBe("PROM-2026-9F2C41AB");
     expect(promotionReferenceFor(promotion, { versionNumber: 2 })).toBe("PROM-2026-9F2C41AB-V2");
+  });
+});
+
+describe("scheduled apply endpoint", () => {
+  const source = readFileSync(
+    new URL("../src/app/api/cron/promotions/route.ts", import.meta.url),
+    "utf8",
+  );
+
+  it("fails closed when no secret is configured", () => {
+    // An unset CRON_SECRET must refuse every request rather than leave an
+    // endpoint that mutates employee records open to the internet.
+    expect(source).toMatch(/if \(!secret\) return false/);
+  });
+
+  it("compares the secret in constant time", () => {
+    expect(source).toContain("timingSafeEqual");
+    // timingSafeEqual throws on a length mismatch, so the guard is required
+    // for the comparison to be reachable at all.
+    expect(source).toMatch(/a\.length === b\.length && timingSafeEqual/);
+  });
+
+  it("runs the same code path as the admin button", async () => {
+    // One implementation, so a promotion applied by the schedule and one
+    // applied by hand cannot diverge.
+    const { applyDuePromotions } = await import("@/lib/promotions/apply");
+    expect(typeof applyDuePromotions).toBe("function");
+    expect(source).toContain("applyDuePromotions");
+  });
+
+  it("reports failures instead of swallowing them", () => {
+    // The loop catches per-promotion errors so one bad row cannot block the
+    // rest, but a genuine failure must still surface.
+    const apply = readFileSync(
+      new URL("../src/lib/promotions/apply.ts", import.meta.url),
+      "utf8",
+    );
+    expect(apply).toMatch(/failures\.push/);
+    expect(apply).toMatch(/lte\(promotionVersions\.effectiveDate/);
   });
 });

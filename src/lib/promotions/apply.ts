@@ -1,5 +1,5 @@
 import "server-only";
-import { and, eq } from "drizzle-orm";
+import { and, eq, lte } from "drizzle-orm";
 import { db } from "@/db";
 import {
   promotions, promotionVersions, promotionSignatures, employmentEvents,
@@ -118,26 +118,42 @@ export async function applyPromotion(tx: Tx, promotionId: string, adminId: strin
 /**
  * Applies every accepted promotion whose effective date has arrived.
  *
- * Idempotent, so it is safe to call repeatedly — from a scheduled job, or
- * opportunistically when an admin opens the employees list. Each promotion is
- * applied in its own transaction so one failure cannot block the rest.
+ * Idempotent and safe to run repeatedly: each promotion is applied in its own
+ * transaction, so one failure cannot block the rest, and the unique index on
+ * employment_events.promotion_id means a double run cannot double-record.
+ *
+ * Filtering on the effective date in SQL rather than catching the refusal from
+ * applyPromotion() keeps the scan proportional to the work actually due — an
+ * employer with years of promotion history would otherwise re-examine every
+ * accepted promotion ever signed on each run — and leaves the catch below for
+ * genuine failures, which are reported rather than swallowed.
  */
 export async function applyDuePromotions(adminId: string | null = null) {
   const due = await db.select({ id: promotions.id })
     .from(promotions)
     .innerJoin(promotionVersions, eq(promotionVersions.id, promotions.acceptedVersionId))
-    .where(and(eq(promotions.status, "ACCEPTED")));
+    .where(and(
+      eq(promotions.status, "ACCEPTED"),
+      lte(promotionVersions.effectiveDate, new Date()),
+    ));
 
+  const failures: { promotionId: string; reason: string }[] = [];
   let applied = 0;
+
   for (const row of due) {
     try {
       await db.transaction(tx => applyPromotion(tx, row.id, adminId));
       applied += 1;
-    } catch {
-      // Not yet due, or already applied by a concurrent run. Both are normal.
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      // A concurrent run getting there first is the expected benign race, not
+      // a failure worth reporting.
+      if (/already|not due|has not arrived/i.test(reason)) continue;
+      failures.push({ promotionId: row.id, reason });
     }
   }
-  return applied;
+
+  return { considered: due.length, applied, failures };
 }
 
 /* ------------------------------------------------------------------- PDF */

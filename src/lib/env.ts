@@ -53,3 +53,12 @@ export const isStorageConfigured = () =>
 
 export const isEmailConfigured = () =>
   Boolean(process.env.RESEND_API_KEY || process.env.SMTP_HOST);
+
+/**
+ * True when the scheduled-job endpoint can authenticate a caller.
+ *
+ * Without CRON_SECRET the endpoint fails closed, which means accepted
+ * promotions never take effect on their own — so Settings surfaces this
+ * rather than leaving it as silent infrastructure.
+ */
+export const isCronConfigured = () => Boolean(process.env.CRON_SECRET);

@@ -11,7 +11,7 @@ import { btnSecondary, t } from "@/components/admin/form";
 import { listAdmins, setAdminActiveAction } from "@/lib/services/admin-actions";
 import { canManageAdmins } from "@/lib/auth/roles";
 import { requireAdmin } from "@/lib/auth/session";
-import { isEmailConfigured } from "@/lib/env";
+import { isCronConfigured, isEmailConfigured } from "@/lib/env";
 import { isStorageConfigured } from "@/lib/storage/resumes";
 import { isDatabaseConfigured } from "@/db";
 import { relativeTime } from "@/lib/format";
@@ -35,6 +35,11 @@ export default async function SettingsPage() {
     { name: "Database", ok: isDatabaseConfigured(), hint: "DATABASE_URL" },
     { name: "Resume storage", ok: isStorageConfigured(), hint: "SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY" },
     { name: "Email", ok: isEmailConfigured(), hint: "RESEND_API_KEY or SMTP_HOST" },
+    {
+      name: "Scheduled jobs",
+      ok: isCronConfigured(),
+      hint: "CRON_SECRET — applies promotions on their effective date",
+    },
   ];
 
   return (

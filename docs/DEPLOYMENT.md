@@ -73,6 +73,41 @@ email links resolve correctly.
 npm run build   # verify locally first
 ```
 
+## 8. Scheduled jobs
+
+One job runs on a schedule: it applies accepted promotions once their effective
+date arrives. A promotion is signed in advance and takes effect later, so
+without this nothing notices when that date passes and a signed promotion would
+sit waiting for an admin to press "Apply".
+
+`vercel.json` declares the schedule (daily at 06:10 UTC, shortly after
+effective dates roll over worldwide). Vercel picks it up automatically on
+deploy — there is nothing to configure in the dashboard.
+
+**Set `CRON_SECRET` in the Vercel project before deploying:**
+
+```bash
+openssl rand -base64 32   # -> CRON_SECRET
+```
+
+The endpoint mutates employee records, so it refuses every request unless this
+secret is presented as a bearer token. Vercel Cron sends it automatically once
+the variable is set on the project. **If the secret is unset the endpoint fails
+closed** — safe, but promotions will never take effect on their own. Settings →
+Integrations shows whether it is configured.
+
+To run it by hand, or to verify it after deploying:
+
+```bash
+curl -H "Authorization: Bearer $CRON_SECRET" https://YOUR-APP/api/cron/promotions
+# {"ok":true,"considered":1,"applied":1,"failures":[],"durationMs":36}
+```
+
+The job is idempotent: a retry, an overlapping run, or a manual call during an
+incident cannot double-apply a promotion or double-write its history row.
+Admins can still apply a due promotion by hand from its detail screen; both
+paths call the same function.
+
 ## Operational notes
 
 - **Jobs with applications are archived, never deleted.** The foreign key is
@@ -90,4 +125,9 @@ npm run build   # verify locally first
 - Verify a real provider delivery, OTP and private-storage download in the deployment environment;
   integration tests deliberately use mock email/storage adapters.
 - **Audit log** records admin logins, job mutations, status changes and resume
-  downloads in `audit_logs`.
+  downloads in `audit_logs`. Scheduled promotion runs are recorded there too,
+  with `entity_type = 'cron'`, and carry the counts for that run.
+- **Promotions never change an employee record when signed.** Signing sets
+  ACCEPTED; the record moves only when the effective date arrives, either via
+  the scheduled job above or an admin pressing "Apply". Previous title and
+  compensation are kept in `employment_events`, which is append-only.
