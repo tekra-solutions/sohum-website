@@ -44,6 +44,12 @@ export type OfferFormTemplate = {
   category?: string | null;
   /** First line of the template body, as a plain-text preview. */
   preview?: string | null;
+  /** The template's pages rendered against this candidate's real data. */
+  rendered?: {
+    bodyHtml: string | null;
+    termsHtml: string | null;
+    acknowledgementsHtml: string | null;
+  } | null;
 };
 
 /** Company defaults from Settings, shown so the recruiter can see what the
@@ -55,6 +61,83 @@ export type OfferFormDefaults = {
   settingsHref: string;
   canEditSettings: boolean;
 };
+
+/**
+ * Shows the selected template's wording, resolved against the candidate.
+ *
+ * Collapsed to the opening paragraphs by default — a recruiter mostly needs to
+ * confirm they picked the right letter, not re-read three pages — and
+ * expandable to the full text including the employment terms and
+ * acknowledgements pages.
+ */
+function TemplatePreview({ template }: { template: OfferFormTemplate }) {
+  const [expanded, setExpanded] = useState(false);
+  const r = template.rendered;
+  const pages = [
+    { label: "Letter", html: r?.bodyHtml },
+    { label: "Employment terms", html: r?.termsHtml },
+    { label: "Acknowledgements", html: r?.acknowledgementsHtml },
+  ].filter((p): p is { label: string; html: string } => Boolean(p.html));
+
+  if (!pages.length) {
+    return (
+      <p className={`mt-2 ${t.hint} text-graphite-600`}>
+        Using <span className="font-medium text-ink-900">{template.name}</span>. Its wording could not
+        be previewed here, but the full letter is shown for review before the offer is sent.
+      </p>
+    );
+  }
+
+  return (
+    <div className="mt-3 overflow-hidden rounded-[3px] border border-paper-300 bg-paper-50">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-paper-200 bg-white px-3.5 py-2">
+        <p className={`${t.label} font-medium text-graphite-700`}>
+          Preview · {template.name}
+        </p>
+        <button
+          type="button"
+          onClick={() => setExpanded(v => !v)}
+          aria-expanded={expanded}
+          className={`${t.hint} font-medium text-ink-900 underline underline-offset-2`}
+        >
+          {expanded ? "Show less" : `Show full letter (${pages.length} section${pages.length === 1 ? "" : "s"})`}
+        </button>
+      </div>
+      {/* Collapsed, the preview fades out rather than slicing a line of text
+          in half, so the cut reads as "there is more" instead of as broken
+          rendering. */}
+      <div
+        className={`px-3.5 py-3 ${expanded ? "max-h-[26rem] overflow-y-auto" : "max-h-36 overflow-hidden"}`}
+        style={expanded ? undefined : {
+          maskImage: "linear-gradient(to bottom, #000 60%, transparent 100%)",
+          WebkitMaskImage: "linear-gradient(to bottom, #000 60%, transparent 100%)",
+        }}
+      >
+        {(expanded ? pages : pages.slice(0, 1)).map(page => (
+          <div key={page.label} className="mb-3 last:mb-0">
+            {expanded && pages.length > 1 && (
+              <p className={`mb-1 ${t.micro} font-semibold uppercase tracking-[0.08em] text-graphite-500`}>
+                {page.label}
+              </p>
+            )}
+            {/* Server-rendered from the offer template and sanitised by
+                renderOfferTemplate() on the way out, exactly as the issued
+                document is. */}
+            <div
+              className="offer-preview text-[0.8125rem] leading-[1.6] text-graphite-700"
+              dangerouslySetInnerHTML={{ __html: page.html }}
+            />
+          </div>
+        ))}
+      </div>
+      {!expanded && (
+        <div className={`border-t border-paper-200 bg-white px-3.5 py-1.5 ${t.micro} text-graphite-500`}>
+          Compensation and dates you enter below are merged in where the letter shows &ldquo;—&rdquo;.
+        </div>
+      )}
+    </div>
+  );
+}
 
 /** A read-only fact carried into the offer, shown as context not as an input. */
 function Fact({ label, value }: { label: string; value: string }) {
@@ -217,13 +300,18 @@ export function OfferForm({
               ))}
               <option value="">— None (position and compensation only) —</option>
             </select>
-            {/* Confirms in words which letter this offer will produce, so a
-                wrong selection is visible before the offer is created. */}
-            <p className={`mt-1.5 ${t.hint} text-graphite-600`}>
-              {chosen
-                ? <>Using <span className="font-medium text-ink-900">{chosen.name}</span>{chosen.preview ? <>: &ldquo;{chosen.preview}&rdquo;</> : null}</>
-                : "No template — the letter will state the position and compensation only."}
-            </p>
+            {/* The letter this template will actually produce, filled in with
+                this candidate's details. Selecting a template used to show only
+                a one-line quote of the raw template with {{variables}} still
+                unresolved, so there was no way to see what the letter said
+                without creating the offer first. */}
+            {chosen ? (
+              <TemplatePreview template={chosen} />
+            ) : (
+              <p className={`mt-2 ${t.hint} text-graphite-600`}>
+                No template — the letter will state the position and compensation only.
+              </p>
+            )}
           </div>
         )}
       </FormSection>

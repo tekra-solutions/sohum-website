@@ -439,3 +439,67 @@ describe("offer template content survives saving", () => {
     expect(offerTemplateProblem("<p>Cost is {50}</p>")).toMatch(/stray/i);
   });
 });
+
+describe("offer template preview", () => {
+  const values = {
+    candidateFirstName: "Amara",
+    candidateName: "Amara Osei",
+    candidateEmail: "amara@example.com",
+    candidateAddress: "Kansas City, MO",
+    jobTitle: "Senior Cloud Engineer",
+    department: "Cloud Engineering",
+    location: "Overland Park, KS",
+    employmentType: "FULL_TIME",
+    remoteType: "HYBRID",
+    benefitsSummary: "Medical, dental and vision.",
+  };
+
+  it("resolves a template against the candidate's real data", async () => {
+    const { renderTemplatePreview } = await import("@/lib/offers/template-preview");
+    // Selecting a template used to show only a quote of the raw template, with
+    // {{variables}} unresolved and pages 2 and 3 not shown at all — so a
+    // recruiter could not see what the letter said without creating the offer.
+    const out = renderTemplatePreview(
+      {
+        bodyHtml: "<p>Dear {{candidate_first_name}}, welcome to {{job_title}}.</p>",
+        termsHtml: "<p>Terms for {{candidate_name}}.</p>",
+        acknowledgementsHtml: "<p>Signed at {{company_name}}.</p>",
+      },
+      values,
+    );
+    expect(out.bodyHtml).toContain("Dear Amara");
+    expect(out.bodyHtml).toContain("Senior Cloud Engineer");
+    expect(out.termsHtml).toContain("Amara Osei");
+    expect(out.acknowledgementsHtml).toContain("Sohum Systems");
+    for (const page of [out.bodyHtml, out.termsHtml, out.acknowledgementsHtml]) {
+      expect(page).not.toContain("{{");
+    }
+  });
+
+  it("marks figures the recruiter has not entered yet", async () => {
+    const { renderTemplatePreview } = await import("@/lib/offers/template-preview");
+    // Salary and dates are unknown while the form is blank. They render as a
+    // dash so the sentence shows where the figure will land, rather than
+    // collapsing to "a salary of ,".
+    const out = renderTemplatePreview({ bodyHtml: "<p>Salary {{salary}} from {{start_date}}.</p>" }, values);
+    expect(out.bodyHtml).toContain("—");
+  });
+
+  it("fills figures in once they are known", async () => {
+    const { renderTemplatePreview } = await import("@/lib/offers/template-preview");
+    const out = renderTemplatePreview(
+      { bodyHtml: "<p>Salary {{salary}} from {{start_date}}.</p>" },
+      { ...values, annualSalaryCents: 14800000, startDate: "2026-12-01" },
+    );
+    expect(out.bodyHtml).toContain("$148,000");
+    expect(out.bodyHtml).toContain("December 1, 2026");
+  });
+
+  it("does not break the page when a template cannot render", async () => {
+    const { renderTemplatePreview } = await import("@/lib/offers/template-preview");
+    // A template predating validation could hold an unknown variable; a broken
+    // preview must not take the create-offer screen down with it.
+    const out = renderTemplatePreview({ bodyHtml: "<p>{{not_a_real_variable}}</p>" }, values);
+    expect(out.bodyHtml).toBeNull();
+  });
+});

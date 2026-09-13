@@ -210,6 +210,28 @@
   }
 }
 
+/* ---- Offer template preview ----
+   The create-offer screen renders template prose inline so a recruiter can see
+   the letter a template produces. Tailwind's reset removes default margins, so
+   without this the preview collapses into one unbroken block — the same
+   "content not showing" the sanitizer used to cause. */
+.offer-preview p { margin: 0 0 0.6em; }
+.offer-preview p:last-child { margin-bottom: 0; }
+.offer-preview h2,
+.offer-preview h3 {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  margin: 0.9em 0 0.35em;
+  color: var(--color-ink-900);
+}
+.offer-preview h2:first-child,
+.offer-preview h3:first-child { margin-top: 0; }
+.offer-preview ul,
+.offer-preview ol { margin: 0 0 0.6em; padding-left: 1.15rem; list-style: disc; }
+.offer-preview ol { list-style: decimal; }
+.offer-preview li { margin-bottom: 0.15em; }
+.offer-preview strong { font-weight: 600; color: var(--color-ink-900); }
+
 /* Underline that draws in on hover — used on text links */
 @utility link-underline {
   position: relative;

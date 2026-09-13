@@ -10,6 +10,7 @@ import { canEditOffer, type OfferStatus } from "@/lib/offers/policy";
 import { AdminHeader } from "@/components/admin/ui";
 import { OfferForm } from "@/components/admin/OfferForm";
 import { templatePreview } from "@/lib/offers/variables";
+import { renderTemplatePreview } from "@/lib/offers/template-preview";
 import { t } from "@/components/admin/form";
 
 export const dynamic = "force-dynamic";
@@ -24,16 +25,40 @@ export default async function EditOfferPage({ params }: { params: Promise<{ id: 
     offer.currentVersionId
       ? db.select().from(offerVersions).where(eq(offerVersions.id, offer.currentVersionId)).then(r => r[0])
       : undefined,
-    db.select({
-      id: offerTemplates.id, name: offerTemplates.name,
-      category: offerTemplates.category, bodyHtml: offerTemplates.bodyHtml,
-    }).from(offerTemplates).where(eq(offerTemplates.isActive, true)),
+    db.select().from(offerTemplates).where(eq(offerTemplates.isActive, true)),
     db.select().from(recruitingSettings).limit(1).then(r => r[0]),
   ]);
   if (!version) notFound();
 
-  const templateOptions = templates.map(({ id: tplId, name, category, bodyHtml }) => ({
-    id: tplId, name, category, preview: templatePreview(bodyHtml),
+  // Rendered against the version's own values, so the preview shows this
+  // offer's letter rather than a generic one.
+  const previewValues = {
+    candidateFirstName: application.firstName,
+    candidateName: `${application.firstName} ${application.lastName}`,
+    candidateEmail: application.email,
+    candidateAddress: [application.address, [application.city, application.state, application.zipCode].filter(Boolean).join(", ")].filter(Boolean).join(", "),
+    jobTitle: version.jobTitle,
+    department: version.department,
+    location: version.location,
+    employmentType: version.employmentType,
+    remoteType: version.remoteType,
+    workLocation: version.workLocation,
+    hiringManagerName: version.hiringManagerName,
+    reportsTo: version.reportsTo,
+    benefitsSummary: version.benefitsSummary ?? settingsRow?.defaultBenefitsSummary,
+    ptoSummary: version.ptoSummary ?? settingsRow?.defaultPtoSummary,
+    hrContactEmail: settingsRow?.hrContactEmail,
+    authorizedRepName: settingsRow?.authorizedRepName,
+    authorizedRepTitle: settingsRow?.authorizedRepTitle,
+    annualSalaryCents: version.annualSalaryCents,
+    startDate: version.startDate?.toISOString().slice(0, 10) ?? null,
+    expirationDate: version.expirationDate?.toISOString().slice(0, 10) ?? null,
+  };
+
+  const templateOptions = templates.map(tpl => ({
+    id: tpl.id, name: tpl.name, category: tpl.category,
+    preview: templatePreview(tpl.bodyHtml),
+    rendered: renderTemplatePreview(tpl, previewValues),
   }));
 
   return (
