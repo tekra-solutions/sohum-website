@@ -63,6 +63,40 @@ export const offerStatusLabel: Record<string, string> = {
  * ("OFFER_LINK_OPENED" -> "link opened") reads poorly for the signing
  * events, which are the ones a reviewer most needs to understand.
  */
+export const promotionEventLabel: Record<string, string> = {
+  PROMOTION_CREATED: "Promotion created",
+  PROMOTION_UPDATED: "Promotion updated",
+  PROMOTION_SUBMITTED_FOR_APPROVAL: "Submitted for approval",
+  PROMOTION_APPROVED: "Approved",
+  PROMOTION_REJECTED: "Changes requested",
+  PROMOTION_SENT: "Sent to employee",
+  PROMOTION_VIEWED: "Opened by employee",
+  PROMOTION_ACCEPTED: "Accepted by employee",
+  PROMOTION_DECLINED: "Declined by employee",
+  PROMOTION_WITHDRAWN: "Withdrawn",
+  PROMOTION_SIGNED: "Signed",
+  PROMOTION_APPLIED: "Applied to employee record",
+  PROMOTION_PDF_GENERATED: "PDF generated",
+  PROMOTION_LINK_OPENED: "Secure link opened",
+  IDENTITY_VERIFICATION_SENT: "Verification code sent",
+  IDENTITY_VERIFIED: "Identity verified",
+  ESIGN_CONSENT_ACCEPTED: "E-signature consent given",
+  SIGNED_PDF_GENERATED: "Signed PDF stored",
+};
+
+export const promotionStatusLabel: Record<string, string> = {
+  DRAFT: "Draft",
+  PENDING_APPROVAL: "Pending approval",
+  APPROVED: "Approved",
+  SENT: "Sent",
+  VIEWED: "Viewed",
+  ACCEPTED: "Accepted",
+  DECLINED: "Declined",
+  WITHDRAWN: "Withdrawn",
+  EXPIRED: "Expired",
+  EFFECTIVE: "Effective",
+};
+
 export const offerEventLabel: Record<string, string> = {
   OFFER_CREATED: "Offer created",
   OFFER_UPDATED: "Offer updated",
@@ -110,6 +144,20 @@ export function formatDate(date: Date | string) {
 export function shortDate(date: Date | string) {
   const d = typeof date === "string" ? new Date(date) : date;
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+/**
+ * A calendar date with no meaningful time of day — a start date, an effective
+ * date, a signing deadline.
+ *
+ * These are stored at UTC midnight, so formatting them in the server's local
+ * zone moves them backwards a day anywhere west of Greenwich: an effective
+ * date entered as 1 October rendered as "Sep 30". Always format such dates
+ * with this, never with shortDate().
+ */
+export function calendarDate(date: Date | string) {
+  const d = typeof date === "string" ? new Date(date) : date;
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
 }
 
 export function formatDateTime(date: Date | string) {

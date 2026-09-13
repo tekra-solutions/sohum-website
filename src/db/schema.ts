@@ -836,3 +836,226 @@ export const offerSignaturesRelations = relations(offerSignatures, ({ one }) => 
 }));
 
 export type OfferSignature = typeof offerSignatures.$inferSelect;
+
+/* ==========================================================================
+   Employee promotions.
+
+   A promotion is a second document with the same shape as an offer: a
+   configurable template, insert-only versions, an approval chain, a secure
+   candidate-facing link, OTP verification, a typed e-signature and a frozen
+   signed PDF. It deliberately mirrors `offers` rather than extending it —
+   an offer belongs to an application and precedes employment, a promotion
+   belongs to an employee and changes an existing relationship, and folding
+   both into one table would make every offer query carry a discriminator and
+   every constraint conditional.
+
+   What is reused rather than rebuilt: the PDF renderer and letterhead, the
+   token/OTP/session primitives, the e-sign consent text, storage, email,
+   audit and RBAC. Only the rows differ.
+   ========================================================================== */
+
+export const promotionStatusEnum = pgEnum("promotion_status", [
+  "DRAFT", "PENDING_APPROVAL", "APPROVED", "SENT", "VIEWED",
+  "ACCEPTED", "DECLINED", "WITHDRAWN", "EXPIRED", "EFFECTIVE",
+]);
+
+export const promotions = pgTable("promotions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  employeeId: uuid("employee_id").notNull().references(() => employees.id, { onDelete: "restrict" }),
+  templateId: uuid("template_id").references(() => offerTemplates.id, { onDelete: "set null" }),
+  status: promotionStatusEnum("status").notNull().default("DRAFT"),
+  currentVersionId: uuid("current_version_id").references((): AnyPgColumn => promotionVersions.id, { onDelete: "set null" }),
+  /** Set once, at acceptance, and never updated — this is what makes the
+   *  accepted document immutable in practice and not merely by convention. */
+  acceptedVersionId: uuid("accepted_version_id").references((): AnyPgColumn => promotionVersions.id, { onDelete: "set null" }),
+
+  secureTokenHash: text("secure_token_hash").notNull(),
+  tokenExpiresAt: timestamp("token_expires_at", { withTimezone: true }),
+
+  approvedBy: uuid("approved_by").references(() => admins.id, { onDelete: "set null" }),
+  approvedAt: timestamp("approved_at", { withTimezone: true }),
+  sentAt: timestamp("sent_at", { withTimezone: true }),
+  viewedAt: timestamp("viewed_at", { withTimezone: true }),
+  acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+  signedLegalName: varchar("signed_legal_name", { length: 200 }),
+  signedAt: timestamp("signed_at", { withTimezone: true }),
+  declinedAt: timestamp("declined_at", { withTimezone: true }),
+  declineReason: varchar("decline_reason", { length: 40 }),
+  withdrawnAt: timestamp("withdrawn_at", { withTimezone: true }),
+  /** When the accepted change was actually applied to the employee row. The
+   *  promotion is ACCEPTED until its effective date arrives, then EFFECTIVE. */
+  appliedAt: timestamp("applied_at", { withTimezone: true }),
+
+  createdBy: uuid("created_by").notNull().references(() => admins.id, { onDelete: "restrict" }),
+  ...timestamps(),
+}, t => [
+  index("promotions_employee_idx").on(t.employeeId),
+  // One promotion in flight per employee. Terminal states are excluded so a
+  // declined or withdrawn promotion never blocks the next one, and EFFECTIVE
+  // is excluded so an employee can be promoted again later.
+  uniqueIndex("promotions_one_active_employee_idx").on(t.employeeId)
+    .where(sql`${t.status} not in ('DECLINED', 'WITHDRAWN', 'EXPIRED', 'EFFECTIVE')`),
+  uniqueIndex("promotions_token_hash_idx").on(t.secureTokenHash),
+  index("promotions_status_idx").on(t.status),
+]);
+
+/**
+ * Insert-only, exactly like offer_versions: creating a promotion inserts
+ * version 1, editing inserts N+1 and repoints currentVersionId. Nothing ever
+ * updates a row here, which is what keeps an accepted version and its
+ * rendered HTML frozen.
+ *
+ * Each version carries BOTH the previous and the new values. Storing the
+ * previous side on the version — rather than reading the employee row when
+ * the document is rendered — is what makes the letter reproducible: an
+ * employee promoted twice would otherwise re-render their first promotion
+ * letter showing the second promotion's "current" title.
+ */
+export const promotionVersions = pgTable("promotion_versions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  promotionId: uuid("promotion_id").notNull().references(() => promotions.id, { onDelete: "restrict" }),
+  versionNumber: integer("version_number").notNull(),
+
+  // ---- Previous state, captured when the version is written ----
+  previousJobTitle: varchar("previous_job_title", { length: 200 }).notNull(),
+  previousDepartment: varchar("previous_department", { length: 120 }).notNull(),
+  previousLocation: varchar("previous_location", { length: 160 }),
+  previousEmploymentType: employmentTypeEnum("previous_employment_type").notNull(),
+  previousManagerName: varchar("previous_manager_name", { length: 160 }),
+  previousAnnualSalaryCents: integer("previous_annual_salary_cents"),
+  previousHourlyRateCents: integer("previous_hourly_rate_cents"),
+
+  // ---- New state ----
+  jobTitle: varchar("job_title", { length: 200 }).notNull(),
+  department: varchar("department", { length: 120 }).notNull(),
+  location: varchar("location", { length: 160 }),
+  employmentType: employmentTypeEnum("employment_type").notNull(),
+  remoteType: remoteTypeEnum("remote_type"),
+  managerId: uuid("manager_id").references((): AnyPgColumn => employees.id, { onDelete: "set null" }),
+  managerName: varchar("manager_name", { length: 160 }),
+
+  effectiveDate: timestamp("effective_date", { withTimezone: true }).notNull(),
+  /** The date by which the employee must sign. */
+  expirationDate: timestamp("expiration_date", { withTimezone: true }).notNull(),
+
+  annualSalaryCents: integer("annual_salary_cents"),
+  hourlyRateCents: integer("hourly_rate_cents"),
+  bonusCents: integer("bonus_cents"),
+  otherCompensation: text("other_compensation"),
+  benefitsSummary: text("benefits_summary"),
+  ptoSummary: text("pto_summary"),
+  additionalTerms: text("additional_terms"),
+
+  /** Frozen at write time, exactly as offer_versions does. */
+  renderedHtml: text("rendered_html").notNull(),
+  templateBodyHtml: text("template_body_html"),
+  templateTermsHtml: text("template_terms_html"),
+  templateAcknowledgementsHtml: text("template_acknowledgements_html"),
+  pdfStoragePath: text("pdf_storage_path"),
+
+  createdBy: uuid("created_by").notNull().references(() => admins.id, { onDelete: "restrict" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, t => [
+  uniqueIndex("promotion_versions_number_idx").on(t.promotionId, t.versionNumber),
+  index("promotion_versions_promotion_idx").on(t.promotionId),
+]);
+
+/** The employee's acceptance record. Mirrors offer_signatures field for field
+ *  so the same evidentiary questions have the same answers for both documents. */
+export const promotionSignatures = pgTable("promotion_signatures", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  promotionId: uuid("promotion_id").notNull().references(() => promotions.id, { onDelete: "restrict" }),
+  promotionVersionId: uuid("promotion_version_id").notNull().references(() => promotionVersions.id, { onDelete: "restrict" }),
+
+  signerLegalName: varchar("signer_legal_name", { length: 200 }).notNull(),
+  signerEmail: varchar("signer_email", { length: 255 }).notNull(),
+  signatureType: signatureTypeEnum("signature_type").notNull().default("TYPED"),
+  signatureValue: text("signature_value").notNull(),
+
+  electronicConsent: boolean("electronic_consent").notNull().default(false),
+  consentText: text("consent_text").notNull(),
+  consentedAt: timestamp("consented_at", { withTimezone: true }).notNull(),
+  signedAt: timestamp("signed_at", { withTimezone: true }).notNull(),
+
+  verificationMethod: varchar("verification_method", { length: 40 }).notNull().default("EMAIL_OTP"),
+  signerIp: varchar("signer_ip", { length: 64 }),
+  signerUserAgent: varchar("signer_user_agent", { length: 400 }),
+
+  documentHash: varchar("document_hash", { length: 64 }),
+  signedPdfPath: text("signed_pdf_path"),
+
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, t => [
+  uniqueIndex("promotion_signatures_promotion_idx").on(t.promotionId),
+  index("promotion_signatures_version_idx").on(t.promotionVersionId),
+]);
+
+/** One-time codes for the employee's identity check, mirroring offer_otp_codes. */
+export const promotionOtpCodes = pgTable("promotion_otp_codes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  promotionId: uuid("promotion_id").notNull().references(() => promotions.id, { onDelete: "cascade" }),
+  codeHash: text("code_hash").notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  consumedAt: timestamp("consumed_at", { withTimezone: true }),
+  attempts: integer("attempts").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, t => [index("promotion_otp_promotion_idx").on(t.promotionId)]);
+
+export const employmentEventTypeEnum = pgEnum("employment_event_type", [
+  "HIRED", "PROMOTED", "TRANSFERRED", "COMPENSATION_CHANGED",
+  "STATUS_CHANGED", "TERMINATED",
+]);
+
+/**
+ * The employee's employment history.
+ *
+ * Append-only: one row per change, never updated or deleted, so an employee's
+ * previous title and compensation survive every later change. `promotionId`
+ * links the row to the document that authorised it, when there was one —
+ * hires and manual corrections have none.
+ */
+export const employmentEvents = pgTable("employment_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  employeeId: uuid("employee_id").notNull().references(() => employees.id, { onDelete: "restrict" }),
+  eventType: employmentEventTypeEnum("event_type").notNull(),
+
+  promotionId: uuid("promotion_id").references(() => promotions.id, { onDelete: "set null" }),
+  promotionVersionId: uuid("promotion_version_id").references(() => promotionVersions.id, { onDelete: "set null" }),
+
+  previousJobTitle: varchar("previous_job_title", { length: 200 }),
+  jobTitle: varchar("job_title", { length: 200 }),
+  previousDepartment: varchar("previous_department", { length: 120 }),
+  department: varchar("department", { length: 120 }),
+  previousLocation: varchar("previous_location", { length: 160 }),
+  location: varchar("location", { length: 160 }),
+  previousManagerName: varchar("previous_manager_name", { length: 160 }),
+  managerName: varchar("manager_name", { length: 160 }),
+  previousAnnualSalaryCents: integer("previous_annual_salary_cents"),
+  annualSalaryCents: integer("annual_salary_cents"),
+  previousHourlyRateCents: integer("previous_hourly_rate_cents"),
+  hourlyRateCents: integer("hourly_rate_cents"),
+
+  effectiveDate: timestamp("effective_date", { withTimezone: true }).notNull(),
+  /** When the employee signed the authorising document, when there was one. */
+  signedAt: timestamp("signed_at", { withTimezone: true }),
+  note: text("note"),
+
+  createdBy: uuid("created_by").references(() => admins.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, t => [
+  index("employment_events_employee_idx").on(t.employeeId),
+  index("employment_events_effective_idx").on(t.effectiveDate),
+  // A promotion contributes exactly one history row, so replaying the
+  // effective-date job can never double-record it.
+  uniqueIndex("employment_events_promotion_idx").on(t.promotionId).where(sql`${t.promotionId} is not null`),
+]);
+
+export const promotionsRelations = relations(promotions, ({ one, many }) => ({
+  employee: one(employees, { fields: [promotions.employeeId], references: [employees.id] }),
+  versions: many(promotionVersions),
+}));
+
+export type Promotion = typeof promotions.$inferSelect;
+export type PromotionVersion = typeof promotionVersions.$inferSelect;
+export type PromotionSignature = typeof promotionSignatures.$inferSelect;
+export type EmploymentEvent = typeof employmentEvents.$inferSelect;

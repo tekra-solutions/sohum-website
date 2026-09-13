@@ -3,10 +3,12 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, CheckCircle2, Mail, Phone } from "lucide-react";
 import { AdminHeader, StatusPill } from "@/components/admin/ui";
 import { EmployeeForm } from "@/components/admin/EmployeeForm";
+import { EmploymentHistory } from "@/components/admin/EmploymentHistory";
+import { TrendingUp } from "lucide-react";
 import { getEmployeeById, managerOptions } from "@/lib/services/employees";
 import { setEmployeeStatusAction } from "@/lib/services/employee-actions";
 import { btnSecondary, t } from "@/components/admin/form";
-import { employmentTypeLabel, formatDateTime, shortDate } from "@/lib/format";
+import { employmentTypeLabel, formatDateTime, calendarDate } from "@/lib/format";
 import { requirePermission } from "@/lib/ats/access";
 
 export const dynamic = "force-dynamic";
@@ -52,7 +54,17 @@ export default async function EmployeeDetailPage({
       <AdminHeader
         title={`${employee.firstName} ${employee.lastName}`}
         description={`${employee.employeeId} · ${employee.jobTitle}`}
-        action={<StatusPill status={employee.status} label={statusLabel[employee.status]} />}
+        action={
+          <>
+            <StatusPill status={employee.status} label={statusLabel[employee.status]} />
+            {employee.status !== "TERMINATED" && (
+              <Link href={`/admin/promotions/new?employeeId=${employee.id}`} className={btnSecondary}>
+                <TrendingUp className="size-3.5" aria-hidden="true" />
+                Promote employee
+              </Link>
+            )}
+          </>
+        }
       />
 
       <div className="p-5 sm:p-6 lg:p-8">
@@ -104,8 +116,8 @@ export default async function EmployeeDetailPage({
                     </Link>
                   </Row>
                 )}
-                {employee.startDate && <Row label="Started">{shortDate(employee.startDate)}</Row>}
-                {employee.endDate && <Row label="Ended">{shortDate(employee.endDate)}</Row>}
+                {employee.startDate && <Row label="Started">{calendarDate(employee.startDate)}</Row>}
+                {employee.endDate && <Row label="Ended">{calendarDate(employee.endDate)}</Row>}
                 <Row label="Created">{formatDateTime(employee.createdAt)}</Row>
               </dl>
             </section>
@@ -130,6 +142,15 @@ export default async function EmployeeDetailPage({
               </div>
             </section>
           </div>
+        </div>
+
+        <div className="mt-5 max-w-3xl">
+          <EmploymentHistory
+            employeeId={employee.id}
+            hiredOn={employee.startDate}
+            currentTitle={employee.jobTitle}
+            canViewDocuments
+          />
         </div>
       </div>
     </>

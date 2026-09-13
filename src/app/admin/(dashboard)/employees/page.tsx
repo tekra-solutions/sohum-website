@@ -3,7 +3,7 @@ import { Plus, Search } from "lucide-react";
 import { AdminHeader, DataTable, EmptyState, Filter, PageBody, Pager, StatCard, StatusPill, Toolbar, td, tr } from "@/components/admin/ui";
 import { btn, control, t } from "@/components/admin/form";
 import { employeeDepartments, employeeStats, listEmployees } from "@/lib/services/employees";
-import { employmentTypeLabel, shortDate } from "@/lib/format";
+import { employmentTypeLabel, calendarDate } from "@/lib/format";
 import { employmentStatuses } from "@/lib/validation/schemas";
 import { requirePermission } from "@/lib/ats/access";
 
@@ -125,7 +125,7 @@ export default async function EmployeesPage({
                     <td className={`${td} whitespace-nowrap text-graphite-600`}>
                       {employmentTypeLabel[emp.employmentType] ?? emp.employmentType}
                     </td>
-                    <td className={`${td} whitespace-nowrap text-graphite-600`}>{emp.startDate ? shortDate(emp.startDate) : "—"}</td>
+                    <td className={`${td} whitespace-nowrap text-graphite-600`}>{emp.startDate ? calendarDate(emp.startDate) : "—"}</td>
                     <td className="whitespace-nowrap px-4 py-2.5">
                       <StatusPill status={emp.status} label={statusLabel[emp.status]} />
                     </td>
