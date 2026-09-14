@@ -22,6 +22,9 @@ export function WorkEmailField({
   id = "username",
   label = "Work email",
   required = true,
+  /** Hide the asterisk while keeping the field required — for forms where
+   *  every field is mandatory and marking one would say nothing. */
+  hideRequiredMark = false,
   autoFocus = false,
   defaultUsername = "",
   error,
@@ -31,6 +34,7 @@ export function WorkEmailField({
   id?: string;
   label?: string;
   required?: boolean;
+  hideRequiredMark?: boolean;
   autoFocus?: boolean;
   defaultUsername?: string;
   error?: string;
@@ -54,7 +58,7 @@ export function WorkEmailField({
     <div>
       <label htmlFor={id} className="block text-[0.875rem] font-medium text-ink-800">
         {label}
-        {required && <span aria-hidden="true" className="ml-0.5 text-graphite-500">*</span>}
+        {required && !hideRequiredMark && <span aria-hidden="true" className="ml-0.5 text-graphite-500">*</span>}
       </label>
 
       <div

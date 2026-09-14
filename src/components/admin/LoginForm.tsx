@@ -11,7 +11,7 @@ export function LoginForm() {
   const [state, action, pending] = useActionState(loginAction, initial);
 
   const field =
-    "mt-2 w-full rounded-[3px] border border-paper-300 bg-white px-4 py-3 text-[0.9375rem] " +
+    "mt-2 w-full rounded-[3px] border border-paper-300 bg-white px-3.5 py-3 text-[0.9375rem] " +
     "text-ink-900 transition-colors focus:border-flame-500 focus:outline-none " +
     "focus:ring-2 focus:ring-flame-500/30";
 
@@ -26,7 +26,9 @@ export function LoginForm() {
         )}
       </div>
 
-      <WorkEmailField id="login-username" autoFocus />
+      {/* Both fields are required, so marking one and not the other reads as a
+          distinction that does not exist. The inputs stay required. */}
+      <WorkEmailField id="login-username" autoFocus hideRequiredMark />
 
       <div>
         <label htmlFor="password" className="block text-[0.875rem] font-medium text-ink-800">
