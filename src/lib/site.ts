@@ -28,12 +28,6 @@ export const contact = {
   phoneAlt: "(913) 221-7204",
   phoneHref: "+19132597699",
   fax: "(913) 273-0269",
-  /**
-   * The domain every staff account uses. The admin sign-in form renders it as
-   * a fixed suffix so nobody types it, and admin creation validates against
-   * it — an admin account on any other domain could not sign in.
-   */
-  emailDomain: "sohumsystems.com",
   emailGeneral: "info@sohumsystems.com",
   emailHr: "hr@sohumsystems.com",
   // Secondary office appearing on current job listings

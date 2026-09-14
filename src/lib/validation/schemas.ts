@@ -4,7 +4,6 @@
  * never trusted.
  */
 import { z } from "zod";
-import { contact } from "@/lib/site";
 
 export const MAX_RESUME_BYTES = 4 * 1024 * 1024; // Keep multipart requests below Vercel’s 4.5 MB limit.
 
@@ -137,15 +136,7 @@ export const strongPassword = z
 export const createAdminSchema = z
   .object({
     name: z.string().trim().min(2, "Name is required").max(160),
-    /* Staff accounts are company addresses. The sign-in form only ever
-       produces one, so an account on another domain would be created and then
-       be unable to sign in — this refuses it at the point of creation instead,
-       where the message can explain why. */
-    email: z.string().trim().toLowerCase().email("Enter a valid email address").max(255)
-      .refine(
-        v => v.endsWith(`@${contact.emailDomain}`),
-        `Staff accounts must use an @${contact.emailDomain} address.`,
-      ),
+    email: z.string().trim().toLowerCase().email("Enter a valid email address").max(255),
     role: z.enum(adminRoles),
     password: strongPassword,
     confirmPassword: z.string(),

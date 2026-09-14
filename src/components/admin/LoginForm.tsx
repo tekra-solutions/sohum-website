@@ -3,7 +3,6 @@
 import { useActionState } from "react";
 import { AlertCircle, ArrowRight, Loader2 } from "lucide-react";
 import { loginAction, type LoginState } from "@/lib/services/auth-actions";
-import { WorkEmailField } from "@/components/admin/WorkEmailField";
 
 const initial: LoginState = {};
 
@@ -11,7 +10,7 @@ export function LoginForm() {
   const [state, action, pending] = useActionState(loginAction, initial);
 
   const field =
-    "mt-2 w-full rounded-[3px] border border-paper-300 bg-white px-3.5 py-3 text-[0.9375rem] " +
+    "mt-2 w-full rounded-[3px] border border-paper-300 bg-white px-4 py-3 text-[0.9375rem] " +
     "text-ink-900 transition-colors focus:border-flame-500 focus:outline-none " +
     "focus:ring-2 focus:ring-flame-500/30";
 
@@ -26,9 +25,20 @@ export function LoginForm() {
         )}
       </div>
 
-      {/* Both fields are required, so marking one and not the other reads as a
-          distinction that does not exist. The inputs stay required. */}
-      <WorkEmailField id="login-username" autoFocus hideRequiredMark />
+      <div>
+        <label htmlFor="email" className="block text-[0.875rem] font-medium text-ink-800">
+          Email
+        </label>
+        <input
+          id="email"
+          name="email"
+          type="email"
+          required
+          autoComplete="username"
+          autoFocus
+          className={field}
+        />
+      </div>
 
       <div>
         <label htmlFor="password" className="block text-[0.875rem] font-medium text-ink-800">

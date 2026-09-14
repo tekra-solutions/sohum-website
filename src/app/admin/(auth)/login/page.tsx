@@ -17,28 +17,24 @@ export default async function AdminLoginPage() {
   if (await getSessionAdmin()) redirect("/admin");
 
   return (
-    <div className="flex min-h-dvh flex-col bg-white">
+    <div className="flex min-h-dvh flex-col bg-paper-50">
       <div className="flex flex-1 items-center justify-center px-5 py-16">
-        <div className="w-full max-w-[22rem]">
+        <div className="w-full max-w-sm">
           <Link href="/" className="inline-block">
             <Logo />
           </Link>
 
-          {/* No card. On a plain white ground a bordered panel is a box drawn
-              around nothing — the form is the only thing on the page, so it
-              does not need to be separated from anything. */}
-          <h1 className="mt-9 text-[1.5rem] font-medium leading-tight text-ink-900">
-            Admin panel
-          </h1>
-          <p className="mt-1.5 text-[0.9375rem] text-graphite-600">
-            Sign in to continue.
-          </p>
-
-          <div className="mt-7">
-            <LoginForm />
+          <div className="mt-8 rounded-[4px] border border-paper-300 bg-white p-7 sm:p-8">
+            <h1 className="text-[1.375rem] font-medium text-ink-900">Recruiting admin</h1>
+            <p className="mt-2 text-[0.9375rem] text-graphite-600">
+              Sign in to manage jobs and applications.
+            </p>
+            <div className="mt-7">
+              <LoginForm />
+            </div>
           </div>
 
-          <p className="mt-8 text-[0.8125rem] text-graphite-600">
+          <p className="mt-6 text-center text-[0.8125rem] text-graphite-600">
             <Link href="/" className="underline decoration-paper-300 underline-offset-4 hover:decoration-flame-500">
               Back to sohumsystems.com
             </Link>
