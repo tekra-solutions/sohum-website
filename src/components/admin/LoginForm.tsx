@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { AlertCircle, ArrowRight, Loader2 } from "lucide-react";
 import { loginAction, type LoginState } from "@/lib/services/auth-actions";
+import { WorkEmailField } from "@/components/admin/WorkEmailField";
 
 const initial: LoginState = {};
 
@@ -25,20 +26,7 @@ export function LoginForm() {
         )}
       </div>
 
-      <div>
-        <label htmlFor="email" className="block text-[0.875rem] font-medium text-ink-800">
-          Email
-        </label>
-        <input
-          id="email"
-          name="email"
-          type="email"
-          required
-          autoComplete="username"
-          autoFocus
-          className={field}
-        />
-      </div>
+      <WorkEmailField id="login-username" autoFocus />
 
       <div>
         <label htmlFor="password" className="block text-[0.875rem] font-medium text-ink-800">

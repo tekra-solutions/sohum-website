@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { AlertCircle, CheckCircle2, Loader2, UserPlus } from "lucide-react";
 import { createAdminAction, type CreateAdminState } from "@/lib/services/admin-actions";
 import { Field, Select, btn, t } from "@/components/admin/form";
+import { WorkEmailField } from "@/components/admin/WorkEmailField";
 import { adminRoles } from "@/lib/validation/schemas";
 
 const initial: CreateAdminState = {};
@@ -39,7 +40,7 @@ export function CreateAdminForm() {
       </div>
 
       <Field name="name" label="Full name" required error={e.name} autoComplete="off" />
-      <Field name="email" label="Email" type="email" required error={e.email} autoComplete="off" inputMode="email" />
+      <WorkEmailField id="new-admin-username" label="Work email" error={e.email} />
       <Select
         name="role"
         label="Role"
