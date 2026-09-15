@@ -146,3 +146,11 @@ paths call the same function.
   ACCEPTED; the record moves only when the effective date arrives, either via
   the scheduled job above or an admin pressing "Apply". Previous title and
   compensation are kept in `employment_events`, which is append-only.
+
+## Workflow integrity migration (0011)
+
+Deploy `0011_workflow_integrity.sql` through `npm run db:migrate` before this application version. It adds invoice send snapshots and payment request keys, protects signed evidence and employment history from edits/deletion, and enables RLS on promotion/history tables. Do not substitute `db:push`: the migration includes triggers not expressed by the ORM schema.
+
+Balance/payment checks enforce all new writes. Existing rows are intentionally not rewritten. Audit legacy balances, then run `ALTER TABLE invoices VALIDATE CONSTRAINT invoice_balance_valid` and `ALTER TABLE invoice_payments VALIDATE CONSTRAINT invoice_payment_positive` in a maintenance window. Existing stored PDFs are preserved; their original HTML cannot be reconstructed retroactively.
+
+Cron runs report HTTP 503 if any due promotion cannot be applied, so monitoring can surface incomplete changes. Successful applications are idempotent on retry. HR must resolve the reported employee/letter conflict before retrying.

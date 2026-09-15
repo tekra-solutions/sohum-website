@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { offerTemplates, auditLogs } from "@/db/schema";
 import { requirePermission } from "@/lib/ats/access";
 import { offerTemplateSchema } from "./validation";
+import { DEFAULT_PROMOTION_TEMPLATE } from "@/lib/promotions/template";
 import { defaultOfferTemplates } from "./seed-templates";
 import type { ActionState } from "@/lib/ats/actions";
 
@@ -36,10 +37,10 @@ export async function seedDefaultOfferTemplatesAction(previous: ActionState): Pr
   const admin = await requirePermission("settings");
   const existing = await db.select({ name: offerTemplates.name }).from(offerTemplates);
   const existingNames = new Set(existing.map(t => t.name));
-  const toInsert = defaultOfferTemplates.filter(t => !existingNames.has(t.name));
+  const toInsert = [...defaultOfferTemplates, { ...DEFAULT_PROMOTION_TEMPLATE, category: "CUSTOM" as const }].filter(t => !existingNames.has(t.name));
   if (!toInsert.length) return { success: "Starter templates are already present." };
   await db.transaction(async tx => {
-    await tx.insert(offerTemplates).values(toInsert.map(t => ({ ...t, createdBy: admin.id })));
+    await tx.insert(offerTemplates).values(toInsert.map(t => ({ ...t, createdBy: admin.id }))).onConflictDoNothing();
     await tx.insert(auditLogs).values({ adminId: admin.id, action: "OFFER_TEMPLATE_SAVED", entityType: "offer_template", metadata: { seeded: toInsert.map(t => t.name) } });
   });
   revalidatePath("/admin/settings/offer-templates");

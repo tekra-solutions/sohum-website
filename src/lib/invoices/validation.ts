@@ -8,7 +8,7 @@ const dollars = z.preprocess(
   z.union([z.string(), z.number()])
     .transform((v, ctx) => {
       const cents = parseDollarsToCents(v);
-      if (cents === null) {
+      if (cents === null || !Number.isSafeInteger(cents) || Math.abs(cents) > Number.MAX_SAFE_INTEGER) {
         ctx.addIssue({ code: "custom", message: "Enter an amount like 1250.00" });
         return z.NEVER;
       }
@@ -19,7 +19,7 @@ const dollars = z.preprocess(
 
 const requiredDollars = z.union([z.string(), z.number()]).transform((v, ctx) => {
   const cents = parseDollarsToCents(v);
-  if (cents === null) {
+  if (cents === null || !Number.isSafeInteger(cents) || Math.abs(cents) > Number.MAX_SAFE_INTEGER) {
     ctx.addIssue({ code: "custom", message: "Enter an amount like 1250.00" });
     return z.NEVER;
   }
@@ -40,7 +40,7 @@ export const invoiceItemSchema = z.object({
   description: z.string().trim().min(1, "Each line needs a description").max(2000),
   quantityMilli: z.union([z.string(), z.number()]).transform((v, ctx) => {
     const milli = parseQuantityToMilli(v);
-    if (milli === null || milli <= 0) {
+    if (milli === null || !Number.isSafeInteger(milli) || milli <= 0 || milli > Number.MAX_SAFE_INTEGER) {
       ctx.addIssue({ code: "custom", message: "Quantity must be greater than zero" });
       return z.NEVER;
     }
@@ -63,11 +63,11 @@ export const invoiceInputSchema = z.object({
   periodOfPerformance: z.string().trim().max(160).optional(),
   paymentTerms: z.string().trim().max(120).optional(),
   notes: z.string().trim().max(4000).optional(),
-  discountCents: dollars,
-  additionalChargesCents: dollars,
+  discountCents: dollars.refine(v => v == null || v >= 0, "Discount cannot be negative"),
+  additionalChargesCents: dollars.refine(v => v == null || v >= 0, "Additional charges cannot be negative"),
   taxRateBasisPoints: z.preprocess(
     v => (v === "" || v === null || v === undefined ? 0 : v),
-    z.coerce.number().min(0, "Tax rate cannot be negative").max(10000, "Tax rate cannot exceed 100%"),
+    z.coerce.number().int().min(0, "Tax rate cannot be negative").max(10000, "Tax rate cannot exceed 100%"),
   ),
   items: z.array(invoiceItemSchema).min(1, "An invoice needs at least one line item").max(200),
 }).refine(v => v.dueDate >= v.invoiceDate, {
@@ -76,6 +76,7 @@ export const invoiceInputSchema = z.object({
 });
 
 export const paymentSchema = z.object({
+  requestKey: z.uuid("Reload the invoice before recording a payment."),
   amountCents: requiredDollars.refine(c => c > 0, "Payment must be greater than zero"),
   paidOn: z.coerce.date(),
   method: z.enum(paymentMethods),
@@ -93,7 +94,7 @@ export const invoiceSettingsSchema = z.object({
   defaultNotes: z.string().trim().max(4000).optional(),
   paymentInstructions: z.string().trim().max(4000).optional(),
   defaultCurrency: z.string().trim().length(3).toUpperCase(),
-  defaultTaxRateBasisPoints: z.coerce.number().min(0).max(10000),
+  defaultTaxRateBasisPoints: z.coerce.number().int().min(0).max(10000),
   legalName: z.string().trim().max(200).optional(),
   billingAddress: z.string().trim().max(2000).optional(),
   billingEmail: z.union([z.literal(""), z.email().max(255)]).optional(),
@@ -102,9 +103,8 @@ export const invoiceSettingsSchema = z.object({
 });
 
 export const sendInvoiceSchema = z.object({
+  requestKey: z.uuid("Reload the invoice before sending."),
   to: z.email("Enter a valid recipient email address").max(255),
-  cc: z.union([z.literal(""), z.email("Enter a valid CC address").max(255)]).optional(),
   subject: z.string().trim().min(1).max(300).refine(v => !/[\r\n]/.test(v), "Invalid subject"),
   message: z.string().trim().max(5000).optional(),
-  attachPdf: z.boolean().optional(),
 });

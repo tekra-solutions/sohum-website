@@ -78,6 +78,13 @@
       "when": 1789273862931,
       "tag": "0010_robust_cannonball",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1789423396513,
+      "tag": "0011_workflow_integrity",
+      "breakpoints": true
     }
   ]
 }

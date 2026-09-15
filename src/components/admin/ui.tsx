@@ -46,7 +46,7 @@ export function StatCard({
         {label}
       </p>
       <p
-        className={`mt-1 font-[family-name:var(--font-display)] text-[1.5rem] font-medium leading-none tabular-nums ${
+        className={`mt-1 font-[family-name:var(--font-display)] text-[1.25rem] sm:text-[1.5rem] [overflow-wrap:anywhere] font-medium leading-none tabular-nums ${
           tone === "accent" ? "text-flame-600" : tone === "critical" ? "text-[#a5382b]" : "text-ink-900"
         }`}
       >
@@ -56,7 +56,7 @@ export function StatCard({
   );
 
   const cls =
-    "block rounded-[4px] border border-paper-300 bg-white px-4 py-3.5 transition-[border-color,box-shadow] duration-300";
+    "block min-w-0 rounded-[4px] border border-paper-300 bg-white px-4 py-3.5 transition-[border-color,box-shadow] duration-300";
 
   return href ? (
     <Link href={href} className={`${cls} hover:border-ink-500/30 hover:shadow-[var(--shadow-lift)]`}>

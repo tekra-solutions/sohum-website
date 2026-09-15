@@ -689,6 +689,7 @@ export const invoices = pgTable("invoices", {
     phone?: string | null; billingAddress?: string | null; agency?: string | null;
   }>(),
 
+  documentHtml: text("document_html"),
   pdfStoragePath: text("pdf_storage_path"),
   secureTokenHash: text("secure_token_hash"),
   tokenExpiresAt: timestamp("token_expires_at", { withTimezone: true }),
@@ -730,6 +731,7 @@ export const invoiceItems = pgTable("invoice_items", {
 
 export const invoicePayments = pgTable("invoice_payments", {
   id: uuid("id").primaryKey().defaultRandom(),
+  requestKey: uuid("request_key").notNull().defaultRandom(),
   invoiceId: uuid("invoice_id").notNull().references(() => invoices.id, { onDelete: "restrict" }),
   amountCents: bigint("amount_cents", { mode: "number" }).notNull(),
   paidOn: timestamp("paid_on", { withTimezone: true }).notNull(),
@@ -738,7 +740,8 @@ export const invoicePayments = pgTable("invoice_payments", {
   notes: text("notes"),
   recordedBy: uuid("recorded_by").notNull().references(() => admins.id, { onDelete: "restrict" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-}, t => [index("invoice_payments_invoice_idx").on(t.invoiceId, t.paidOn)]);
+}, t => [
+  uniqueIndex("invoice_payments_request_key_idx").on(t.requestKey),index("invoice_payments_invoice_idx").on(t.invoiceId, t.paidOn)]);
 
 export const invoiceSettings = pgTable("invoice_settings", {
   id: integer("id").primaryKey().default(1),

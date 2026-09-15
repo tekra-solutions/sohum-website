@@ -4,8 +4,9 @@ import { auditLogs } from "@/db/schema";
 import { resolveInvoiceToken } from "@/lib/invoices/client-access";
 import { downloadInvoicePdf } from "@/lib/storage/invoices";
 import { renderInvoiceHtml } from "@/lib/invoices/render-html";
+import { pdfFooterTemplate } from "@/lib/documents/chrome";
 import { renderOfferPdf } from "@/lib/offers/pdf";
-import { buildInvoiceDocument } from "@/lib/invoices/send-actions";
+import { buildInvoiceDocument } from "@/lib/invoices/document";
 
 /**
  * Token-gated invoice PDF. The storage path never reaches the browser and
@@ -26,7 +27,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ tok
       // render on demand so the client is never left without their invoice.
       const doc = await buildInvoiceDocument(invoice.id);
       if (!doc) return NextResponse.json({ error: "Not found" }, { status: 404 });
-      body = await renderOfferPdf(renderInvoiceHtml(doc));
+      body = await renderOfferPdf(invoice.documentHtml ?? renderInvoiceHtml(doc), { footerTemplate: pdfFooterTemplate(doc.invoiceNumber) });
     }
     await db.insert(auditLogs).values({
       adminId: null, action: "INVOICE_VIEWED", entityType: "invoice", entityId: invoice.id,

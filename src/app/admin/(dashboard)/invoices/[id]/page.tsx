@@ -17,7 +17,7 @@ import { AdminHeader, StatusPill, adminButtonSecondary } from "@/components/admi
 import { WorkflowForm, WorkflowField as Field } from "@/components/admin/WorkflowForm";
 import { InvoiceForm } from "@/components/admin/InvoiceForm";
 import { t } from "@/components/admin/form";
-import { formatDateTime, shortDate } from "@/lib/format";
+import { formatDateTime, shortDate, calendarDate } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Invoice" };
@@ -71,7 +71,7 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
 
         {status === "OVERDUE" && (
           <p role="status" className="rounded-[3px] border border-[#c0392b]/30 bg-[#c0392b]/[0.05] p-3 text-[0.8125rem] text-[#8e2c20]">
-            This invoice was due {shortDate(invoice.dueDate)} and {money(invoice.balanceDueCents)} is still outstanding.
+            This invoice was due {calendarDate(invoice.dueDate)} and {money(invoice.balanceDueCents)} is still outstanding.
           </p>
         )}
         {invoice.status === "VOID" && (
@@ -85,8 +85,8 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
             <h2 className={`${t.sectionTitle} font-medium text-ink-900`}>Summary</h2>
             <dl className="mt-3 space-y-2">
               {[
-                ["Invoice date", shortDate(invoice.invoiceDate)],
-                ["Due date", shortDate(invoice.dueDate)],
+                ["Invoice date", calendarDate(invoice.invoiceDate)],
+                ["Due date", calendarDate(invoice.dueDate)],
                 ["Total", money(invoice.totalCents)],
                 ["Amount paid", money(invoice.amountPaidCents)],
                 ["Balance due", money(invoice.balanceDueCents)],
@@ -114,6 +114,7 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
                 }}
               >
                 <input type="hidden" name="invoiceId" value={id} />
+                <input type="hidden" name="requestKey" value={crypto.randomUUID()} />
                 <Field name="to" label="To" value={invoice.billingSnapshot?.email ?? ""} required />
                 <Field name="subject" label="Subject" value={`Invoice ${invoice.invoiceNumber} from Sohum Systems`} required />
                 <Field name="message" label="Message" multiline />
@@ -123,6 +124,7 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
             {canRecordPayment(status) && (
               <WorkflowForm action={recordPaymentAction} label="Record payment">
                 <input type="hidden" name="invoiceId" value={id} />
+                <input type="hidden" name="requestKey" value={crypto.randomUUID()} />
                 <Field name="amountCents" label={`Amount (max ${money(invoice.balanceDueCents)})`} required />
                 <Field name="paidOn" label="Payment date" type="date" value={new Date().toISOString().slice(0, 10)} required />
                 <Field name="method" label="Method" value="ACH" options={paymentMethods.map(m => ({ value: m, label: paymentMethodLabel[m] }))} />
@@ -135,11 +137,13 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
               <WorkflowForm action={reopenInvoiceAction} label="Return to draft"
                 confirm={{ message: "This revokes the client's link and returns the invoice to draft so it can be edited. It will need sending again." }}>
                 <input type="hidden" name="invoiceId" value={id} />
+                <input type="hidden" name="requestKey" value={crypto.randomUUID()} />
               </WorkflowForm>
             )}
 
             <WorkflowForm action={duplicateInvoiceAction} label="Duplicate">
               <input type="hidden" name="invoiceId" value={id} />
+                <input type="hidden" name="requestKey" value={crypto.randomUUID()} />
               <p className={`${t.hint} text-graphite-500`}>Creates a new draft with the same client, items and terms.</p>
             </WorkflowForm>
 
@@ -147,6 +151,7 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
               <WorkflowForm action={voidInvoiceAction} label="Void invoice"
                 confirm={{ message: "Voiding revokes the client's link and blocks further payments. The invoice is kept for the record and cannot be un-voided.", tone: "danger" }}>
                 <input type="hidden" name="invoiceId" value={id} />
+                <input type="hidden" name="requestKey" value={crypto.randomUUID()} />
                 <Field name="reason" label="Reason" multiline required />
               </WorkflowForm>
             )}
@@ -196,7 +201,7 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
                 <li key={payment.id} className="flex flex-wrap items-baseline justify-between gap-3 py-2.5">
                   <div>
                     <p className={`${t.body} text-ink-900`}>
-                      {shortDate(payment.paidOn)} · {paymentMethodLabel[payment.method] ?? payment.method}
+                      {calendarDate(payment.paidOn)} · {paymentMethodLabel[payment.method] ?? payment.method}
                       {payment.reference ? ` · ${payment.reference}` : ""}
                     </p>
                     <p className={`${t.hint} text-graphite-500`}>Recorded by {recorderName ?? "—"}</p>

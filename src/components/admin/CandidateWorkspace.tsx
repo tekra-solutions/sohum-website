@@ -3,7 +3,7 @@ import { candidateWorkspace } from "@/lib/ats/data";
 import { requireApplication } from "@/lib/ats/access";
 import { permits, sources, interviewTypes, interviewStatuses } from "@/lib/ats/policy";
 import { allowedTransitions } from "@/lib/ats/transitions";
-import { applicationStatusLabel, offerStatusLabel, formatCurrency, formatDateTime, shortDate } from "@/lib/format";
+import { applicationStatusLabel, offerStatusLabel, formatCurrency, formatDateTime, calendarDate } from "@/lib/format";
 import { canEditOffer, type OfferStatus } from "@/lib/offers/policy";
 import { WorkflowForm, WorkflowField as Field } from "./WorkflowForm";
 import { CandidateEmail } from "./CandidateEmail";
@@ -172,7 +172,7 @@ export async function CandidateWorkspace({
                           : w.offer.version.hourlyRateCents != null
                             ? `${formatCurrency(w.offer.version.hourlyRateCents)}/hr`
                             : "No compensation set"}
-                        {" · "}Start {shortDate(w.offer.version.startDate)}
+                        {" · "}Start {calendarDate(w.offer.version.startDate)}
                       </p>
                     )}
                     {/* One route into the offer: its own screen owns send,

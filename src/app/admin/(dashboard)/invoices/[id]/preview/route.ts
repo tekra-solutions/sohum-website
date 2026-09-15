@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireInvoice } from "@/lib/invoices/access";
-import { buildInvoiceDocument } from "@/lib/invoices/send-actions";
+import { buildInvoiceDocument } from "@/lib/invoices/document";
 import { renderInvoiceHtml } from "@/lib/invoices/render-html";
 
 /**
@@ -11,10 +11,10 @@ import { renderInvoiceHtml } from "@/lib/invoices/render-html";
  */
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  await requireInvoice(id);
+  const { invoice } = await requireInvoice(id);
   const doc = await buildInvoiceDocument(id);
   if (!doc) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return new NextResponse(renderInvoiceHtml(doc), {
-    headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "private, no-store" },
+  return new NextResponse(invoice.documentHtml ?? renderInvoiceHtml(doc), {
+    headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "private, no-store", "Content-Security-Policy": "sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src data:", "X-Content-Type-Options": "nosniff" },
   });
 }

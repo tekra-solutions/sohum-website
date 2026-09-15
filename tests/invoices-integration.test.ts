@@ -1,5 +1,6 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
-const state = vi.hoisted(() => ({ role: "SUPER_ADMIN", id: "10000000-0000-4000-8000-000000000001" }));
+type SentEmail = { to: string; subject: string; text: string; html: string };
+const state = vi.hoisted(() => ({ sendOk: true, lastEmail: null as SentEmail | null, role: "SUPER_ADMIN", id: "10000000-0000-4000-8000-000000000001" }));
 vi.mock("@/lib/auth/session", () => ({
   requireAdmin: async () => ({ id: state.id, role: state.role, name: "Test", email: "t@sohum.invalid" }),
   getSessionAdmin: async () => ({ id: state.id, role: state.role, name: "Test", email: "t@sohum.invalid" }),
@@ -10,12 +11,17 @@ vi.mock("next/navigation", () => ({
   redirect: () => { throw new Error("REDIRECT"); },
 }));
 
+vi.mock("@/lib/email", () => ({ send: vi.fn(async (mail: SentEmail) => { state.lastEmail = mail; return { sent: state.sendOk }; }) }));
+vi.mock("@/lib/offers/pdf", () => ({ renderOfferPdf: vi.fn(async () => Buffer.from("%PDF-invoice")) }));
+vi.mock("@/lib/storage/invoices", () => ({ buildInvoicePdfPath: (id: string) => `invoices/${id}/${crypto.randomUUID()}.pdf`, uploadInvoicePdf: vi.fn(async () => {}), downloadInvoicePdf: vi.fn(async () => new Blob(["%PDF-invoice"])) }));
+
 const enabled = Boolean(process.env.ATS_TEST_DATABASE_URL);
 const SUPER = "10000000-0000-4000-8000-000000000001";
 const RECRUITER = "10000000-0000-4000-8000-000000000002";
 
 const fd = (values: Record<string, string | string[]>) => {
   const f = new FormData();
+  f.set("requestKey", crypto.randomUUID());
   for (const [k, v] of Object.entries(values)) {
     if (Array.isArray(v)) v.forEach(x => f.append(k, x));
     else f.set(k, v);
@@ -233,9 +239,9 @@ describe.skipIf(!enabled)("invoice workflow (local only)", () => {
     const { saveClientAction, saveInvoiceAction, recordPaymentAction, duplicateInvoiceAction } = await import("@/lib/invoices/actions");
     const { getInvoiceDetail } = await import("@/lib/invoices/data");
     const { resolveInvoiceToken } = await import("@/lib/invoices/client-access");
-    const { hashInvoiceToken, generateInvoiceToken } = await import("@/lib/invoices/tokens");
+    const { generateInvoiceToken } = await import("@/lib/invoices/tokens");
     const { renderInvoiceHtml } = await import("@/lib/invoices/render-html");
-    const { buildInvoiceDocument } = await import("@/lib/invoices/send-actions");
+    const { buildInvoiceDocument } = await import("@/lib/invoices/document");
     const { db } = await import("@/db");
     const { invoices, clients: clientsTable, auditLogs } = await import("@/db/schema");
     const { eq, desc } = await import("drizzle-orm");
@@ -270,21 +276,44 @@ describe.skipIf(!enabled)("invoice workflow (local only)", () => {
     expect(html).toContain("General Services Administration");
 
     // 10-11. Sending mints a token; the client link resolves through its hash.
-    const token = generateInvoiceToken();
-    await db.update(invoices).set({
-      status: "SENT", sentAt: new Date(), sentBy: SUPER,
-      secureTokenHash: hashInvoiceToken(token),
-      tokenExpiresAt: new Date(Date.now() + 30 * 86400000),
-    }).where(eq(invoices.id, inv.id));
-    const resolved = await resolveInvoiceToken(token);
+    const { sendInvoiceAction, sendInvoiceReminderAction } = await import("@/lib/invoices/send-actions");
+    const { send } = await import("@/lib/email");
+    const sendForm = fd({ invoiceId: inv.id, to: "ap@gsa.example.gov", subject: "Your invoice" });
+    state.sendOk = false;
+    expect((await sendInvoiceAction({}, sendForm)).error).toContain("not sent");
+    const [failed] = await db.select().from(invoices).where(eq(invoices.id, inv.id));
+    expect(failed.status).toBe("DRAFT");
+    expect(failed.secureTokenHash).toBeNull();
+    state.sendOk = true;
+    expect((await sendInvoiceAction({}, sendForm)).success).toBeDefined();
+    const token = state.lastEmail!.text.match(/\/invoice\/([A-Za-z0-9_-]+)/)![1];
+    const calls = vi.mocked(send).mock.calls.length;
+    expect((await sendInvoiceAction({}, sendForm)).error).toContain("already sent");
+    expect(vi.mocked(send).mock.calls).toHaveLength(calls);
+    const [issued] = await db.select().from(invoices).where(eq(invoices.id, inv.id));
+    expect(issued.documentHtml).toContain(inv.invoiceNumber);
+    const reminder = fd({ invoiceId: inv.id, to: "ap@gsa.example.gov" });
+    state.sendOk = false;
+    expect((await sendInvoiceReminderAction({}, reminder)).error).toBeDefined();
+    expect(await resolveInvoiceToken(token)).not.toBeNull();
+    state.sendOk = true;
+    expect((await sendInvoiceReminderAction({}, reminder)).success).toBeDefined();
+    expect(state.lastEmail!.text).toContain("/invoice/");
+    expect(state.lastEmail!.text).not.toContain("/admin/");
+    const reminderToken = state.lastEmail!.text.match(/\/invoice\/([A-Za-z0-9_-]+)/)![1];
+    expect(await resolveInvoiceToken(token)).toBeNull();
+    const [reminded] = await db.select().from(invoices).where(eq(invoices.id, inv.id));
+    expect(reminded.pdfStoragePath).toBe(issued.pdfStoragePath);
+    expect(reminded.documentHtml).toBe(issued.documentHtml);
+    const resolved = await resolveInvoiceToken(reminderToken);
     expect(resolved?.invoice.id).toBe(inv.id);
     // A wrong token resolves to nothing.
     expect(await resolveInvoiceToken(generateInvoiceToken())).toBeNull();
 
     // 12-13. Partial payment.
-    expect((await recordPaymentAction({}, fd({
-      invoiceId: inv.id, amountCents: "10000", paidOn: "2026-09-15", method: "ACH", reference: "PART-1",
-    }))).success).toBeDefined();
+    const paymentForm = fd({ invoiceId: inv.id, amountCents: "10000", paidOn: "2026-09-15", method: "ACH", reference: "PART-1" });
+    expect((await recordPaymentAction({}, paymentForm)).success).toBeDefined();
+    expect((await recordPaymentAction({}, paymentForm)).error).toContain("already");
     let [after] = await db.select().from(invoices).where(eq(invoices.id, inv.id));
     expect(after.status).toBe("PARTIALLY_PAID");
     expect(after.balanceDueCents).toBe(1856000 - 1000000);
@@ -346,6 +375,31 @@ describe.skipIf(!enabled)("invoice workflow (local only)", () => {
     expect(after.status).toBe("PAID");
     const payments = await db.select().from(invoicePayments).where(eq(invoicePayments.invoiceId, target.id));
     expect(payments).toHaveLength(1);
+  });
+
+  it("keeps outstanding/overdue filters and CSV exports consistent", async () => {
+    state.id = SUPER; state.role = "SUPER_ADMIN";
+    const { db } = await import("@/db");
+    const { invoices } = await import("@/db/schema");
+    const { eq, desc } = await import("drizzle-orm");
+    const { saveInvoiceAction } = await import("@/lib/invoices/actions");
+    const { listInvoices } = await import("@/lib/invoices/data");
+    const { GET } = await import("@/app/api/admin/invoices/export/route");
+    const day = (n: number) => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
+    await expect(saveInvoiceAction({}, fd({ clientId, invoiceDate: day(-40), dueDate: day(-1), itemDescription: ["Overdue filter"], itemQuantity: ["1"], itemRate: ["100"] }))).rejects.toThrow("REDIRECT");
+    const [overdue] = await db.select().from(invoices).orderBy(desc(invoices.createdAt)).limit(1);
+    await db.update(invoices).set({ status: "VIEWED" }).where(eq(invoices.id, overdue.id));
+    for (const status of ["OUTSTANDING", "OVERDUE"]) {
+      const listed = await listInvoices({ status, q: overdue.invoiceNumber });
+      expect(listed.rows.map(r => r.invoice.id)).toEqual([overdue.id]);
+      const response = await GET(new Request(`http://localhost/api/admin/invoices/export?status=${status}&q=${overdue.invoiceNumber}`));
+      expect(response.status).toBe(200);
+      const csv = await response.text();
+      expect(csv).toContain(overdue.invoiceNumber);
+      expect(csv).toContain("OVERDUE");
+      expect(csv).not.toContain("secureToken");
+    }
+    expect((await listInvoices({ clientId: "invalid" })).total).toBeGreaterThan(0);
   });
 
   it("refuses a due date before the invoice date and an invoice with no items", async () => {

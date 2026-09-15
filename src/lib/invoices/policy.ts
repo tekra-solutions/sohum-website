@@ -46,7 +46,7 @@ export function canVoidInvoice(status: InvoiceStatus) {
 
 /** The client-facing link only makes sense once the invoice has been issued. */
 export function clientCanView(status: InvoiceStatus) {
-  return status !== "DRAFT";
+  return status !== "DRAFT" && status !== "VOID";
 }
 
 /** SOH-2026-0001 — prefix configurable, year and zero-padded sequence. */

@@ -1,7 +1,7 @@
 import "server-only";
-import { and, asc, count, desc, eq, ilike, ne, or, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, ne, or, sql, isNotNull } from "drizzle-orm";
 import { db, isDatabaseConfigured } from "@/db";
-import { employees } from "@/db/schema";
+import { employees, employmentEvents, offers, offerVersions } from "@/db/schema";
 
 /** SOH-EMP-0042 — derived from the row's own Postgres sequence. */
 export const formatEmployeeId = (sequence: number) =>
@@ -151,4 +151,17 @@ export async function workEmailTaken(email: string, excludeId?: string) {
     columns: { id: true },
   });
   return Boolean(existing && existing.id !== excludeId);
+}
+
+/** Resolve compensation for both new history rows and employees predating history. */
+export async function employeeCompensation(employeeId: string, conn: Pick<typeof db, "select"> = db) {
+  const [event] = await conn.select().from(employmentEvents).where(and(
+    eq(employmentEvents.employeeId, employeeId),
+    or(isNotNull(employmentEvents.annualSalaryCents), isNotNull(employmentEvents.hourlyRateCents)),
+  )).orderBy(desc(employmentEvents.effectiveDate), desc(employmentEvents.createdAt)).limit(1);
+  if (event) return { annualSalaryCents: event.annualSalaryCents, hourlyRateCents: event.hourlyRateCents };
+  const [offer] = await conn.select({ annualSalaryCents: offerVersions.annualSalaryCents, hourlyRateCents: offerVersions.hourlyRateCents })
+    .from(employees).innerJoin(offers, eq(offers.applicationId, employees.sourceApplicationId))
+    .innerJoin(offerVersions, eq(offerVersions.id, offers.acceptedVersionId)).where(eq(employees.id, employeeId)).limit(1);
+  return offer ?? { annualSalaryCents: null, hourlyRateCents: null };
 }

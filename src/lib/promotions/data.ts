@@ -1,10 +1,12 @@
 import "server-only";
+import { z } from "zod";
 import { desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import {
   promotions, promotionVersions, promotionSignatures, employmentEvents,
   employees, admins,
 } from "@/db/schema";
+import { employeeCompensation } from "@/lib/services/employees";
 import { hashOfferToken } from "@/lib/offers/tokens";
 
 /**
@@ -26,16 +28,13 @@ export async function resolvePromotionToken(token: string) {
   // ACCEPTED and DECLINED remain reachable so the employee can re-open the
   // letter they signed, exactly as the offer flow allows.
   if (!["SENT", "VIEWED", "ACCEPTED", "DECLINED", "EFFECTIVE"].includes(row.promotion.status)) return null;
-  if (!row.promotion.tokenExpiresAt || row.promotion.tokenExpiresAt <= new Date()) {
-    // An expired link still opens an already-signed letter; it only stops new
-    // signatures, which canEmployeeAct() governs.
-    if (!["ACCEPTED", "EFFECTIVE"].includes(row.promotion.status)) return null;
-  }
+  if (!row.promotion.tokenExpiresAt || row.promotion.tokenExpiresAt <= new Date()) return null;
   return row;
 }
 
 /** A promotion with its current version and signature, for the admin screen. */
 export async function promotionDetail(promotionId: string) {
+  if (!z.uuid().safeParse(promotionId).success) return null;
   const [row] = await db
     .select({ promotion: promotions, employee: employees })
     .from(promotions)
@@ -94,12 +93,5 @@ export async function promotionsForEmployee(employeeId: string) {
 
 /** Compensation as last set by an applied promotion, for pre-filling the form. */
 export async function currentCompensation(employeeId: string) {
-  const [last] = await db.select().from(employmentEvents)
-    .where(eq(employmentEvents.employeeId, employeeId))
-    .orderBy(desc(employmentEvents.effectiveDate), desc(employmentEvents.createdAt))
-    .limit(1);
-  return {
-    annualSalaryCents: last?.annualSalaryCents ?? null,
-    hourlyRateCents: last?.hourlyRateCents ?? null,
-  };
+  return employeeCompensation(employeeId);
 }

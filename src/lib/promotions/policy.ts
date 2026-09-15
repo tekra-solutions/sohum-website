@@ -116,12 +116,14 @@ export function promotionReferenceFor(
 export function describeChanges(v: {
   previousJobTitle: string; jobTitle: string;
   previousDepartment: string; department: string;
+  previousEmploymentType?: string; employmentType?: string;
   previousLocation?: string | null; location?: string | null;
   previousManagerName?: string | null; managerName?: string | null;
   previousAnnualSalaryCents?: number | null; annualSalaryCents?: number | null;
   previousHourlyRateCents?: number | null; hourlyRateCents?: number | null;
 }) {
   const changed: string[] = [];
+  if (v.previousEmploymentType !== v.employmentType) changed.push("employment type");
   if (v.jobTitle !== v.previousJobTitle) changed.push("title");
   if (v.department !== v.previousDepartment) changed.push("department");
   if ((v.location ?? "") !== (v.previousLocation ?? "")) changed.push("location");

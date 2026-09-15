@@ -17,7 +17,9 @@ export function roundHalfAwayFromZero(value: number): number {
 
 /** quantity (thousandths) x rate (cents) -> amount (cents). */
 export function lineAmountCents(quantityMilli: number, rateCents: number): number {
-  return roundHalfAwayFromZero((quantityMilli * rateCents) / 1000);
+  const product = BigInt(quantityMilli) * BigInt(rateCents);
+  const sign = product < BigInt(0) ? BigInt(-1) : BigInt(1);
+  return Number(sign * ((product * sign + BigInt(500)) / BigInt(1000)));
 }
 
 export type TotalsInput = {
@@ -53,7 +55,7 @@ export function computeTotals(input: TotalsInput): Totals {
   // produce a negative invoice by over-discounting.
   const discountCents = Math.min(Math.max(0, input.discountCents ?? 0), subtotalCents);
   const taxable = subtotalCents - discountCents;
-  const taxCents = roundHalfAwayFromZero((taxable * Math.max(0, input.taxRateBasisPoints ?? 0)) / 10_000);
+  const taxCents = Number((BigInt(taxable) * BigInt(Math.max(0, input.taxRateBasisPoints ?? 0)) + BigInt(5000)) / BigInt(10000));
   const additionalChargesCents = Math.max(0, input.additionalChargesCents ?? 0);
   const totalCents = taxable + taxCents + additionalChargesCents;
   const amountPaidCents = Math.max(0, input.amountPaidCents ?? 0);

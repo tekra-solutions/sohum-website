@@ -11,7 +11,7 @@ import {
 import { formatCurrency, shortDate, calendarDate } from "@/lib/format";
 import { PromotionOtpForm } from "@/components/promotion/PromotionOtpForm";
 import { PromotionAcceptForm } from "@/components/promotion/PromotionAcceptForm";
-import { t } from "@/components/admin/form";
+import { t, btnSecondary } from "@/components/admin/form";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Your promotion letter" };
@@ -93,11 +93,15 @@ export default async function EmployeePromotionPage({ params }: { params: Promis
       <div className="overflow-hidden rounded-[4px] border border-paper-300 bg-white">
         <iframe
           title="Your promotion letter"
+          sandbox=""
           srcDoc={version.renderedHtml}
           className="h-[36rem] w-full border-0"
         />
       </div>
 
+      <a href={`/promotion/${token}/pdf${accepted ? "?signed=1" : ""}`} target="_blank" rel="noopener noreferrer" className={btnSecondary}>
+        Download {accepted ? "signed " : ""}letter (PDF)
+      </a>
       {actionable && (
         <PromotionAcceptForm
           token={token}

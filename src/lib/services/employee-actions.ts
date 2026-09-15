@@ -4,13 +4,12 @@ import { z } from "zod";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { eq } from "drizzle-orm";
+import { eq, and, notInArray } from "drizzle-orm";
 import { db } from "@/db";
-import { employees, applications, auditLogs } from "@/db/schema";
+import { employees, applications, auditLogs, employmentEvents, offers, offerVersions, promotions } from "@/db/schema";
 import { employeeInputSchema } from "@/lib/validation/schemas";
 import { requirePermission } from "@/lib/ats/access";
-import { audit } from "@/lib/audit";
-import { formatEmployeeId, workEmailTaken } from "@/lib/services/employees";
+import { formatEmployeeId, workEmailTaken, employeeCompensation } from "@/lib/services/employees";
 
 export type EmployeeFormState = {
   errors?: Record<string, string>;
@@ -25,6 +24,7 @@ export async function saveEmployeeAction(
 ): Promise<EmployeeFormState> {
   const admin = await requirePermission("employees");
   const id = String(formData.get("id") ?? "") || null;
+  if (id && !z.uuid().safeParse(id).success) return { message: "Invalid employee." };
 
   const parsed = employeeInputSchema.safeParse(Object.fromEntries(formData.entries()));
   if (!parsed.success) {
@@ -64,13 +64,25 @@ export async function saveEmployeeAction(
   let employeeUuid = id;
   try {
     if (id) {
-      await db.update(employees).set(values).where(eq(employees.id, id));
-      await audit({
-        adminId: admin.id,
-        action: "ADMIN_UPDATED_EMPLOYEE",
-        entityType: "employee",
-        entityId: id,
-        metadata: { workEmail: v.workEmail },
+      await db.transaction(async tx => {
+        const [previous] = await tx.select().from(employees).where(eq(employees.id, id)).for("update");
+        if (!previous) throw new Error("Employee not found.");
+        if (values.managerId === id) throw new Error("An employee cannot report to themselves.");
+        const roleChanged = previous.jobTitle !== values.jobTitle || previous.department !== values.department || previous.location !== values.location || previous.managerId !== values.managerId || previous.employmentType !== values.employmentType;
+        if (roleChanged || previous.workEmail !== values.workEmail) {
+          const [pending] = await tx.select({ id: promotions.id }).from(promotions).where(and(eq(promotions.employeeId, id), notInArray(promotions.status, ["DECLINED", "WITHDRAWN", "EXPIRED", "EFFECTIVE"]))).limit(1);
+          if (pending) throw new Error("A promotion is in progress. Complete or withdraw it before changing employment details or the signing email.");
+        }
+        const pay = await employeeCompensation(id, tx);
+        await tx.update(employees).set(values).where(eq(employees.id, id));
+        if (roleChanged || previous.status !== values.status) await tx.insert(employmentEvents).values({
+          employeeId: id, eventType: values.status === "TERMINATED" ? "TERMINATED" : roleChanged ? "TRANSFERRED" : "STATUS_CHANGED",
+          previousJobTitle: previous.jobTitle, jobTitle: values.jobTitle, previousDepartment: previous.department, department: values.department,
+          previousLocation: previous.location, location: values.location, annualSalaryCents: pay?.annualSalaryCents, hourlyRateCents: pay?.hourlyRateCents,
+          effectiveDate: new Date(), createdBy: admin.id, note: `Administrative update. Status: ${previous.status} → ${values.status}.`,
+        });
+        await tx.insert(auditLogs).values({ adminId: admin.id, action: "ADMIN_UPDATED_EMPLOYEE", entityType: "employee", entityId: id,
+          metadata: { previousTitle: previous.jobTitle, title: values.jobTitle, previousStatus: previous.status, status: values.status } });
       });
     } else {
       await db.transaction(async tx => {
@@ -83,6 +95,10 @@ export async function saveEmployeeAction(
         const employeeId = formatEmployeeId(row.sequence);
         await tx.update(employees).set({ employeeId }).where(eq(employees.id, row.id));
         employeeUuid = row.id;
+        const [accepted] = sourceApplicationId ? await tx.select({ version: offerVersions }).from(offers).innerJoin(offerVersions, eq(offerVersions.id, offers.acceptedVersionId)).where(eq(offers.applicationId, sourceApplicationId)).limit(1) : [];
+        await tx.insert(employmentEvents).values({ employeeId: row.id, eventType: "HIRED", jobTitle: values.jobTitle,
+          department: values.department, location: values.location, effectiveDate: values.startDate ?? new Date(),
+          annualSalaryCents: accepted?.version.annualSalaryCents, hourlyRateCents: accepted?.version.hourlyRateCents, createdBy: admin.id });
         await tx.insert(auditLogs).values({ adminId: admin.id, action: "ADMIN_CREATED_EMPLOYEE", entityType: "employee", entityId: row.id, metadata: { employeeId } });
         if (sourceApplicationId) await tx.insert(auditLogs).values({ adminId: admin.id, action: "CANDIDATE_CONVERTED_TO_EMPLOYEE", entityType: "application", entityId: sourceApplicationId, metadata: { employeeId: row.id } });
       });
@@ -91,7 +107,7 @@ export async function saveEmployeeAction(
     console.error("[employees] save failed", {
       error: err instanceof Error ? err.message : String(err),
     });
-    return { message: "Could not save this employee. Please try again." };
+    return { message: err instanceof Error && !("query" in err) ? err.message : "Could not save this employee. Please try again." };
   }
 
   revalidatePath("/admin/employees");
@@ -105,29 +121,17 @@ export async function setEmployeeStatusAction(formData: FormData) {
   const status = String(formData.get("status") ?? "");
   if (!id || !["ACTIVE", "ON_LEAVE", "TERMINATED"].includes(status)) return;
 
-  const current = await db.query.employees.findFirst({
-    where: eq(employees.id, id),
-    columns: { employeeId: true, endDate: true },
-  });
-  if (!current) return;
-
-  await db
-    .update(employees)
-    .set({
-      status: status as "ACTIVE",
-      // Terminating without an explicit end date stamps today, so the record
-      // is never left in a contradictory state.
-      endDate: status === "TERMINATED" ? (current.endDate ?? new Date()) : current.endDate,
-      updatedAt: new Date(),
-    })
-    .where(eq(employees.id, id));
-
-  await audit({
-    adminId: admin.id,
-    action: "ADMIN_CHANGED_EMPLOYEE_STATUS",
-    entityType: "employee",
-    entityId: id,
-    metadata: { employeeId: current.employeeId, status },
+  if (!z.uuid().safeParse(id).success) return;
+  await db.transaction(async tx => {
+    const [current] = await tx.select().from(employees).where(eq(employees.id, id)).for("update");
+    if (!current || current.status === status) return;
+    const pay = await employeeCompensation(id, tx);
+    await tx.update(employees).set({ status: status as "ACTIVE", endDate: status === "TERMINATED" ? current.endDate ?? new Date() : null, updatedAt: new Date() }).where(eq(employees.id, id));
+    await tx.insert(employmentEvents).values({ employeeId: id, eventType: status === "TERMINATED" ? "TERMINATED" : "STATUS_CHANGED",
+      jobTitle: current.jobTitle, department: current.department, location: current.location,
+      annualSalaryCents: pay?.annualSalaryCents, hourlyRateCents: pay?.hourlyRateCents,
+      effectiveDate: new Date(), createdBy: admin.id, note: `${current.status} → ${status}` });
+    await tx.insert(auditLogs).values({ adminId: admin.id, action: "ADMIN_CHANGED_EMPLOYEE_STATUS", entityType: "employee", entityId: id, metadata: { from: current.status, to: status } });
   });
 
   revalidatePath(`/admin/employees/${id}`);

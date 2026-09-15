@@ -30,6 +30,6 @@ export async function GET(
   }
 
   return new NextResponse(html, {
-    headers: { "content-type": "text/html; charset=utf-8", "x-robots-tag": "noindex" },
+    headers: { "content-type": "text/html; charset=utf-8", "x-robots-tag": "noindex", "Cache-Control": "private, no-store", "Content-Security-Policy": "sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'" },
   });
 }

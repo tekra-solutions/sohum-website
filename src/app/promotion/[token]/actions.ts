@@ -10,11 +10,11 @@
  */
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, desc } from "drizzle-orm";
 import { db } from "@/db";
 import {
   promotions, promotionVersions, promotionSignatures, promotionOtpCodes,
-  auditLogs, recruitingSettings,
+  auditLogs, recruitingSettings, employees,
 } from "@/db/schema";
 import { generateOtp, hashOtp } from "@/lib/offers/tokens";
 import { resolvePromotionToken } from "@/lib/promotions/data";
@@ -53,10 +53,10 @@ export async function requestPromotionOtpAction(_: PromotionPublicState, form: F
   }
 
   const code = generateOtp();
-  await db.transaction(async tx => {
+  const issued = await db.transaction(async tx => {
     const [promotion] = await tx.select().from(promotions)
       .where(eq(promotions.id, row.promotion.id)).for("update");
-    if (!promotion) throw new Error("Not found.");
+    if (!promotion || promotion.secureTokenHash !== row.promotion.secureTokenHash || !promotion.tokenExpiresAt || promotion.tokenExpiresAt <= new Date() || ["WITHDRAWN", "EXPIRED", "DRAFT", "APPROVED", "PENDING_APPROVAL"].includes(promotion.status)) return false;
     // Supersede any outstanding code, so only the newest one works.
     await tx.update(promotionOtpCodes)
       .set({ consumedAt: new Date() })
@@ -66,14 +66,14 @@ export async function requestPromotionOtpAction(_: PromotionPublicState, form: F
       codeHash: hashOtp(code),
       expiresAt: new Date(Date.now() + OTP_TTL_MS),
     });
-    await tx.insert(auditLogs).values({
-      adminId: null, action: "IDENTITY_VERIFICATION_SENT",
-      entityType: "promotion", entityId: promotion.id,
-    });
+    return true;
   });
 
+  if (!issued) return { error: "This link changed or expired. Open the current link again." };
   const mail = promotionOtpEmail({ code });
-  await send({ to: row.employee.workEmail, ...mail }).catch(() => ({ sent: false }));
+  const result = await send({ to: row.employee.workEmail, ...mail });
+  if (!result.sent) return { error: "Could not send the verification code. Please try again shortly." };
+  await db.insert(auditLogs).values({ action: "IDENTITY_VERIFICATION_SENT", entityType: "promotion", entityId: row.promotion.id });
   return { success: `We sent a verification code to your work email.` };
 }
 
@@ -91,13 +91,15 @@ export async function verifyPromotionOtpAction(_: PromotionPublicState, form: Fo
 
   let ok = false;
   await db.transaction(async tx => {
+    const [promotion] = await tx.select().from(promotions).where(eq(promotions.id, row.promotion.id)).for("update");
+    if (!promotion || promotion.secureTokenHash !== row.promotion.secureTokenHash || !promotion.tokenExpiresAt || promotion.tokenExpiresAt <= new Date() || ["WITHDRAWN", "EXPIRED", "DRAFT", "APPROVED", "PENDING_APPROVAL"].includes(promotion.status)) return;
     const [record] = await tx.select().from(promotionOtpCodes)
       .where(and(
         eq(promotionOtpCodes.promotionId, row.promotion.id),
         isNull(promotionOtpCodes.consumedAt),
-      ))
+      )).orderBy(desc(promotionOtpCodes.createdAt)).limit(1)
       .for("update");
-    if (!record) return;
+    if (!record || (promotion.sentAt && record.createdAt < promotion.sentAt)) return;
     if (record.expiresAt <= new Date() || record.attempts >= MAX_OTP_ATTEMPTS) return;
 
     if (record.codeHash !== hashOtp(code)) {
@@ -114,7 +116,7 @@ export async function verifyPromotionOtpAction(_: PromotionPublicState, form: Fo
       entityType: "promotion", entityId: row.promotion.id,
     });
     // First view marks the promotion as seen, exactly as offers do.
-    if (row.promotion.status === "SENT") {
+    if (promotion.status === "SENT") {
       await tx.update(promotions)
         .set({ status: "VIEWED", viewedAt: new Date() })
         .where(eq(promotions.id, row.promotion.id));
@@ -160,12 +162,15 @@ export async function acceptPromotionAction(_: PromotionPublicState, form: FormD
         .where(eq(promotions.id, row.promotion.id)).for("update");
       if (!locked
         || locked.secureTokenHash !== row.promotion.secureTokenHash
-        || locked.currentVersionId !== row.promotion.currentVersionId) {
+        || locked.currentVersionId !== row.promotion.currentVersionId
+        || !locked.tokenExpiresAt || locked.tokenExpiresAt <= new Date()) {
         throw new Error("This letter changed. Please open the current link again.");
       }
       if (!canEmployeeAct(locked.status as PromotionStatus)) {
         throw new Error("This promotion letter is no longer available to sign.");
       }
+      const [employee] = await tx.select().from(employees).where(eq(employees.id, locked.employeeId)).for("update");
+      if (!employee || employee.status === "TERMINATED" || employee.workEmail !== row.employee.workEmail) throw new Error("This employee record has changed. Contact HR before signing.");
       // The structural guarantee that one promotion is signed exactly once.
       if (locked.acceptedVersionId) throw new Error("This letter has already been signed.");
 
@@ -216,7 +221,7 @@ export async function acceptPromotionAction(_: PromotionPublicState, form: FormD
       await notifyPromotionSigned(tx, locked.id, `${row.employee.firstName} ${row.employee.lastName}`);
     });
   } catch (error) {
-    return { error: error instanceof Error ? error.message : "Could not record your signature." };
+    return { error: error instanceof Error && !("query" in error) ? error.message : "Could not record your signature." };
   }
 
   // The signed PDF is produced outside the transaction — Chromium and storage
@@ -248,23 +253,23 @@ export async function acceptPromotionAction(_: PromotionPublicState, form: FormD
         });
         await db.update(promotionSignatures)
           .set({ signedPdfPath: result.path, documentHash: result.documentHash })
-          .where(eq(promotionSignatures.promotionId, row.promotion.id));
+          .where(and(eq(promotionSignatures.promotionId, row.promotion.id), isNull(promotionSignatures.signedPdfPath)));
         await db.insert(auditLogs).values({
           adminId: null, action: "SIGNED_PDF_GENERATED",
           entityType: "promotion", entityId: row.promotion.id,
-          metadata: { path: result.path, bytes: result.bytes },
+          metadata: { fileHash: result.fileHash, bytes: result.bytes },
         });
       }
     } catch (error) {
       console.error("[promotions] signed PDF generation failed", {
         promotionId: row.promotion.id,
-        error: error instanceof Error ? error.message : String(error),
+        error: error instanceof Error && !("query" in error) ? error.message : String(error),
       });
     }
   }
 
   revalidatePath(`/promotion/${token}`);
-  revalidatePath("/admin/employees");
+  revalidatePath("/admin", "layout");
   return { success: "Thank you — your promotion letter has been signed." };
 }
 
@@ -278,15 +283,19 @@ export async function declinePromotionAction(_: PromotionPublicState, form: Form
     return { error: "Please verify your email first." };
   }
   const parsed = promotionDeclineSchema.safeParse(Object.fromEntries(form));
-  const reason = parsed.success ? parsed.data.reason : undefined;
+  if (!parsed.success) return { error: "Keep the reason under 400 characters." };
+  const reason = parsed.data.reason;
 
   try {
     await db.transaction(async tx => {
       const [locked] = await tx.select().from(promotions)
         .where(eq(promotions.id, row.promotion.id)).for("update");
-      if (!locked || !canEmployeeAct(locked.status as PromotionStatus)) {
+      if (!locked || !canEmployeeAct(locked.status as PromotionStatus) || locked.secureTokenHash !== row.promotion.secureTokenHash || locked.currentVersionId !== row.promotion.currentVersionId || !locked.tokenExpiresAt || locked.tokenExpiresAt <= new Date()) {
         throw new Error("This promotion letter is no longer available to respond to.");
       }
+      const [version] = await tx.select().from(promotionVersions).where(eq(promotionVersions.id, locked.currentVersionId!));
+      if (!version || promotionDeadline(version.expirationDate) <= new Date()) throw new Error("The signing deadline has passed.");
+      await notifyPromotionSigned(tx, locked.id, `${row.employee.firstName} ${row.employee.lastName}`, "declined");
       await tx.update(promotions).set({
         status: "DECLINED", declinedAt: new Date(),
         declineReason: reason?.slice(0, 40) ?? null, updatedAt: new Date(),
@@ -298,10 +307,10 @@ export async function declinePromotionAction(_: PromotionPublicState, form: Form
       });
     });
   } catch (error) {
-    return { error: error instanceof Error ? error.message : "Could not record your response." };
+    return { error: error instanceof Error && !("query" in error) ? error.message : "Could not record your response." };
   }
 
   revalidatePath(`/promotion/${token}`);
-  revalidatePath("/admin/employees");
+  revalidatePath("/admin", "layout");
   return { success: "Your response has been recorded." };
 }

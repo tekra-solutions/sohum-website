@@ -1,5 +1,5 @@
 import "server-only";
-import { renderPromotionHtml, type PromotionHtmlInput } from "./render-html";
+import { appendElectronicSignature } from "@/lib/documents/signature";
 import { renderOfferPdf } from "@/lib/offers/pdf";
 import { hashDocument } from "@/lib/offers/signed-document";
 import { uploadOfferPdf } from "@/lib/storage/offers";
@@ -39,52 +39,13 @@ export type SignedPromotionInput = {
 /** Renders the signed HTML from frozen version data alone, so the acceptance
  *  path and any later verification produce the identical document. */
 export function renderSignedPromotionHtml(input: SignedPromotionInput): string {
-  const v = input.version;
-  const args: PromotionHtmlInput = {
-    employeeName: input.employeeName,
-    employeeFirstName: input.employeeFirstName ?? input.employeeName.split(" ")[0],
-    employeeEmail: input.employeeEmail,
-    employeeNumber: input.employeeNumber ?? null,
-
-    previousJobTitle: v.previousJobTitle,
-    previousDepartment: v.previousDepartment,
-    previousLocation: v.previousLocation,
-    previousManagerName: v.previousManagerName,
-    previousAnnualSalaryCents: v.previousAnnualSalaryCents,
-    previousHourlyRateCents: v.previousHourlyRateCents,
-
-    jobTitle: v.jobTitle,
-    department: v.department,
-    location: v.location,
-    employmentType: v.employmentType,
-    remoteType: v.remoteType,
-    managerName: v.managerName,
-    annualSalaryCents: v.annualSalaryCents,
-    hourlyRateCents: v.hourlyRateCents,
-    bonusCents: v.bonusCents,
-    otherCompensation: v.otherCompensation,
-    benefitsSummary: v.benefitsSummary,
-    ptoSummary: v.ptoSummary,
-    additionalTerms: v.additionalTerms,
-
-    effectiveDate: v.effectiveDate,
-    expirationDate: v.expirationDate,
-
-    // Frozen with the version, never re-read from a template that may since
-    // have changed.
-    templateBodyHtml: v.templateBodyHtml ?? "<p>Your employment terms have been updated as set out below.</p>",
-    templateTermsHtml: v.templateTermsHtml,
-    templateAcknowledgementsHtml: v.templateAcknowledgementsHtml,
-    authorizedRepresentative: input.authorizedRepresentative ?? null,
-    versionNumber: v.versionNumber,
-    reference: input.reference ?? null,
-    signature: {
-      ...input.signature,
-      versionNumber: v.versionNumber,
-      promotionId: v.promotionId,
-    },
-  };
-  return renderPromotionHtml(args);
+  return appendElectronicSignature(input.version.renderedHtml, {
+    name: input.signature.signerLegalName, email: input.signature.signerEmail,
+    value: input.signature.signatureValue, signedAt: input.signature.signedAt,
+    consentText: input.signature.consentText, verificationMethod: input.signature.verificationMethod,
+    reference: `${input.version.promotionId} / version ${input.version.versionNumber}`,
+    documentHash: input.signature.documentHash,
+  });
 }
 
 /** A random segment means an upload can never collide with, and so never

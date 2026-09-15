@@ -21,7 +21,8 @@
 import "server-only";
 import { createHash } from "node:crypto";
 import type { offerVersions } from "@/db/schema";
-import { renderOfferHtml, type OfferSignatureBlock } from "./render-html";
+import type { OfferSignatureBlock } from "./render-html";
+import { appendElectronicSignature } from "@/lib/documents/signature";
 import { renderOfferPdf } from "./pdf";
 import { letterheadFooterTemplate, letterheadHeaderTemplate } from "@/lib/documents/chrome";
 import { sohumLetterheadDataUri } from "@/lib/documents/logo";
@@ -47,42 +48,12 @@ export type SignedDocumentInput = {
  * exact same document from the same row.
  */
 export function renderSignedOfferHtml(input: SignedDocumentInput): string {
-  const v = input.version;
-  return renderOfferHtml({
-    candidateName: input.candidateName,
-    // The greeting takes the first word of the legal name when a separate
-    // first name was not carried onto the signed record.
-    candidateFirstName: input.candidateFirstName ?? input.candidateName.split(" ")[0],
-    candidatePhone: input.candidatePhone ?? null,
-    candidateEmail: input.candidateEmail,
-    candidateAddress: input.candidateAddress ?? null,
-    // Frozen with the version; falls back to a neutral line for versions
-    // written before these columns existed rather than re-reading a template
-    // that may since have changed.
-    templateBodyHtml: v.templateBodyHtml ?? "<p>Terms as described in this letter.</p>",
-    templateTermsHtml: v.templateTermsHtml,
-    templateAcknowledgementsHtml: v.templateAcknowledgementsHtml,
-    offerVersionNumber: v.versionNumber,
-    offerReference: input.offerReference ?? null,
-    jobTitle: v.jobTitle,
-    department: v.department,
-    location: v.location,
-    employmentType: v.employmentType,
-    remoteType: v.remoteType,
-    hiringManagerName: v.hiringManagerName,
-    reportsTo: v.reportsTo,
-    startDate: v.startDate,
-    expirationDate: v.expirationDate,
-    annualSalaryCents: v.annualSalaryCents,
-    hourlyRateCents: v.hourlyRateCents,
-    bonusCents: v.bonusCents,
-    signOnBonusCents: v.signOnBonusCents,
-    otherCompensation: v.otherCompensation,
-    benefitsSummary: v.benefitsSummary,
-    ptoSummary: v.ptoSummary,
-    workLocation: v.workLocation,
-    additionalTerms: v.additionalTerms,
-    signature: input.signature,
+  return appendElectronicSignature(input.version.renderedHtml, {
+    name: input.signature.candidateLegalName, email: input.signature.candidateEmail,
+    value: input.signature.signatureValue, signedAt: input.signature.signedAt,
+    consentText: input.signature.consentText, verificationMethod: input.signature.verificationMethod,
+    reference: `${input.version.offerId} / version ${input.version.versionNumber}`,
+    documentHash: input.signature.documentHash,
   });
 }
 

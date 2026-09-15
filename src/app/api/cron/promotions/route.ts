@@ -67,17 +67,15 @@ export async function GET(request: Request) {
     }
 
     if (result.failures.length) {
-      // Logged at error level so it surfaces in Vercel's logs, but the
-      // response is still 200: promotions that did apply are not rolled back,
-      // and a non-2xx would make the platform retry work already done.
+      // Surface failures to monitoring; successful changes are idempotent on retry.
       console.error("[cron] promotions with unapplied changes", result.failures);
     }
 
     return Response.json({
-      ok: true,
+      ok: result.failures.length === 0,
       ...result,
       durationMs: Date.now() - startedAt,
-    });
+    }, { status: result.failures.length ? 503 : 200 });
   } catch (error) {
     // A failure before any promotion was examined — a database outage, say.
     // This one is worth a 500 so the platform records the run as failed.

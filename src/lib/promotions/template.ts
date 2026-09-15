@@ -80,14 +80,10 @@ export function promotionVariables(v: PromotionTemplateValues): Record<string, s
   };
 }
 
-/** Renders one template page, or null when it is empty or cannot resolve. */
+/** Renders one template page, or null when it is empty; unresolved variables must block issuance. */
 export function renderPromotionSection(html: string | null | undefined, values: PromotionTemplateValues) {
   if (!html?.trim()) return null;
-  try {
-    return renderOfferTemplate(html, promotionVariables(values));
-  } catch {
-    return null;
-  }
+  return renderOfferTemplate(html, promotionVariables(values));
 }
 
 export { offerTemplateVariables as promotionTemplateVariables };

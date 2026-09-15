@@ -3,7 +3,7 @@ import { Plus, Search } from "lucide-react";
 import { listInvoices, invoiceDashboard, listClients } from "@/lib/invoices/data";
 import { invoiceStatuses } from "@/lib/invoices/policy";
 import { derivedInvoiceStatus, formatMoney } from "@/lib/invoices/money";
-import { invoiceStatusLabel, shortDate } from "@/lib/format";
+import { invoiceStatusLabel, calendarDate } from "@/lib/format";
 import { AdminHeader, Card, DataTable, EmptyState, Filter, PageBody, Pager, StatCard, StatusPill, Toolbar, adminButton, adminButtonSecondary, td, tr } from "@/components/admin/ui";
 import { control } from "@/components/admin/form";
 import { requirePermission } from "@/lib/ats/access";
@@ -68,9 +68,9 @@ export default async function InvoicesPage({
         <section aria-labelledby="summary">
           <h2 id="summary" className="sr-only">Summary</h2>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <StatCard label="Outstanding" value={formatMoney(summary.outstandingCents)} href="/admin/invoices?status=SENT" />
+            <StatCard label="Outstanding" value={formatMoney(summary.outstandingCents)} href="/admin/invoices?status=OUTSTANDING" />
             <StatCard label="Overdue" value={formatMoney(summary.overdueCents)} href="/admin/invoices?status=OVERDUE" tone="critical" />
-            <StatCard label="Paid this month" value={formatMoney(summary.paidThisMonthCents)} href="/admin/invoices?status=PAID" />
+            <StatCard label="Paid this month" value={formatMoney(summary.paidThisMonthCents)} />
             <StatCard label="Drafts" value={summary.draftCount} href="/admin/invoices?status=DRAFT" />
           </div>
         </section>
@@ -83,9 +83,9 @@ export default async function InvoicesPage({
                   status: invoice.status, dueDate: invoice.dueDate, totalCents: invoice.totalCents,
                   amountPaidCents: invoice.amountPaidCents, balanceDueCents: invoice.balanceDueCents,
                 });
-                const why = status === "OVERDUE" ? `Overdue since ${shortDate(invoice.dueDate)}`
+                const why = status === "OVERDUE" ? `Overdue since ${calendarDate(invoice.dueDate)}`
                   : invoice.status === "DRAFT" ? "Draft — not sent yet"
-                  : `Due ${shortDate(invoice.dueDate)}`;
+                  : `Due ${calendarDate(invoice.dueDate)}`;
                 return (
                   <li key={invoice.id}>
                     <Link href={`/admin/invoices/${invoice.id}`} className="flex flex-wrap items-center justify-between gap-3 p-4 hover:bg-paper-50">
@@ -117,6 +117,7 @@ export default async function InvoicesPage({
           <Filter label="Status">
             <select name="status" defaultValue={filters.status} className={control}>
               <option value="ALL">All statuses</option>
+              <option value="OUTSTANDING">All outstanding</option>
               {invoiceStatuses.map(s => <option key={s} value={s}>{invoiceStatusLabel[s]}</option>)}
             </select>
           </Filter>
@@ -154,8 +155,8 @@ export default async function InvoicesPage({
                     </Link>
                   </th>
                   <td className={td}>{clientName ?? invoice.billingSnapshot?.companyName ?? "—"}</td>
-                  <td className={`${td} whitespace-nowrap text-graphite-600`}>{shortDate(invoice.invoiceDate)}</td>
-                  <td className={`${td} whitespace-nowrap ${status === "OVERDUE" ? "font-medium text-[#a5382b]" : "text-graphite-600"}`}>{shortDate(invoice.dueDate)}</td>
+                  <td className={`${td} whitespace-nowrap text-graphite-600`}>{calendarDate(invoice.invoiceDate)}</td>
+                  <td className={`${td} whitespace-nowrap ${status === "OVERDUE" ? "font-medium text-[#a5382b]" : "text-graphite-600"}`}>{calendarDate(invoice.dueDate)}</td>
                   <td className={`${td} tabular-nums`}>{formatMoney(invoice.totalCents, invoice.currency)}</td>
                   <td className={`${td} tabular-nums font-medium text-ink-900`}>{formatMoney(invoice.balanceDueCents, invoice.currency)}</td>
                   <td className="px-4 py-2.5"><StatusPill status={status} label={invoiceStatusLabel[status]} /></td>

@@ -1,10 +1,11 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { z } from "zod";
 import { eq, desc } from "drizzle-orm";
 import { db } from "@/db";
 import {
-  promotions, promotionVersions, employmentEvents,
+  promotions, promotionVersions,
   employees, offerTemplates, auditLogs, recruitingSettings,
 } from "@/db/schema";
 import { requirePermission } from "@/lib/ats/access";
@@ -15,6 +16,7 @@ import {
   promotionEditConsequence, promotionDeadline, promotionReferenceFor,
   describeChanges, type PromotionStatus,
 } from "./policy";
+import { employeeCompensation } from "@/lib/services/employees";
 import { applyPromotion } from "./apply";
 import { generateOfferToken, hashOfferToken } from "@/lib/offers/tokens";
 import { renderPromotionHtml } from "./render-html";
@@ -62,14 +64,12 @@ async function buildVersion(
   // The employee's compensation lives on whatever document last set it: the
   // most recent applied promotion, else the accepted offer. Employees carry
   // no salary column of their own, so this is the authoritative previous pay.
-  const [lastEvent] = await tx.select().from(employmentEvents)
-    .where(eq(employmentEvents.employeeId, employee.id))
-    .orderBy(desc(employmentEvents.effectiveDate), desc(employmentEvents.createdAt))
-    .limit(1);
+  const lastEvent = await employeeCompensation(employee.id, tx);
 
   const manager = input.managerId
     ? (await tx.select().from(employees).where(eq(employees.id, input.managerId)))[0]
     : undefined;
+  if (input.managerId && (!manager || manager.status === "TERMINATED" || manager.id === employee.id)) throw new Error("Choose an active manager other than this employee.");
   const previousManager = employee.managerId
     ? (await tx.select().from(employees).where(eq(employees.id, employee.managerId)))[0]
     : undefined;
@@ -84,6 +84,8 @@ async function buildVersion(
     previousHourlyRateCents: lastEvent?.hourlyRateCents ?? null,
   };
 
+  const annualSalaryCents = input.hourlyRateCents != null ? null : input.annualSalaryCents ?? previous.previousAnnualSalaryCents;
+  const hourlyRateCents = input.annualSalaryCents != null ? null : input.hourlyRateCents ?? previous.previousHourlyRateCents;
   const managerName = manager
     ? `${manager.firstName} ${manager.lastName}`
     : previous.previousManagerName;
@@ -100,8 +102,8 @@ async function buildVersion(
     managerName,
     effectiveDate: input.effectiveDate,
     expirationDate: promotionDeadline(input.expirationDate),
-    annualSalaryCents: input.annualSalaryCents ?? null,
-    hourlyRateCents: input.hourlyRateCents ?? null,
+    annualSalaryCents,
+    hourlyRateCents,
     bonusCents: input.bonusCents ?? null,
     otherCompensation: input.otherCompensation ?? null,
     benefitsSummary: input.benefitsSummary ?? settings?.defaultBenefitsSummary ?? null,
@@ -118,6 +120,7 @@ async function buildVersion(
   const template = input.templateId
     ? (await tx.select().from(offerTemplates).where(eq(offerTemplates.id, input.templateId)))[0]
     : undefined;
+  if (input.templateId && (!template || !template.isActive)) throw new Error("Choose an active promotion template.");
   const source = template?.isActive
     ? { bodyHtml: template.bodyHtml, termsHtml: template.termsHtml, acknowledgementsHtml: template.acknowledgementsHtml }
     : DEFAULT_PROMOTION_TEMPLATE;
@@ -138,8 +141,8 @@ async function buildVersion(
     managerName: managerName ?? null,
     effectiveDate: input.effectiveDate,
     expirationDate: promotionDeadline(input.expirationDate),
-    annualSalaryCents: input.annualSalaryCents ?? null,
-    hourlyRateCents: input.hourlyRateCents ?? null,
+    annualSalaryCents,
+    hourlyRateCents,
     bonusCents: input.bonusCents ?? null,
     otherCompensation: input.otherCompensation ?? null,
     benefitsSummary: templateValues.benefitsSummary,
@@ -225,7 +228,7 @@ export async function createPromotionAction(_: PromotionActionState, form: FormD
       return promotion!.id;
     });
   } catch (error) {
-    return { error: error instanceof Error ? error.message : "Could not create the promotion." };
+    return { error: error instanceof Error && !("query" in error) ? error.message : "Could not create the promotion." };
   }
 
   refresh(promotionId, input.employeeId);
@@ -240,6 +243,7 @@ export async function updatePromotionAction(_: PromotionActionState, form: FormD
   const parsed = promotionInputSchema.safeParse(Object.fromEntries(form));
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Please correct the highlighted fields." };
   const input = parsed.data;
+  if (!z.uuid().safeParse(promotionId).success) return { error: "Invalid promotion." };
 
   try {
     await db.transaction(async tx => {
@@ -249,7 +253,9 @@ export async function updatePromotionAction(_: PromotionActionState, form: FormD
       if (!canEditPromotion(promotion.status as PromotionStatus)) {
         throw new Error("This promotion can no longer be edited. Withdraw it and create a new one.");
       }
-      const [employee] = await tx.select().from(employees).where(eq(employees.id, promotion.employeeId));
+      const [employee] = await tx.select().from(employees).where(eq(employees.id, promotion.employeeId)).for("update");
+      if (employee?.status === "TERMINATED") throw new Error("A terminated employee cannot be promoted.");
+      if (input.employeeId !== promotion.employeeId) throw new Error("The employee cannot be changed on an existing promotion.");
       if (!employee) throw new Error("Employee not found.");
 
       const [latest] = await tx.select({ n: promotionVersions.versionNumber })
@@ -290,7 +296,7 @@ export async function updatePromotionAction(_: PromotionActionState, form: FormD
       });
     });
   } catch (error) {
-    return { error: error instanceof Error ? error.message : "Could not update the promotion." };
+    return { error: error instanceof Error && !("query" in error) ? error.message : "Could not update the promotion." };
   }
 
   refresh(promotionId);
@@ -310,6 +316,7 @@ async function transition(
   metadata?: Record<string, unknown>,
 ): Promise<PromotionActionState> {
   const admin = await requirePermission(permission);
+  if (!z.uuid().safeParse(promotionId).success) return { error: "Invalid promotion." };
   try {
     await db.transaction(async tx => {
       const [promotion] = await tx.select().from(promotions)
@@ -321,7 +328,7 @@ async function transition(
       await record(tx, admin.id, promotionId, action, metadata);
     });
   } catch (error) {
-    return { error: error instanceof Error ? error.message : "Could not complete that step." };
+    return { error: error instanceof Error && !("query" in error) ? error.message : "Could not complete that step." };
   }
   refresh(promotionId);
   return { success: "Done." };
@@ -349,7 +356,7 @@ export async function rejectPromotionAction(_: PromotionActionState, form: FormD
   return transition(
     String(form.get("promotionId") ?? ""), "manage",
     canApprove, "Only a promotion pending approval can be sent back.",
-    () => ({ status: "DRAFT" }), "PROMOTION_REJECTED", { note },
+    () => ({ status: "DRAFT", approvedAt: null, approvedBy: null }), "PROMOTION_REJECTED", { note },
   );
 }
 
@@ -357,7 +364,7 @@ export async function withdrawPromotionAction(_: PromotionActionState, form: For
   return transition(
     String(form.get("promotionId") ?? ""), "manage",
     canWithdraw, "This promotion has already taken effect and cannot be withdrawn.",
-    () => ({ status: "WITHDRAWN", withdrawnAt: new Date() }), "PROMOTION_WITHDRAWN",
+    () => ({ status: "WITHDRAWN", withdrawnAt: new Date(), secureTokenHash: hashOfferToken(generateOfferToken()), tokenExpiresAt: new Date(0) }), "PROMOTION_WITHDRAWN",
   );
 }
 
@@ -367,55 +374,35 @@ export async function sendPromotionAction(_: PromotionActionState, form: FormDat
   const admin = await requirePermission("employees");
   const promotionId = String(form.get("promotionId") ?? "");
 
-  let token: string | null = null;
-  let recipient: { email: string; name: string; title: string } | null = null;
-  let deadline: Date | null = null;
+  if (!z.uuid().safeParse(promotionId).success) return { error: "Invalid promotion." };
+  let delivered = false;
   try {
     await db.transaction(async tx => {
-      const [promotion] = await tx.select().from(promotions)
-        .where(eq(promotions.id, promotionId)).for("update");
-      if (!promotion) throw new Error("Promotion not found.");
-      if (!canSend(promotion.status as PromotionStatus)) {
-        throw new Error("Only an approved promotion can be sent.");
+      const [promotion] = await tx.select().from(promotions).where(eq(promotions.id, promotionId)).for("update");
+      if (!promotion || !canSend(promotion.status as PromotionStatus)) throw new Error("Only an approved promotion can be sent.");
+      const [employee] = await tx.select().from(employees).where(eq(employees.id, promotion.employeeId)).for("update");
+      const [version] = await tx.select().from(promotionVersions).where(eq(promotionVersions.id, promotion.currentVersionId!));
+      if (!employee || employee.status === "TERMINATED" || !version) throw new Error("Choose an active employee and a complete promotion.");
+      const deadline = promotionDeadline(version.expirationDate);
+      if (deadline <= new Date()) throw new Error("The signing deadline has passed. Update the letter and obtain approval again.");
+      const token = generateOfferToken();
+      const mail = promotionSentEmail({ firstName: employee.firstName, jobTitle: version.jobTitle,
+        promotionUrl: `${serverEnv().appUrl.replace(/\/$/, "")}/promotion/${token}`, expirationDate: deadline });
+      const result = await send({ to: employee.workEmail, ...mail });
+      delivered = result.sent;
+      if (!delivered) {
+        await tx.insert(auditLogs).values({ adminId: admin.id, action: "PROMOTION_EMAIL_FAILED", entityType: "promotion", entityId: promotionId });
+        return;
       }
-      const [employee] = await tx.select().from(employees).where(eq(employees.id, promotion.employeeId));
-      const [version] = await tx.select().from(promotionVersions)
-        .where(eq(promotionVersions.id, promotion.currentVersionId!));
-      if (!employee || !version) throw new Error("Promotion is incomplete.");
-
-      // A fresh token per send, so a previously distributed link never works.
-      const raw = generateOfferToken();
-      token = raw;
-      recipient = { email: employee.workEmail, name: employee.firstName, title: version.jobTitle };
-      deadline = version.expirationDate;
-
-      await tx.update(promotions).set({
-        status: "SENT",
-        secureTokenHash: hashOfferToken(raw),
-        tokenExpiresAt: version.expirationDate,
-        sentAt: new Date(),
-        updatedAt: new Date(),
-      }).where(eq(promotions.id, promotionId));
-
-      await record(tx, admin.id, promotionId, "PROMOTION_SENT", { employeeId: employee.id });
+      await tx.update(promotions).set({ status: "SENT", secureTokenHash: hashOfferToken(token),
+        tokenExpiresAt: new Date(deadline.getTime() + 90 * 86400000), sentAt: new Date(), updatedAt: new Date() }).where(eq(promotions.id, promotionId));
+      await record(tx, admin.id, promotionId, "PROMOTION_SENT", { employeeId: employee.id, versionId: version.id });
     });
   } catch (error) {
-    return { error: error instanceof Error ? error.message : "Could not send the promotion." };
+    return { error: delivered ? "Email was accepted by the provider but recording delivery failed. Check delivery before retrying." : error instanceof Error && !("query" in error) ? error.message : "Could not send the promotion." };
   }
-
-  // Email outside the transaction: a mail failure must not roll back the send,
-  // and the letter can be re-sent. Same posture as the offer flow.
-  if (token && recipient && deadline) {
-    const r = recipient as { email: string; name: string; title: string };
-    const url = `${serverEnv().appUrl.replace(/\/$/, "")}/promotion/${token}`;
-    const mail = promotionSentEmail({
-      firstName: r.name, jobTitle: r.title, promotionUrl: url, expirationDate: deadline,
-    });
-    await send({ to: r.email, ...mail }).catch(() => ({ sent: false }));
-  }
-
   refresh(promotionId);
-  return { success: "Promotion letter sent to the employee." };
+  return delivered ? { success: "Promotion letter sent to the employee." } : { error: "Email was not sent. The promotion remains approved; check email configuration and retry." };
 }
 
 /* ----------------------------------------------------- effective-date apply */
@@ -426,7 +413,7 @@ export async function applyPromotionAction(_: PromotionActionState, form: FormDa
   try {
     await db.transaction(tx => applyPromotion(tx, promotionId, admin.id));
   } catch (error) {
-    return { error: error instanceof Error ? error.message : "Could not apply the promotion." };
+    return { error: error instanceof Error && !("query" in error) ? error.message : "Could not apply the promotion." };
   }
   refresh(promotionId);
   return { success: "Promotion applied. The employee record has been updated." };

@@ -8,6 +8,7 @@ import { downloadOfferPdf } from "@/lib/storage/offers";
 import { renderOfferPdf, PdfEngineError } from "@/lib/offers/pdf";
 import { letterheadFooterTemplate, letterheadHeaderTemplate } from "@/lib/documents/chrome";
 import { sohumLetterheadDataUri } from "@/lib/documents/logo";
+import { ensureSignedDocument } from "@/lib/documents/signed-files";
 import { audit } from "@/lib/audit";
 
 /**
@@ -36,8 +37,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
 
   if (wantsSigned) {
     const [signature] = await db.select().from(offerSignatures).where(eq(offerSignatures.offerId, row.offer.id));
-    if (!signature?.signedPdfPath) return NextResponse.json({ error: "Not found" }, { status: 404 });
-    storagePath = signature.signedPdfPath;
+    if (!signature) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    try { storagePath = signature.signedPdfPath ?? await ensureSignedDocument("offer", row.offer.id); }
+    catch { return NextResponse.json({ error: "The signed PDF is temporarily unavailable. Please retry." }, { status: 502 }); }
+    if (!storagePath) return NextResponse.json({ error: "Not found" }, { status: 404 });
     filename = "offer-letter-signed.pdf";
   } else {
     const versionId = row.offer.acceptedVersionId ?? row.offer.currentVersionId;

@@ -11,7 +11,7 @@ import { approveOfferAction, extendOfferAction, rejectOfferAction, requestOfferC
 import { AdminHeader, Card, PageBody, StatusPill } from "@/components/admin/ui";
 import { WorkflowForm, WorkflowField } from "@/components/admin/WorkflowForm";
 import { t, btnSecondary } from "@/components/admin/form";
-import { offerStatusLabel, offerEventLabel, formatCurrency, formatDateTime, shortDate } from "@/lib/format";
+import { offerStatusLabel, offerEventLabel, formatCurrency, formatDateTime, calendarDate } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Offer" };
@@ -59,7 +59,7 @@ export default async function OfferDetailPage({ params }: { params: Promise<{ id
                 ["Candidate", `${application.firstName} ${application.lastName}`],
                 ["Position", version.jobTitle],
                 ["Salary", version.annualSalaryCents != null ? formatCurrency(version.annualSalaryCents) : version.hourlyRateCents != null ? `${formatCurrency(version.hourlyRateCents)}/hr` : "—"],
-                ["Start date", shortDate(version.startDate)],
+                ["Start date", calendarDate(version.startDate)],
                 ["Created by", admin.id === offer.createdBy ? "You" : "Recruiting team"],
                 ["Created", formatDateTime(offer.createdAt)],
               ].map(([k, v]) => (
@@ -192,7 +192,7 @@ export default async function OfferDetailPage({ params }: { params: Promise<{ id
             <p className={`mt-3 ${t.hint} text-graphite-600`}>
               Consent recorded: &ldquo;{signature.consentText}&rdquo;
             </p>
-            {signature.signedPdfPath ? (
+            {signature ? (
               <a href={`/admin/offers/${id}/signed`} target="_blank" rel="noopener noreferrer" className={`mt-4 ${btnSecondary}`}>
                 View signed offer letter (PDF)
                 <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />

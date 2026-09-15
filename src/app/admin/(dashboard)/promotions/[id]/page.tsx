@@ -220,7 +220,7 @@ export default async function PromotionDetailPage({ params }: { params: Promise<
                 </div>
               ))}
             </dl>
-            {signature.signedPdfPath ? (
+            {signature ? (
               <a href={`/admin/promotions/${id}/signed`} target="_blank" rel="noopener noreferrer" className={`mt-4 ${btnSecondary}`}>
                 View signed letter (PDF) <ExternalLink className="size-3.5" aria-hidden="true" />
               </a>

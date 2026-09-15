@@ -79,6 +79,7 @@ export async function saveClientAction(_: InvoiceActionState, form: FormData): P
   const parsed = clientSchema.safeParse(Object.fromEntries(form));
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Please correct the highlighted fields." };
   const id = String(form.get("id") ?? "");
+  if (id && !z.uuid().safeParse(id).success) return { error: "Invalid client." };
   const editing = Boolean(id) && z.uuid().safeParse(id).success;
   try {
     await db.transaction(async tx => {
@@ -124,6 +125,7 @@ function itemsFromForm(form: FormData) {
 export async function saveInvoiceAction(_: InvoiceActionState, form: FormData): Promise<InvoiceActionState> {
   const admin = await requirePermission("invoices");
   const invoiceId = String(form.get("invoiceId") ?? "");
+  if (invoiceId && !z.uuid().safeParse(invoiceId).success) return { error: "Invalid invoice." };
   const editing = Boolean(invoiceId) && z.uuid().safeParse(invoiceId).success;
 
   const parsed = invoiceInputSchema.safeParse({ ...Object.fromEntries(form), items: itemsFromForm(form) });
@@ -138,6 +140,8 @@ export async function saveInvoiceAction(_: InvoiceActionState, form: FormData): 
     additionalChargesCents: v.additionalChargesCents,
   });
 
+  if ((v.discountCents ?? 0) > totals.subtotalCents) return { error: "Discount cannot exceed the subtotal." };
+  if (Object.values(totals).some(n => !Number.isSafeInteger(n) || n < 0)) return { error: "The invoice total exceeds the supported amount. Reduce the quantity or rate." };
   let savedId = invoiceId;
   try {
     await db.transaction(async tx => {
@@ -175,7 +179,7 @@ export async function saveInvoiceAction(_: InvoiceActionState, form: FormData): 
         }
         // Balance follows the recomputed total, keeping any payments intact.
         const balance = totals.totalCents - existing.amountPaidCents;
-        await tx.update(invoices).set({ ...shared, balanceDueCents: balance }).where(eq(invoices.id, invoiceId));
+        await tx.update(invoices).set({ ...shared, balanceDueCents: balance, documentHtml: null, pdfStoragePath: null }).where(eq(invoices.id, invoiceId));
         await tx.delete(invoiceItems).where(eq(invoiceItems.invoiceId, invoiceId));
         await record(tx, admin.id, invoiceId, "INVOICE_UPDATED", { totalCents: totals.totalCents });
       } else {
@@ -232,13 +236,15 @@ export async function recordPaymentAction(_: InvoiceActionState, form: FormData)
             ? "Send the invoice before recording a payment against it."
             : "This invoice is already paid in full.");
       }
+      const [duplicate] = await tx.select({ id: invoicePayments.id }).from(invoicePayments).where(eq(invoicePayments.requestKey, v.requestKey));
+      if (duplicate) throw new Error("This payment has already been recorded. Review payment history.");
       // Overpayment is refused rather than silently creating a credit.
       if (v.amountCents > invoice.balanceDueCents) {
         throw new Error(`That payment exceeds the outstanding balance. At most ${(invoice.balanceDueCents / 100).toFixed(2)} can be applied.`);
       }
 
       await tx.insert(invoicePayments).values({
-        invoiceId, amountCents: v.amountCents, paidOn: v.paidOn, method: v.method,
+        invoiceId, requestKey: v.requestKey, amountCents: v.amountCents, paidOn: v.paidOn, method: v.method,
         reference: v.reference ?? null, notes: v.notes ?? null, recordedBy: admin.id,
       });
 
@@ -305,9 +311,9 @@ export async function reopenInvoiceAction(_: InvoiceActionState, form: FormData)
       if (!invoice || !canReopenToDraft(invoice.status as InvoiceStatus)) throw new Error("This invoice cannot be returned to draft.");
       if (invoice.amountPaidCents > 0) throw new Error("Payments have been recorded against this invoice, so it cannot be returned to draft.");
       await tx.update(invoices).set({
-        status: "DRAFT", secureTokenHash: null, tokenExpiresAt: null, sentAt: null, sentBy: null, updatedAt: new Date(),
+        status: "DRAFT", documentHtml: null, pdfStoragePath: null, secureTokenHash: null, tokenExpiresAt: null, sentAt: null, sentBy: null, updatedAt: new Date(),
       }).where(eq(invoices.id, invoiceId));
-      await record(tx, admin.id, invoiceId, "INVOICE_REOPENED", { previousStatus: invoice.status });
+      await record(tx, admin.id, invoiceId, "INVOICE_REOPENED", { previousStatus: invoice.status, previousPdfPath: invoice.pdfStoragePath, previousDocumentHtml: invoice.documentHtml });
     });
   } catch (err) {
     return { error: err instanceof Error && !("query" in err) ? err.message : "Could not reopen this invoice." };

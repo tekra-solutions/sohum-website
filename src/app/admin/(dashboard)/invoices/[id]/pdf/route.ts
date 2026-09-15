@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { requireInvoice } from "@/lib/invoices/access";
-import { buildInvoiceDocument } from "@/lib/invoices/send-actions";
+import { buildInvoiceDocument } from "@/lib/invoices/document";
 import { renderInvoiceHtml } from "@/lib/invoices/render-html";
+import { pdfFooterTemplate } from "@/lib/documents/chrome";
 import { renderOfferPdf } from "@/lib/offers/pdf";
 import { downloadInvoicePdf } from "@/lib/storage/invoices";
 import { audit } from "@/lib/audit";
@@ -18,7 +19,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     } else {
       const doc = await buildInvoiceDocument(id);
       if (!doc) return NextResponse.json({ error: "Not found" }, { status: 404 });
-      body = await renderOfferPdf(renderInvoiceHtml(doc));
+      body = await renderOfferPdf(invoice.documentHtml ?? renderInvoiceHtml(doc), { footerTemplate: pdfFooterTemplate(doc.invoiceNumber) });
     }
     await audit({
       adminId: admin.id, action: "INVOICE_PDF_GENERATED", entityType: "invoice", entityId: id,

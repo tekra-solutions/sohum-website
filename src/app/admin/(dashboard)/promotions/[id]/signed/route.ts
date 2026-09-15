@@ -1,35 +1,18 @@
 import { NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
-import { db } from "@/db";
-import { promotionSignatures } from "@/db/schema";
+import { z } from "zod";
 import { requirePermission } from "@/lib/ats/access";
+import { ensureSignedDocument } from "@/lib/documents/signed-files";
+import { downloadOfferPdf } from "@/lib/storage/offers";
 import { audit } from "@/lib/audit";
-import { signedOfferPdfUrl } from "@/lib/storage/offers";
-
-/**
- * Redirects to a short-lived signed URL for the stored signed PDF.
- *
- * The file itself is never public: the bucket is private and the URL expires,
- * so access is always mediated by this permission check and recorded.
- */
-export async function GET(
-  _request: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const admin = await requirePermission("employees");
+export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-
-  const [signature] = await db.select().from(promotionSignatures)
-    .where(eq(promotionSignatures.promotionId, id));
-  if (!signature?.signedPdfPath) return new NextResponse("Not found", { status: 404 });
-
-  await audit({
-    adminId: admin.id, action: "PROMOTION_PDF_GENERATED",
-    entityType: "promotion", entityId: id,
-    metadata: { accessed: signature.signedPdfPath },
-  });
-
-  const url = await signedOfferPdfUrl(signature.signedPdfPath, 60);
-  if (!url) return new NextResponse("Storage is not configured", { status: 503 });
-  return NextResponse.redirect(url);
+  if (!z.uuid().safeParse(id).success) return new NextResponse("Not found", { status: 404 });
+  const admin = await requirePermission("employees");
+  try {
+    const path = await ensureSignedDocument("promotion", id);
+    if (!path) return new NextResponse("No signed document", { status: 404 });
+    const blob = await downloadOfferPdf(path);
+    await audit({ adminId: admin.id, action: "SIGNED_PDF_GENERATED", entityType: "promotion", entityId: id, metadata: { download: true } });
+    return new NextResponse(blob.stream(), { headers: { "Content-Type": "application/pdf", "Content-Disposition": 'inline; filename="promotion-signed.pdf"', "Cache-Control": "private, no-store" } });
+  } catch { return new NextResponse("The signed PDF is temporarily unavailable. Please retry.", { status: 502 }); }
 }

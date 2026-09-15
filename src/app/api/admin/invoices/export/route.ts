@@ -1,10 +1,10 @@
-import { and, asc, desc, eq, gte, ilike, lte, or } from "drizzle-orm";
+import { asc, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { invoices, clients, auditLogs } from "@/db/schema";
 import { getSessionAdmin } from "@/lib/auth/session";
 import { csvCell, permits } from "@/lib/ats/policy";
 import { derivedInvoiceStatus } from "@/lib/invoices/money";
-import { invoiceStatuses } from "@/lib/invoices/policy";
+import { invoiceFilter } from "@/lib/invoices/data";
 
 /**
  * Invoice CSV export. Respects the list's active filters, never emits the
@@ -16,25 +16,10 @@ export async function GET(request: Request) {
   if (!permits(admin.role, "invoices")) return Response.json({ error: "Forbidden" }, { status: 403 });
 
   const sp = new URL(request.url).searchParams;
-  const where = [];
-  const status = sp.get("status");
-  if (status && (invoiceStatuses as readonly string[]).includes(status)) {
-    where.push(eq(invoices.status, status as (typeof invoiceStatuses)[number]));
-  }
-  const clientId = sp.get("clientId");
-  if (clientId) where.push(eq(invoices.clientId, clientId));
-  const from = sp.get("from"), to = sp.get("to");
-  if (from && !isNaN(Date.parse(from))) where.push(gte(invoices.invoiceDate, new Date(from)));
-  if (to && !isNaN(Date.parse(to))) {
-    const end = new Date(to); end.setUTCHours(23, 59, 59, 999);
-    where.push(lte(invoices.invoiceDate, end));
-  }
-  const q = sp.get("q");
-  if (q?.trim()) {
-    const term = `%${q.trim().slice(0, 200)}%`;
-    where.push(or(ilike(invoices.invoiceNumber, term), ilike(clients.companyName, term), ilike(clients.email, term))!);
-  }
-  const clause = where.length ? and(...where) : undefined;
+  const status = sp.get("status"), clientId = sp.get("clientId"), from = sp.get("from"), to = sp.get("to"), q = sp.get("q");
+  const clause = invoiceFilter({ status: status ?? undefined, clientId: clientId ?? undefined,
+    from: from ?? undefined, to: to ?? undefined, q: q ?? undefined,
+    dueFrom: sp.get("dueFrom") ?? undefined, dueTo: sp.get("dueTo") ?? undefined });
 
   await db.insert(auditLogs).values({
     adminId: admin.id, action: "INVOICE_EXPORTED", entityType: "export",

@@ -20,6 +20,6 @@ export async function resolveInvoiceToken(token: string) {
     .limit(1);
   if (!row) return null;
   if (!clientCanView(row.invoice.status as InvoiceStatus)) return null;
-  if (row.invoice.tokenExpiresAt && row.invoice.tokenExpiresAt <= new Date()) return null;
+  if (!row.invoice.tokenExpiresAt || row.invoice.tokenExpiresAt <= new Date()) return null;
   return row;
 }

@@ -157,7 +157,7 @@ describe("electronic signature", () => {
     templateBodyHtml: "<p>We are pleased to offer you this position.</p>",
     templateTermsHtml: "<h3>Benefits</h3><p>Per the employee handbook.</p>",
     templateAcknowledgementsHtml: "<p>You acknowledge you have read these terms.</p>",
-    renderedHtml: "", pdfStoragePath: null,
+    renderedHtml: "<html><body><h1>Issued to Ada Lovelace</h1><p>Salary: $145,000</p></body></html>", pdfStoragePath: null,
     createdBy: "33333333-3333-4333-8333-333333333333", createdAt: new Date("2026-09-01T00:00:00Z"),
   };
   const input = (overrides: Record<string, unknown> = {}) => ({
@@ -175,10 +175,10 @@ describe("electronic signature", () => {
   it("renders the signature, consent and acceptance record into the signed document", async () => {
     const { renderSignedOfferHtml } = await import("@/lib/offers/signed-document");
     const html = renderSignedOfferHtml(input() as never);
-    expect(html).toContain("Electronic acceptance record");
+    expect(html).toContain("Electronic signature record");
     expect(html).toContain("Ada Lovelace");
     expect(html).toContain(consentText);
-    expect(html).toContain("One-time code sent to the candidate&#39;s email on file");
+    expect(html).toContain("EMAIL_OTP");
     // The document must never carry a token or session value.
     expect(html).not.toMatch(/secureToken|tokenHash|sohum_offer_session/);
   });
@@ -189,8 +189,9 @@ describe("electronic signature", () => {
     // Same frozen row + same signature => same hash, which is what makes the
     // value printed in the document verifiable after the fact.
     expect(hash(input())).toBe(hash(input()));
+    expect(hash(input({ candidateName: "Later renamed", candidateEmail: "new@example.com" }))).toBe(hash(input()));
     // Altered compensation must not keep the signed document's hash.
-    expect(hash(input({ version: { ...version, annualSalaryCents: 20000000 } }))).not.toBe(hash(input()));
+    expect(hash(input({ version: { ...version, renderedHtml: version.renderedHtml.replace("145,000", "200,000") } }))).not.toBe(hash(input()));
   });
 
   it("never reuses a signed document path, so an accepted PDF cannot be overwritten", async () => {

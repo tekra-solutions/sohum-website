@@ -1,5 +1,5 @@
 import "server-only";
-import { and, eq, lte } from "drizzle-orm";
+import { isNull, and, eq, lte } from "drizzle-orm";
 import { db } from "@/db";
 import {
   promotions, promotionVersions, promotionSignatures, employmentEvents,
@@ -52,8 +52,10 @@ export async function applyPromotion(tx: Tx, promotionId: string, adminId: strin
     .where(eq(promotions.id, promotionId)).for("update");
   if (!promotion) throw new Error("Promotion not found.");
 
+  if (promotion.status === "EFFECTIVE") return;
+  if (!promotion.acceptedVersionId) throw new Error("Only a signed promotion can take effect.");
   const [version] = await tx.select().from(promotionVersions)
-    .where(eq(promotionVersions.id, promotion.acceptedVersionId ?? promotion.currentVersionId!));
+    .where(eq(promotionVersions.id, promotion.acceptedVersionId));
   if (!version) throw new Error("Promotion has no accepted version.");
 
   if (!isDueToApply(promotion.status as PromotionStatus, version.effectiveDate)) {
@@ -70,6 +72,10 @@ export async function applyPromotion(tx: Tx, promotionId: string, adminId: strin
 
   const [signature] = await tx.select().from(promotionSignatures)
     .where(eq(promotionSignatures.promotionId, promotionId));
+
+  if (!signature || signature.promotionVersionId !== version.id || !signature.electronicConsent) throw new Error("A verified signature is required before this promotion can take effect.");
+  if (employee.status === "TERMINATED") throw new Error("A terminated employee cannot be promoted. Withdraw this promotion.");
+  if (employee.jobTitle !== version.previousJobTitle || employee.department !== version.previousDepartment || (employee.location ?? "") !== (version.previousLocation ?? "") || employee.employmentType !== version.previousEmploymentType) throw new Error("The employee record changed after this letter was prepared. Withdraw it and issue an updated letter.");
 
   // History first: the row records what the employee looked like *before*
   // this change, so nothing is lost when the employee row is overwritten.
@@ -135,7 +141,7 @@ export async function applyDuePromotions(adminId: string | null = null) {
     .where(and(
       eq(promotions.status, "ACCEPTED"),
       lte(promotionVersions.effectiveDate, new Date()),
-    ));
+    )).orderBy(promotionVersions.effectiveDate).limit(100);
 
   const failures: { promotionId: string; reason: string }[] = [];
   let applied = 0;
@@ -145,7 +151,7 @@ export async function applyDuePromotions(adminId: string | null = null) {
       await db.transaction(tx => applyPromotion(tx, row.id, adminId));
       applied += 1;
     } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error);
+      const reason = error instanceof Error && !("query" in error) ? error.message : "Could not apply promotion.";
       // A concurrent run getting there first is the expected benign race, not
       // a failure worth reporting.
       if (/already|not due|has not arrived/i.test(reason)) continue;
@@ -161,19 +167,21 @@ export async function applyDuePromotions(adminId: string | null = null) {
 /** Generates and stores the PDF for a version, reusing the offer renderer. */
 export async function generatePromotionPdf(promotionId: string, versionId: string) {
   const [version] = await db.select().from(promotionVersions).where(eq(promotionVersions.id, versionId));
-  if (!version) throw new Error("Version not found.");
+  if (!version || version.promotionId !== promotionId) throw new Error("Version not found.");
+  if (version.pdfStoragePath) return { path: version.pdfStoragePath, bytes: 0 };
   const pdf = await renderOfferPdf(version.renderedHtml, {
     headerTemplate: letterheadHeaderTemplate(sohumLetterheadDataUri),
     footerTemplate: letterheadFooterTemplate(),
   });
   const path = buildPromotionPdfPath(promotionId, version.versionNumber);
   await uploadOfferPdf({ path, body: pdf });
-  await db.update(promotionVersions).set({ pdfStoragePath: path }).where(eq(promotionVersions.id, versionId));
-  return { path, bytes: pdf.length };
+  await db.update(promotionVersions).set({ pdfStoragePath: path }).where(and(eq(promotionVersions.id, versionId), isNull(promotionVersions.pdfStoragePath)));
+  const [stored] = await db.select().from(promotionVersions).where(eq(promotionVersions.id, versionId));
+  return { path: stored.pdfStoragePath!, bytes: pdf.length };
 }
 
 /** Notifies the creator and approvers that an employee has signed. */
-export async function notifyPromotionSigned(tx: Tx, promotionId: string, employeeName: string) {
+export async function notifyPromotionSigned(tx: Tx, promotionId: string, employeeName: string, outcome = "signed") {
   const [promotion] = await tx.select().from(promotions).where(eq(promotions.id, promotionId));
   if (!promotion) return;
   const recipients = [promotion.createdBy, promotion.approvedBy].filter(
@@ -182,7 +190,7 @@ export async function notifyPromotionSigned(tx: Tx, promotionId: string, employe
   for (const adminId of [...new Set(recipients)]) {
     await tx.insert(notifications).values({
       adminId,
-      title: `${employeeName} signed their promotion letter`,
+      title: `${employeeName} ${outcome} their promotion letter`,
       href: `/admin/promotions/${promotionId}`,
     });
   }

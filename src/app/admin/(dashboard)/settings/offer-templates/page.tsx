@@ -46,7 +46,7 @@ export default async function OfferTemplatesPage() {
         {saved.length === 0 && (
           <WorkflowForm action={seedDefaultOfferTemplatesAction} label="Load starter templates">
             <p className="text-xs text-graphite-500">
-              Loads one starter template per category (Full-Time, Contract, Remote, Internship), plus the
+              Loads one starter template per category (Full-Time, Contract, Remote, Internship), plus the promotion letter and the
               Sohum Systems standard offer. All are sample content requiring legal review before you issue
               an offer from them.
             </p>

@@ -1,4 +1,5 @@
 import "server-only";
+import { z } from "zod";
 import { and, asc, count, desc, eq, gte, ilike, lte, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { invoices, invoiceItems, invoicePayments, clients, admins, invoiceSettings } from "@/db/schema";
@@ -17,32 +18,7 @@ export async function listInvoices(f: InvoiceFilters) {
   const page = positivePage(f.page);
   const pageSize = 25;
 
-  const where = [];
-  if (f.status && (invoiceStatuses as readonly string[]).includes(f.status)) {
-    where.push(eq(invoices.status, f.status as (typeof invoiceStatuses)[number]));
-  }
-  if (f.clientId) where.push(eq(invoices.clientId, f.clientId));
-  // Typed operators throughout — never a raw sql`` template with a bare Date.
-  if (f.from && !isNaN(Date.parse(f.from))) where.push(gte(invoices.invoiceDate, new Date(f.from)));
-  if (f.to && !isNaN(Date.parse(f.to))) {
-    const end = new Date(f.to); end.setUTCHours(23, 59, 59, 999);
-    where.push(lte(invoices.invoiceDate, end));
-  }
-  if (f.dueFrom && !isNaN(Date.parse(f.dueFrom))) where.push(gte(invoices.dueDate, new Date(f.dueFrom)));
-  if (f.dueTo && !isNaN(Date.parse(f.dueTo))) {
-    const end = new Date(f.dueTo); end.setUTCHours(23, 59, 59, 999);
-    where.push(lte(invoices.dueDate, end));
-  }
-  if (f.q?.trim()) {
-    const term = `%${f.q.trim().slice(0, 200)}%`;
-    where.push(or(
-      ilike(invoices.invoiceNumber, term),
-      ilike(clients.companyName, term),
-      ilike(clients.email, term),
-      sql`${invoices.billingSnapshot}->>'companyName' ilike ${term}`,
-    )!);
-  }
-  const clause = where.length ? and(...where) : undefined;
+  const clause = invoiceFilter(f);
 
   const [rows, [totalRow]] = await Promise.all([
     db.select({ invoice: invoices, clientName: clients.companyName, creatorName: admins.name })
@@ -60,6 +36,7 @@ export async function listInvoices(f: InvoiceFilters) {
 
 export async function getInvoiceDetail(id: string) {
   await requirePermission("invoices");
+  if (!z.uuid().safeParse(id).success) return null;
   const [row] = await db.select({ invoice: invoices, clientName: clients.companyName, creatorName: admins.name })
     .from(invoices)
     .leftJoin(clients, eq(invoices.clientId, clients.id))
@@ -107,9 +84,9 @@ export async function invoiceDashboard() {
 
   const [summary] = await db.select({
     outstandingCents: sql<number>`coalesce(sum(${invoices.balanceDueCents}) filter (where ${invoices.status} not in ('DRAFT','VOID','PAID')), 0)::bigint`,
-    overdueCents: sql<number>`coalesce(sum(${invoices.balanceDueCents}) filter (where ${invoices.status} not in ('DRAFT','VOID','PAID') and ${invoices.dueDate} < now() and ${invoices.balanceDueCents} > 0), 0)::bigint`,
+    overdueCents: sql<number>`coalesce(sum(${invoices.balanceDueCents}) filter (where ${invoices.status} not in ('DRAFT','VOID','PAID') and ${invoices.dueDate} < (date_trunc('day', now() at time zone 'UTC') at time zone 'UTC') and ${invoices.balanceDueCents} > 0), 0)::bigint`,
     draftCount: sql<number>`count(*) filter (where ${invoices.status} = 'DRAFT')::int`,
-    overdueCount: sql<number>`count(*) filter (where ${invoices.status} not in ('DRAFT','VOID','PAID') and ${invoices.dueDate} < now() and ${invoices.balanceDueCents} > 0)::int`,
+    overdueCount: sql<number>`count(*) filter (where ${invoices.status} not in ('DRAFT','VOID','PAID') and ${invoices.dueDate} < (date_trunc('day', now() at time zone 'UTC') at time zone 'UTC') and ${invoices.balanceDueCents} > 0)::int`,
   }).from(invoices);
 
   const [paid] = await db.select({
@@ -123,8 +100,8 @@ export async function invoiceDashboard() {
     db.select({ invoice: invoices, clientName: clients.companyName })
       .from(invoices).leftJoin(clients, eq(invoices.clientId, clients.id))
       .where(or(
-        and(sql`${invoices.status} not in ('DRAFT','VOID','PAID')`, sql`${invoices.dueDate} < now()`, sql`${invoices.balanceDueCents} > 0`),
-        and(sql`${invoices.status} not in ('DRAFT','VOID','PAID')`, sql`${invoices.dueDate} < now() + interval '3 days'`, sql`${invoices.balanceDueCents} > 0`),
+        and(sql`${invoices.status} not in ('DRAFT','VOID','PAID')`, sql`${invoices.dueDate} < (date_trunc('day', now() at time zone 'UTC') at time zone 'UTC')`, sql`${invoices.balanceDueCents} > 0`),
+        and(sql`${invoices.status} not in ('DRAFT','VOID','PAID')`, sql`${invoices.dueDate} < (date_trunc('day', now() at time zone 'UTC') at time zone 'UTC') + interval '3 days'`, sql`${invoices.balanceDueCents} > 0`),
         eq(invoices.status, "DRAFT"),
       ))
       .orderBy(asc(invoices.dueDate)).limit(12),
@@ -138,4 +115,39 @@ export async function invoiceDashboard() {
     overdueCount: summary?.overdueCount ?? 0,
     recent, attention,
   };
+}
+
+/** One filter definition shared by the list and its CSV export. */
+export function invoiceFilter(f: InvoiceFilters) {
+  const where = [];
+  if (f.status === "OUTSTANDING") where.push(sql`${invoices.status} not in ('DRAFT','VOID') and ${invoices.balanceDueCents} > 0`);
+  if (f.status && (invoiceStatuses as readonly string[]).includes(f.status)) {
+    where.push(sql`(case when ${invoices.status} in ('DRAFT','VOID') then ${invoices.status}::text
+      when ${invoices.balanceDueCents} <= 0 and ${invoices.totalCents} > 0 then 'PAID'
+      when ${invoices.balanceDueCents} > 0 and ${invoices.dueDate} < date_trunc('day', now() at time zone 'UTC') at time zone 'UTC' then 'OVERDUE'
+      when ${invoices.amountPaidCents} > 0 then 'PARTIALLY_PAID' else ${invoices.status}::text end) = ${f.status}`);
+  }
+  if (f.clientId && z.uuid().safeParse(f.clientId).success) where.push(eq(invoices.clientId, f.clientId));
+  // Typed operators throughout — never a raw sql`` template with a bare Date.
+  if (f.from && !isNaN(Date.parse(f.from))) where.push(gte(invoices.invoiceDate, new Date(f.from)));
+  if (f.to && !isNaN(Date.parse(f.to))) {
+    const end = new Date(f.to); end.setUTCHours(23, 59, 59, 999);
+    where.push(lte(invoices.invoiceDate, end));
+  }
+  if (f.dueFrom && !isNaN(Date.parse(f.dueFrom))) where.push(gte(invoices.dueDate, new Date(f.dueFrom)));
+  if (f.dueTo && !isNaN(Date.parse(f.dueTo))) {
+    const end = new Date(f.dueTo); end.setUTCHours(23, 59, 59, 999);
+    where.push(lte(invoices.dueDate, end));
+  }
+  if (f.q?.trim()) {
+    const term = `%${f.q.trim().slice(0, 200)}%`;
+    where.push(or(
+      ilike(invoices.invoiceNumber, term),
+      ilike(clients.companyName, term),
+      ilike(clients.email, term),
+      sql`${invoices.billingSnapshot}->>'companyName' ilike ${term}`,
+    )!);
+  }
+  return where.length ? and(...where) : undefined;
+
 }
