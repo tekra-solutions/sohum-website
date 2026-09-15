@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Sora } from "next/font/google";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { contact, credentials, naics, site } from "@/lib/site";
 import "./globals.css";
 
@@ -182,6 +183,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
         />
         {children}
+        {/*
+          Vercel Speed Insights. Reports real-user Core Web Vitals from the
+          deployed site; it is inert locally and on non-Vercel hosts, so no
+          environment guard is needed. Placed last so its script never delays
+          the content above it.
+        */}
+        <SpeedInsights />
       </body>
     </html>
   );
