@@ -969,4 +969,33 @@ describe.skipIf(!enabled)("offer signing attack surface (local only)", () => {
       expect(blob).not.toContain(String(version.annualSalaryCents));
     }
   });
+  it("restricts team administration and creates, disables and restores an account", async () => {
+    const { createAdminAction, listAdmins, setAdminActiveAction } = await import("@/lib/services/admin-actions");
+    const { db } = await import("@/db");
+    const { admins, auditLogs } = await import("@/db/schema");
+    const { eq } = await import("drizzle-orm");
+    const payload = form({ name: "Settings Review", email: "settings-review@sohum.invalid", role: "HIRING_MANAGER", password: "Local-Review-2026!", confirmPassword: "Local-Review-2026!" });
+    state.role = "RECRUITER";
+    expect(await listAdmins()).toEqual([]);
+    expect((await createAdminAction({}, payload)).ok).not.toBe(true);
+    expect((await setAdminActiveAction({}, form({ id: state.id, active: "false" }))).error).toContain("super admin");
+    state.role = "SUPER_ADMIN";
+    state.id = "10000000-0000-4000-8000-000000000001";
+    expect((await createAdminAction({}, payload)).ok).toBe(true);
+    expect((await createAdminAction({}, payload)).errors?.email).toContain("already exists");
+    const member = (await listAdmins()).find(a => a.email === "settings-review@sohum.invalid")!;
+    expect(member.role).toBe("HIRING_MANAGER");
+    expect(member).not.toHaveProperty("passwordHash");
+    expect((await setAdminActiveAction({}, form({ id: "invalid", active: "false" }))).error).toBeDefined();
+    expect((await setAdminActiveAction({}, form({ id: state.id, active: "false" }))).error).toContain("own account");
+    for (const active of [false, true]) {
+      expect((await setAdminActiveAction({}, form({ id: member.id, active: String(active) }))).success).toBeDefined();
+      const [record] = await db.select().from(admins).where(eq(admins.id, member.id));
+      expect(record.isActive).toBe(active);
+    }
+    const audit = await db.select().from(auditLogs).where(eq(auditLogs.entityId, member.id));
+    expect(audit.map(a => a.action)).toEqual(["ADMIN_CREATED_ADMIN", "ADMIN_DEACTIVATED_ADMIN", "ADMIN_ACTIVATED_ADMIN"]);
+    expect(JSON.stringify(audit)).not.toContain("Local-Review-2026!");
+  });
+
 });

@@ -1,169 +1,104 @@
 import Link from "next/link";
-import { db } from "@/db";
+import { ArrowUpRight, FileText, Mail, Receipt, ShieldCheck, Users, SlidersHorizontal, Plug, UserRound, CheckCircle2, CircleAlert } from "lucide-react";
+import { db, isDatabaseConfigured } from "@/db";
 import { recruitingSettings } from "@/db/schema";
 import { permits } from "@/lib/ats/policy";
 import { configureRecruitingAction, configureOfferDefaultsAction } from "@/lib/ats/job-actions";
 import { WorkflowForm, WorkflowField } from "@/components/admin/WorkflowForm";
-import { AdminHeader, Card, PageBody, StatusPill } from "@/components/admin/ui";
+import { AdminHeader, Card, PageBody } from "@/components/admin/ui";
 import { PasswordForm } from "@/components/admin/PasswordForm";
-import { CreateAdminForm } from "@/components/admin/CreateAdminForm";
-import { btnSecondary, t } from "@/components/admin/form";
-import { listAdmins, setAdminActiveAction } from "@/lib/services/admin-actions";
-import { canManageAdmins } from "@/lib/auth/roles";
+import { AdminTeamSettings } from "@/components/admin/AdminTeamSettings";
+import { listAdmins } from "@/lib/services/admin-actions";
+import { adminRoleDetails, canManageAdmins } from "@/lib/auth/roles";
 import { requireAdmin } from "@/lib/auth/session";
 import { isCronConfigured, isEmailConfigured } from "@/lib/env";
 import { isStorageConfigured } from "@/lib/storage/resumes";
-import { isDatabaseConfigured } from "@/db";
-import { relativeTime } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Settings" };
 
-const roleLabel: Record<string, string> = {
-  ADMIN: "Admin",
-  RECRUITER: "Recruiter",
-  SUPER_ADMIN: "Super admin",
-};
-
 export default async function SettingsPage() {
   const admin = await requireAdmin();
-  const [recruiting] = permits(admin.role, "settings") ? await db.select().from(recruitingSettings).limit(1) : [];
+  const mayConfigure = permits(admin.role, "settings");
   const mayManage = canManageAdmins(admin.role);
-  const team = mayManage && isDatabaseConfigured() ? await listAdmins() : [];
-
-  const integrations = [
-    { name: "Database", ok: isDatabaseConfigured(), hint: "DATABASE_URL" },
-    { name: "Resume storage", ok: isStorageConfigured(), hint: "SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY" },
-    { name: "Email", ok: isEmailConfigured(), hint: "RESEND_API_KEY or SMTP_HOST" },
-    {
-      name: "Scheduled jobs",
-      ok: isCronConfigured(),
-      hint: "CRON_SECRET — applies promotions on their effective date",
-    },
+  const [[recruiting], team] = await Promise.all([
+    mayConfigure && isDatabaseConfigured() ? db.select().from(recruitingSettings).limit(1) : Promise.resolve([]),
+    mayManage && isDatabaseConfigured() ? listAdmins() : Promise.resolve([]),
+  ]);
+  const sections = [
+    ...(mayManage ? [{ id: "team", label: "Team & access", icon: Users }] : []),
+    { id: "account", label: "Your account", icon: UserRound },
+    ...(mayConfigure ? [
+      { id: "templates", label: "Templates", icon: FileText },
+      { id: "recruiting", label: "Recruiting defaults", icon: SlidersHorizontal },
+      { id: "integrations", label: "Integrations", icon: Plug },
+    ] : []),
   ];
-
+  const integrations = [
+    { name: "Database", ok: isDatabaseConfigured(), description: "Jobs, candidates and business records.", setup: "Configure the database connection with your deployment administrator." },
+    { name: "Document storage", ok: isStorageConfigured(), description: "Private resumes, offer letters and invoices.", setup: "Connect Supabase and configure the private document buckets." },
+    { name: "Email delivery", ok: isEmailConfigured(), description: "Candidate messages and signing verification codes.", setup: "Connect an email provider and verify the sender address." },
+    { name: "Scheduled jobs", ok: isCronConfigured(), description: "Apply signed promotions on their effective date.", setup: "Configure the scheduled-job secret in deployment settings." },
+  ];
   return (
     <>
-      <AdminHeader
-        title="Settings"
-        description="Your profile, admin accounts and system configuration."
-      />
-
-      <PageBody className="max-w-3xl">
-        <Card title="Your account">
-          <dl>
-            {[["Name", admin.name], ["Email", admin.email], ["Role", roleLabel[admin.role] ?? admin.role]].map(([k, v]) => (
-              <div key={k} className="flex justify-between gap-4 border-b border-paper-200 py-2 last:border-0">
-                <dt className={`${t.hint} text-graphite-500`}>{k}</dt>
-                <dd className={`${t.body} text-ink-900`}>{v}</dd>
-              </div>
-            ))}
-          </dl>
-          <details className="mt-4 border-t border-paper-200 pt-4">
-            <summary className={`cursor-pointer ${t.label} font-medium text-graphite-700`}>Change password</summary>
-            <div className="mt-4"><PasswordForm /></div>
-          </details>
-        </Card>
-
-        {permits(admin.role, "settings") && (
-          <Card title="Templates" description="The wording used in outbound email, offer letters and invoices">
-            <div className="flex flex-wrap gap-2">
-              <Link href="/admin/settings/email-templates" className={btnSecondary}>Email templates</Link>
-              <Link href="/admin/settings/offer-templates" className={btnSecondary}>Offer letter templates</Link>
-              <Link href="/admin/settings/invoice-settings" className={btnSecondary}>Invoice settings</Link>
-            </div>
-          </Card>
-        )}
-
-        {permits(admin.role, "settings") && (
-          <Card
-            title="Offer letter defaults"
-            description="Applied to every new offer, so recruiters only enter compensation and dates. Changing these never alters an offer already issued."
-          >
-            <WorkflowForm action={configureOfferDefaultsAction} label="Save offer defaults">
-              <WorkflowField name="authorizedRepName" label="Authorized representative" value={recruiting?.authorizedRepName ?? ""} />
-              <WorkflowField name="authorizedRepTitle" label="Representative title" value={recruiting?.authorizedRepTitle ?? ""} />
-              <WorkflowField name="hrContactEmail" label="HR contact email" value={recruiting?.hrContactEmail ?? ""} />
-              <WorkflowField name="defaultBenefitsSummary" label="Standard benefits summary" value={recruiting?.defaultBenefitsSummary ?? ""} multiline />
-              <WorkflowField name="defaultPtoSummary" label="Standard PTO summary" value={recruiting?.defaultPtoSummary ?? ""} multiline />
-            </WorkflowForm>
-          </Card>
-        )}
-
-        {permits(admin.role, "settings") && (
-          <Card title="Job approval workflow" description="Whether a job must be approved before it can be published">
-            <WorkflowForm action={configureRecruitingAction} label="Save">
-              <WorkflowField
-                name="requireJobApproval"
-                label="Approval before publication"
-                value={recruiting?.requireJobApproval ? "1" : "0"}
-                options={[
-                  { value: "0", label: "Disabled — publish directly" },
-                  { value: "1", label: "Enabled — jobs must be approved" },
-                ]}
-              />
-            </WorkflowForm>
-          </Card>
-        )}
-
-        {mayManage && (
-          <>
-            <Card title="Admin accounts" description={`${team.length} account${team.length === 1 ? "" : "s"}. Deactivating revokes access immediately.`}>
-              <ul>
-                {team.map((a) => (
-                  <li key={a.id} className="flex flex-wrap items-center justify-between gap-3 border-b border-paper-200 py-2.5 last:border-0">
-                    <div className="min-w-0">
-                      <p className={`${t.body} font-medium text-ink-900`}>
-                        {a.name}
-                        {a.id === admin.id && (
-                          <span className={`ml-2 ${t.hint} font-normal text-graphite-500`}>(you)</span>
-                        )}
-                      </p>
-                      <p className={`${t.hint} text-graphite-600`}>
-                        {a.email} · {roleLabel[a.role] ?? a.role}
-                        {a.lastLoginAt ? ` · last in ${relativeTime(a.lastLoginAt)}` : " · never signed in"}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2.5">
-                      <StatusPill status={a.isActive ? "PUBLISHED" : "ARCHIVED"} label={a.isActive ? "Active" : "Disabled"} />
-                      {a.id !== admin.id && (
-                        <form action={setAdminActiveAction}>
-                          <input type="hidden" name="id" value={a.id} />
-                          <input type="hidden" name="active" value={String(!a.isActive)} />
-                          <button type="submit" className={btnSecondary}>
-                            {a.isActive ? "Disable" : "Enable"}
-                          </button>
-                        </form>
-                      )}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-              <details className="mt-4 border-t border-paper-200 pt-4">
-                <summary className={`cursor-pointer ${t.label} font-medium text-graphite-700`}>Create an admin</summary>
-                <p className={`mt-2 ${t.hint} text-graphite-600`}>
-                  The password is set here and shown to nobody afterwards — pass it to the
-                  person directly and have them change it.
-                </p>
-                <div className="mt-4"><CreateAdminForm /></div>
-              </details>
-            </Card>
-          </>
-        )}
-
-        <Card title="Integrations" description="Configured through environment variables. Values are never displayed here.">
-          <ul>
-            {integrations.map((i) => (
-              <li key={i.name} className="flex items-center justify-between gap-4 border-b border-paper-200 py-2.5 last:border-0">
-                <div>
-                  <p className={`${t.body} text-ink-900`}>{i.name}</p>
-                  <p className={`font-mono ${t.micro} text-graphite-500`}>{i.hint}</p>
+      <AdminHeader title="Settings" description="Manage your team, recruiting preferences and connected services." />
+      <PageBody className="max-w-7xl">
+        <div className="grid items-start gap-6 xl:grid-cols-[180px_minmax(0,1fr)] xl:gap-8">
+          <nav aria-label="Settings sections" className="xl:sticky xl:top-28">
+            <p className="mb-3 hidden text-[0.625rem] font-semibold uppercase tracking-widest text-graphite-400 xl:block">Workspace settings</p>
+            <ul className="flex flex-wrap gap-1 xl:flex-col">{sections.map(({id,label,icon:Icon}) => <li key={id}><a href={`#${id}`} className="flex items-center gap-2.5 rounded px-3 py-2.5 text-xs font-medium text-graphite-600 transition-colors hover:bg-white hover:text-ink-900 focus-visible:outline-2 focus-visible:outline-offset-2"><Icon className="size-4 shrink-0" aria-hidden="true" />{label}</a></li>)}</ul>
+          </nav>
+          <div className="min-w-0 space-y-6">
+            {mayManage && <AdminTeamSettings team={team} currentAdminId={admin.id} />}
+            <section id="account" aria-label="Your account" className="scroll-mt-28">
+              <Card title="Your account" description="Your profile and sign-in security.">
+                <div className="flex items-start gap-4">
+                  <span aria-hidden="true" className="flex size-12 shrink-0 items-center justify-center rounded-full bg-ink-900 text-sm font-medium text-white">{admin.name.split(/\s+/).map(n => n[0]).slice(0,2).join("")}</span>
+                  <div className="min-w-0"><p className="text-sm font-medium text-ink-900">{admin.name}</p><p className="mt-1 break-all text-xs text-graphite-600">{admin.email}</p><p className="mt-2 text-xs text-graphite-500">{adminRoleDetails[admin.role]?.label ?? admin.role}</p></div>
                 </div>
-                <StatusPill status={i.ok ? "PUBLISHED" : "DRAFT"} label={i.ok ? "Configured" : "Not set"} />
-              </li>
-            ))}
-          </ul>
-        </Card>
+                <details className="group mt-5 border-t border-paper-200 pt-4">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded py-1 text-sm font-medium text-ink-900 focus-visible:outline-2"><span className="inline-flex items-center gap-2"><ShieldCheck className="size-4 text-graphite-500" aria-hidden="true" />Change password</span><span aria-hidden="true" className="text-lg font-normal text-graphite-400 group-open:rotate-45">+</span></summary>
+                  <div className="mt-5"><PasswordForm /></div>
+                </details>
+              </Card>
+            </section>
+            {mayConfigure && <>
+              <section id="templates" aria-labelledby="templates-title" className="scroll-mt-28">
+                <h2 id="templates-title" className="text-base font-medium text-ink-900">Templates & documents</h2>
+                <p className="mb-4 mt-1 text-xs text-graphite-500">Keep messages and documents consistent across your team.</p>
+                <div className="grid gap-3 sm:grid-cols-3">{[
+                  { href: "/admin/settings/email-templates", title: "Email templates", description: "Candidate messages and reusable replies.", icon: Mail },
+                  { href: "/admin/settings/offer-templates", title: "Letter templates", description: "Offer and promotion letter wording.", icon: FileText },
+                  { href: "/admin/settings/invoice-settings", title: "Invoice settings", description: "Billing identity, payment terms and numbering.", icon: Receipt },
+                ].map(({href,title,description,icon:Icon}) => <Link key={href} href={href} className="group rounded border border-paper-300 bg-white p-4 transition-colors hover:border-ink-500/40 focus-visible:outline-2 focus-visible:outline-offset-2"><div className="flex items-center justify-between"><Icon className="size-5 text-graphite-500" aria-hidden="true" /><ArrowUpRight className="size-4 text-graphite-400 group-hover:text-flame-600" aria-hidden="true" /></div><h3 className="mt-4 text-sm font-medium text-ink-900">{title}</h3><p className="mt-1.5 text-xs leading-5 text-graphite-500">{description}</p></Link>)}</div>
+              </section>
+              <section id="recruiting" aria-label="Recruiting defaults" className="scroll-mt-28 space-y-4">
+                <Card title="Offer letter defaults" description="Pre-fill new letters. Changes apply to future drafts; issued letters stay unchanged.">
+                  <WorkflowForm action={configureOfferDefaultsAction} label="Save letter defaults">
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <WorkflowField name="authorizedRepName" label="Authorized representative" value={recruiting?.authorizedRepName ?? ""} />
+                      <WorkflowField name="authorizedRepTitle" label="Representative title" value={recruiting?.authorizedRepTitle ?? ""} />
+                      <div className="sm:col-span-2"><WorkflowField name="hrContactEmail" label="HR contact email" type="email" value={recruiting?.hrContactEmail ?? ""} /></div>
+                      <WorkflowField name="defaultBenefitsSummary" label="Standard benefits" value={recruiting?.defaultBenefitsSummary ?? ""} multiline />
+                      <WorkflowField name="defaultPtoSummary" label="Paid time off" value={recruiting?.defaultPtoSummary ?? ""} multiline />
+                    </div>
+                  </WorkflowForm>
+                </Card>
+                <Card title="Job approval" description="Choose whether jobs need approval before appearing on your careers page.">
+                  <WorkflowForm action={configureRecruitingAction} label="Save approval preference">
+                    <WorkflowField name="requireJobApproval" label="Before a job is published" value={recruiting?.requireJobApproval ? "1" : "0"} options={[{value:"0",label:"Allow direct publishing"},{value:"1",label:"Require approval"}]} />
+                  </WorkflowForm>
+                </Card>
+              </section>
+              <section id="integrations" aria-label="Integrations" className="scroll-mt-28">
+                <Card title="Integrations" description="Configuration status. Delivery and connectivity should be verified in your deployment.">
+                  <ul className="divide-y divide-paper-200">{integrations.map(i => <li key={i.name} className="flex items-start gap-3 py-4 first:pt-0 last:pb-0">{i.ok ? <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-[#1e7a4d]" aria-hidden="true" /> : <CircleAlert className="mt-0.5 size-4 shrink-0 text-[#7a5c00]" aria-hidden="true" />}<div className="min-w-0 flex-1"><div className="flex flex-wrap justify-between gap-2"><p className="text-sm font-medium text-ink-900">{i.name}</p><span className={`text-xs ${i.ok ? "text-[#1e7a4d]" : "text-[#7a5c00]"}`}>{i.ok ? "Configured" : "Setup needed"}</span></div><p className="mt-1 text-xs leading-5 text-graphite-500">{i.description}</p>{!i.ok && <p className="mt-2 text-xs leading-5 text-[#7a5c00]">{i.setup}</p>}</div></li>)}</ul>
+                </Card>
+              </section>
+            </>}
+          </div>
+        </div>
       </PageBody>
     </>
   );

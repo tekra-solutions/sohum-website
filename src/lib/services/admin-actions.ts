@@ -1,9 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import { sql, eq, asc } from "drizzle-orm";
 import { db } from "@/db";
-import { admins } from "@/db/schema";
+import { admins, auditLogs } from "@/db/schema";
 import { createAdminSchema } from "@/lib/validation/schemas";
 import { hashPassword } from "@/lib/auth/password";
 import { requireAdmin } from "@/lib/auth/session";
@@ -75,41 +76,31 @@ export async function createAdminAction(
   }
 }
 
-export async function setAdminActiveAction(formData: FormData) {
+export async function setAdminActiveAction(_state: { error?: string; success?: string }, formData: FormData): Promise<{ error?: string; success?: string }> {
   const session = await requireAdmin();
-  if (!canManageAdmins(session.role)) return;
-
-  const id = String(formData.get("id") ?? "");
-  const active = String(formData.get("active") ?? "") === "true";
-  if (!id) return;
-
-  // Deactivating yourself would lock you out of the account you are using.
-  if (id === session.id) return;
-
-  const target = await db.query.admins.findFirst({
-    where: eq(admins.id, id),
-    columns: { email: true },
-  });
-  if (!target) return;
-
-  await db
-    .update(admins)
-    .set({ isActive: active, updatedAt: new Date() })
-    .where(eq(admins.id, id));
-
-  await audit({
-    adminId: session.id,
-    action: active ? "ADMIN_ACTIVATED_ADMIN" : "ADMIN_DEACTIVATED_ADMIN",
-    entityType: "admin",
-    entityId: id,
-    metadata: { email: target.email },
-  });
-
+  if (!canManageAdmins(session.role)) return { error: "Only a super admin can manage account access." };
+  const parsed = z.object({ id: z.uuid(), active: z.enum(["true", "false"]) }).safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: "Invalid account. Reload the page and try again." };
+  const { id } = parsed.data;
+  const active = parsed.data.active === "true";
+  if (id === session.id) return { error: "You cannot change your own account access." };
+  try {
+    await db.transaction(async tx => {
+      const [target] = await tx.select().from(admins).where(eq(admins.id, id)).for("update");
+      if (!target) throw new Error("Account not found.");
+      if (target.isActive === active) return;
+      await tx.update(admins).set({ isActive: active, updatedAt: new Date() }).where(eq(admins.id, id));
+      await tx.insert(auditLogs).values({ adminId: session.id, action: active ? "ADMIN_ACTIVATED_ADMIN" : "ADMIN_DEACTIVATED_ADMIN", entityType: "admin", entityId: id, metadata: { email: target.email } });
+    });
+  } catch { return { error: "Could not update access. Please try again." }; }
   revalidatePath("/admin/settings");
+  return { success: active ? "Account access enabled." : "Account access disabled." };
 }
 
 /** Async because this module is "use server". */
 export async function listAdmins() {
+  const session = await requireAdmin();
+  if (!canManageAdmins(session.role)) return [];
   return db
     .select({
       id: admins.id,
