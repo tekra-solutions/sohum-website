@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Sora } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Analytics } from "@vercel/analytics/next";
 import { contact, credentials, naics, site } from "@/lib/site";
 import "./globals.css";
 
@@ -190,6 +191,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           the content above it.
         */}
         <SpeedInsights />
+        {/*
+          Vercel Web Analytics. Tracks page views and user interactions from
+          the deployed site; it is inert locally and on non-Vercel hosts, so
+          no environment guard is needed.
+        */}
+        <Analytics />
       </body>
     </html>
   );
