@@ -80,13 +80,16 @@ export function Header() {
   };
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
+  const darkHome = pathname === "/" && !scrolled && !panel;
 
   return (
     <header
       className={`sticky top-0 z-50 transition-[background-color,border-color,box-shadow] duration-300 ${
         scrolled || panel
           ? "border-b border-paper-200 bg-white/92 backdrop-blur-xl"
-          : "border-b border-transparent bg-white"
+          : darkHome
+            ? "border-b border-white/10 bg-transparent"
+            : "border-b border-transparent bg-white"
       }`}
       onMouseLeave={scheduleClose}
     >
@@ -104,7 +107,7 @@ export function Header() {
             className="rounded transition-opacity hover:opacity-70"
             aria-label="Sohum Systems — home"
           >
-            <Logo />
+            <Logo tone={darkHome ? "light" : "dark"} />
           </Link>
 
           {/* ---- Desktop nav ---- */}
@@ -120,8 +123,8 @@ export function Header() {
                     aria-expanded={item.panel ? panel === item.panel : undefined}
                     className={`relative flex items-center gap-1 rounded px-3.5 py-2.5 text-[0.9375rem] transition-colors ${
                       active
-                        ? "text-ink-900"
-                        : "text-graphite-600 hover:text-ink-900"
+                        ? darkHome ? "text-white" : "text-ink-900"
+                        : darkHome ? "text-white/70 hover:text-white" : "text-graphite-600 hover:text-ink-900"
                     }`}
                   >
                     {item.label}
@@ -148,7 +151,7 @@ export function Header() {
           <div className="hidden items-center gap-3 lg:flex">
             <Link
               href="/contact"
-              className="rounded-[3px] bg-ink-900 px-6 py-3.5 text-[0.9375rem] font-medium text-white shadow-[0_1px_2px_rgba(16,23,38,0.18)] transition-[background-color,box-shadow,transform] duration-200 hover:bg-ink-700 hover:shadow-[0_8px_24px_-10px_rgba(16,23,38,0.5)] active:translate-y-px"
+              className={`rounded-full px-6 py-3.5 text-[0.9375rem] font-medium shadow-[0_1px_2px_rgba(16,23,38,0.18)] transition-[background-color,box-shadow,transform] duration-200 hover:shadow-[0_8px_24px_-10px_rgba(16,23,38,0.5)] active:translate-y-px ${darkHome ? "bg-flame-500 text-night-950 hover:bg-flame-400" : "bg-ink-900 text-white hover:bg-ink-700"}`}
             >
               Talk to us
             </Link>
@@ -161,7 +164,7 @@ export function Header() {
             aria-expanded={mobileOpen}
             aria-controls="mobile-nav"
             aria-label={mobileOpen ? "Close menu" : "Open menu"}
-            className="-mr-2 rounded p-2 text-ink-900 lg:hidden"
+            className={`-mr-2 rounded p-2 lg:hidden ${darkHome ? "text-white" : "text-ink-900"}`}
           >
             {mobileOpen ? <X className="size-6" aria-hidden="true" /> : <Menu className="size-6" aria-hidden="true" />}
           </button>

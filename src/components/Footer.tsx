@@ -3,7 +3,14 @@ import Image from "next/image";
 import { Mail, MapPin, Phone, Printer } from "lucide-react";
 import { Logo } from "./Logo";
 import { capabilities } from "@/lib/capabilities";
-import { contact, credentials, identifiers, naics, site } from "@/lib/site";
+import {
+  contact,
+  getVisibleCredentials,
+  naics,
+  procurement,
+  site,
+  today,
+} from "@/content/company";
 
 const columns = [
   {
@@ -26,6 +33,13 @@ const columns = [
 
 export function Footer() {
   const year = new Date().getFullYear();
+  const credentials = getVisibleCredentials(today());
+  const identifiers = [
+    { label: "UEI", value: procurement.uei },
+    { label: "CAGE", value: procurement.cage },
+    { label: "Business size", value: procurement.businessSize },
+    { label: "Primary NAICS", value: procurement.primaryNaics },
+  ];
 
   return (
     <footer className="relative overflow-hidden bg-ink-950 text-white">
@@ -41,8 +55,8 @@ export function Footer() {
           <div>
             <Logo tone="light" size="lg" />
             <p className="mt-5 max-w-sm text-[0.9375rem] leading-[1.7] text-white/55">
-              An SBA-certified 8(a) small business appraised at CMMI Level 3, engineering and
-              sustaining the software, cloud, and data systems federal agencies depend on.
+              A small business appraised at CMMI Level 3, engineering and sustaining the software,
+              cloud, and data systems public agencies depend on.
             </p>
             <dl className="mt-7 grid max-w-sm grid-cols-2 gap-x-6 gap-y-3">
               {identifiers.map((id) => (

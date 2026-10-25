@@ -44,8 +44,26 @@
   --color-flame-600: #c74805;
   --color-flame-700: #a43c04;
 
+  /* Mission-data palette used by the interactive procurement and globe UI. */
+  --color-night-950: #080d17;
+  --color-night-900: #0d1523;
+  --color-night-850: #121d2e;
+  --color-night-800: #18263a;
+  --color-night-700: #21334c;
+  --color-night-600: #30445f;
+  --color-mist-50: #f5f8fc;
+  --color-mist-200: #c8d3e1;
+  --color-mist-400: #8998ad;
+  --color-azure-50: #eff9ff;
+  --color-azure-300: #7dd3fc;
+  --color-azure-400: #38bdf8;
+  --color-azure-600: #0284c7;
+  --color-azure-700: #0369a1;
+  --color-hairline: #263548;
+
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-display: var(--font-display), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-plex: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, "SFMono-Regular", "SF Mono", Menlo, Consolas, monospace;
 
   --radius-card: 4px;
@@ -247,4 +265,110 @@
 /* Underline that draws in on hover — used on text links */
 @utility link-underline {
   position: relative;
+}
+
+/* ==================================================================
+   Homepage: cinematic layer.
+   Wide display type, mono labels, gradient sweeps and scroll effects.
+   Every effect here is decoration over real text; with reduced motion
+   the final state shows immediately.
+   ================================================================== */
+/* `inline` so the variables resolve where the font classes are applied
+   (the homepage wrapper), not at :root where they are undefined. */
+@theme inline {
+  --font-wide: var(--ff-wide), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-tech: var(--ff-tech), ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+
+/* Headline whose colour sweeps from the brand gradient into solid type,
+   leaving a warm-to-cool tail on the right. SweepText sets data-swept. */
+@utility text-sweep {
+  background-image: linear-gradient(100deg, currentColor 0 42%, var(--sweep-from, #fa752e) 58%, var(--sweep-to, #4678ff) 78%, color-mix(in srgb, currentColor 12%, transparent) 100%);
+  background-size: 250% 100%;
+  background-position: 45% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  transition: background-position 2.4s var(--ease-out-quint);
+}
+.text-sweep[data-swept="false"] { background-position: 100% 0; }
+@media (prefers-reduced-motion: reduce) {
+  .text-sweep, .text-sweep[data-swept="false"] { background-position: 45% 0; transition: none; }
+}
+
+/* Paragraph words that light up as they scroll past. */
+.scroll-words [data-w] {
+  transition: color 0.35s ease;
+  color: color-mix(in srgb, currentColor 22%, transparent);
+}
+.scroll-words { color: var(--color-ink-950); }
+.scroll-words [data-w][data-on="true"] { color: var(--color-ink-950); }
+.scroll-words [data-w][data-on="true"][data-accent] { color: var(--color-flame-600); }
+@media (prefers-reduced-motion: reduce) {
+  .scroll-words [data-w] { color: var(--color-ink-950); }
+}
+
+/* Icons rendered as a dot matrix, like an LED panel. */
+@utility dot-matrix {
+  -webkit-mask-image: radial-gradient(circle, #000 0 1.1px, transparent 1.3px);
+  mask-image: radial-gradient(circle, #000 0 1.1px, transparent 1.3px);
+  -webkit-mask-size: 3px 3px;
+  mask-size: 3px 3px;
+}
+
+/* Endless horizontal ticker. */
+@keyframes marquee {
+  to { transform: translateX(-50%); }
+}
+@utility marquee {
+  animation: marquee 38s linear infinite;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+/* Mono pill button used across the homepage. */
+@utility btn-tech {
+  display: inline-flex;
+  min-height: 3rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  border-radius: 9999px;
+  padding-inline: 1.6rem;
+  font-family: var(--font-tech);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: background-color 0.25s, color 0.25s, border-color 0.25s;
+}
+
+/* Hero entrance: lines rise out of their masks, then the colour sweeps in;
+   supporting copy fades up behind them. Pure CSS, so it plays on first paint. */
+@keyframes hero-rise {
+  from { transform: translateY(105%); }
+  to { transform: none; }
+}
+@keyframes hero-sweep {
+  from { background-position: 100% 0; }
+  to { background-position: 45% 0; }
+}
+@keyframes hero-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+.hero-line {
+  animation:
+    hero-rise 1s var(--ease-out-quint) both,
+    hero-sweep 2.4s var(--ease-out-quint) both;
+}
+.hero-in {
+  animation: hero-in 0.9s var(--ease-out-quint) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-line,
+  .hero-in {
+    animation: none;
+  }
 }

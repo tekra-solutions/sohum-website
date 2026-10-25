@@ -159,7 +159,12 @@ const websiteSchema = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${inter.variable} ${display.variable}`}>
+    <html
+      lang="en"
+      className={`${inter.variable} ${display.variable}`}
+      // The inline script below adds the "js" class before hydration.
+      suppressHydrationWarning
+    >
       <head>
         {/*
           Marks the document as scripted before first paint. Scroll-reveal styles
