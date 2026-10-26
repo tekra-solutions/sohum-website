@@ -11,6 +11,9 @@ export type Crumb = { label: string; href?: string };
  *
  * Emits BreadcrumbList structured data from the same crumb array that renders
  * visually, so the two can never drift apart.
+ *
+ * Slides up under the fixed header (by the header's height), so the header
+ * sits transparent on the dark band exactly as it does over the homepage hero.
  */
 export function PageHero({
   eyebrow,
@@ -39,7 +42,7 @@ export function PageHero({
   };
 
   return (
-    <section className="relative isolate overflow-hidden bg-[#05070d] text-white">
+    <section className="relative isolate mt-[-4.5rem] overflow-hidden bg-[#05070d] text-white lg:mt-[-5rem]">
       {/* The chakra, cropped off the right edge: the one decorative element. */}
       <LogoMark tone="light" className="pointer-events-none absolute -right-32 -top-24 -z-10 size-[34rem] opacity-[0.04]" />
       <script
@@ -49,7 +52,7 @@ export function PageHero({
 
       <div className="container-page relative">
         {/* ---- Breadcrumbs ---- */}
-        <nav aria-label="Breadcrumb" className="pt-7">
+        <nav aria-label="Breadcrumb" className="pt-[calc(4.5rem+1.75rem)] lg:pt-[calc(5rem+2rem)]">
           <ol className="flex flex-wrap items-center gap-1.5 text-[0.8125rem]">
             {trail.map((c, i) => {
               const last = i === trail.length - 1;
@@ -83,7 +86,7 @@ export function PageHero({
         >
           <div className={aside ? "" : "max-w-3xl"}>
             <p className="eyebrow text-flame-400">{eyebrow}</p>
-            <h1 className="mt-4 text-[2rem] font-bold leading-[1.08] tracking-[-0.03em] sm:text-[2.5rem] lg:text-[3rem]">
+            <h1 className="font-brand mt-4 text-[clamp(2.1rem,4.2vw,3.25rem)] font-extrabold leading-[1.04] tracking-[-0.035em] text-balance">
               {title}
             </h1>
             {lede && (

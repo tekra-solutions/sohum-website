@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
-import { ArrowRight, ArrowUpRight, ChevronDown, Mail, Phone } from "@/components/icons";
+import { Fragment, useEffect, useRef, useState } from "react";
+import { ArrowRight, ArrowUpRight, ChevronDown, FileText, Mail, Phone } from "@/components/icons";
 import { Logo } from "./Logo";
 import { useToday } from "./home/useToday";
 import { capabilities, pillars } from "@/lib/capabilities";
@@ -21,10 +21,16 @@ const nav = [
  * Site header.
  *
  * Fixed, with a spacer of constant height behind it, so it can compact on
- * scroll (the utility strip folds away and the bar shortens) without shifting
- * the page. The homepage hero slides under it; there it starts transparent
- * over the dark hero and turns to frosted white once the reader scrolls.
+ * scroll without shifting the page. Every page opens on a dark hero that
+ * slides under the header (the homepage hero, or PageHero), so the header
+ * starts transparent over it and turns to frosted white once the reader
+ * scrolls. Pages that open on a light surface are listed in LIGHT_TOP.
+ *
+ * Each mega panel follows its trigger in the DOM, so keyboard users tab from
+ * "Capabilities" straight into its links.
  */
+const LIGHT_TOP = ["/capability-statement"];
+
 export function Header({ initialDay }: { initialDay: string }) {
   const pathname = usePathname();
   const day = useToday(initialDay);
@@ -93,9 +99,95 @@ export function Header({ initialDay }: { initialDay: string }) {
     closeTimer.current = window.setTimeout(() => setPanel(null), 140);
   };
 
+  // A submitted application replaces its dark hero with a light confirmation.
+  const [submitted, setSubmitted] = useState(false);
+  useEffect(() => {
+    const root = document.documentElement;
+    const sync = () => setSubmitted(root.hasAttribute("data-application-submitted"));
+    sync();
+    const mo = new MutationObserver(sync);
+    mo.observe(root, { attributes: true, attributeFilter: ["data-application-submitted"] });
+    return () => mo.disconnect();
+  }, []);
+
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
-  const dark = mobileOpen || (pathname === "/" && !scrolled && !panel);
+  const heroTop = !submitted && !LIGHT_TOP.some((p) => pathname === p || pathname.startsWith(p + "/"));
+  const dark = mobileOpen || (heroTop && !scrolled && !panel);
   const label = "font-brand text-[0.75rem] font-bold uppercase tracking-[.1em]";
+
+  const panels: Record<"capabilities" | "vehicles", React.ReactNode> = {
+    capabilities: (
+      <div
+        className="absolute inset-x-0 top-full hidden border-b border-paper-200 bg-white shadow-[0_24px_48px_-24px_rgba(8,13,26,0.18)] lg:block"
+        onMouseEnter={() => openPanel("capabilities")}
+      >
+        <div className="container-page grid grid-cols-4 gap-x-8 gap-y-8 py-10">
+          {pillars.map((pillar) => (
+            <div key={pillar.id}>
+              <p className={`${label} text-flame-600`}>{pillar.label}</p>
+              <p className="mt-2 text-[0.8125rem] leading-relaxed text-graphite-500">{pillar.description}</p>
+              <ul className="mt-4 space-y-0.5">
+                {capabilities
+                  .filter((c) => c.pillar === pillar.id)
+                  .map((c) => (
+                    <li key={c.slug}>
+                      <Link
+                        href={`/capabilities/${c.slug}`}
+                        className="group -mx-2 flex items-center justify-between rounded px-2 py-1.5 text-[0.875rem] text-ink-800 transition-colors hover:bg-paper-100 hover:text-ink-950"
+                      >
+                        {c.name}
+                        <ArrowRight className="size-3.5 -translate-x-1 opacity-0 transition-[opacity,transform] group-hover:translate-x-0 group-hover:opacity-100" aria-hidden="true" />
+                      </Link>
+                    </li>
+                  ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+        <div className="border-t border-paper-200 bg-paper-50">
+          <div className="container-page flex items-center justify-between py-4">
+            <p className="text-[0.875rem] text-graphite-600">
+              {capabilities.length} capabilities delivered by one accountable team.
+            </p>
+            <Link href="/capabilities" className={`${label} inline-flex items-center gap-1.5 text-ink-900 hover:text-flame-600`}>
+              View all capabilities <ArrowRight className="size-3.5" aria-hidden="true" />
+            </Link>
+          </div>
+        </div>
+      </div>
+    ),
+    vehicles: (
+      <div
+        className="absolute inset-x-0 top-full hidden border-b border-paper-200 bg-white shadow-[0_24px_48px_-24px_rgba(8,13,26,0.18)] lg:block"
+        onMouseEnter={() => openPanel("vehicles")}
+      >
+        <div className="container-page grid grid-cols-[1fr_1.2fr] gap-12 py-10">
+          <div>
+            <p className={`${label} text-flame-600`}>Ready to award</p>
+            <p className="mt-3 max-w-sm text-[0.9375rem] leading-relaxed text-graphite-600">
+              {vehicles.length === 1 ? "One contract vehicle is" : `${vehicles.length} contract vehicles are`} open for new orders. Each page explains exactly how to place one.
+            </p>
+            <Link href="/contract-vehicles" className={`${label} mt-5 inline-flex items-center gap-1.5 text-ink-900 hover:text-flame-600`}>
+              All contract vehicles <ArrowRight className="size-3.5" aria-hidden="true" />
+            </Link>
+          </div>
+          <ul className="grid content-start gap-1">
+            {vehicles.map((v) => (
+              <li key={v.slug}>
+                <Link
+                  href={`/contract-vehicles#${v.slug}`}
+                  className="-mx-3 flex items-baseline justify-between gap-4 rounded px-3 py-2.5 transition-colors hover:bg-paper-100"
+                >
+                  <span className="text-[0.9375rem] font-medium text-ink-900">{v.name}</span>
+                  <span className="font-tech text-[0.75rem] text-graphite-500">{v.number}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    ),
+  };
 
   return (
     <>
@@ -108,6 +200,9 @@ export function Header({ initialDay }: { initialDay: string }) {
               : "border-b border-ink-950/[0.07] bg-white/85 shadow-[0_8px_30px_-18px_rgba(8,13,26,.35)] backdrop-blur-xl"
         }`}
         onMouseLeave={scheduleClose}
+        onBlur={(e) => {
+          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setPanel(null);
+        }}
       >
         <a
           href="#main"
@@ -117,7 +212,7 @@ export function Header({ initialDay }: { initialDay: string }) {
         </a>
 
         {/* ---- Main bar ---- */}
-        <div className="container-wide">
+        <div className="container-page">
           <div className={`flex items-center justify-between gap-4 xl:gap-6 transition-[height] duration-300 ${scrolled ? "h-16 lg:h-[4.25rem]" : "h-[4.5rem] lg:h-[5rem]"}`}>
             <Link href="/" className="rounded" aria-label="Sohum Systems, home">
               <Logo tone={dark ? "light" : "dark"} />
@@ -127,37 +222,46 @@ export function Header({ initialDay }: { initialDay: string }) {
               {nav.map((item) => {
                 const active = isActive(item.href);
                 return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onMouseEnter={() => (item.panel ? openPanel(item.panel) : setPanel(null))}
-                    onFocus={() => (item.panel ? openPanel(item.panel) : setPanel(null))}
-                    aria-expanded={item.panel ? panel === item.panel : undefined}
-                    aria-current={active ? "page" : undefined}
-                    className={`group relative flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-2 font-brand text-[0.875rem] xl:px-3.5 xl:text-[0.9375rem] font-semibold tracking-[-0.005em] transition-colors ${
-                      active
-                        ? dark ? "text-white" : "text-ink-950"
-                        : dark ? "text-white/65 hover:text-white" : "text-graphite-600 hover:text-ink-950"
-                    }`}
-                  >
-                    {active && <span aria-hidden="true" className="mr-1 size-1 rounded-full bg-flame-500" />}
-                    {item.label}
-                    {item.panel && (
-                      <ChevronDown
-                        className={`size-3 opacity-50 transition-transform duration-200 ${panel === item.panel ? "rotate-180" : ""}`}
+                  <Fragment key={item.href}>
+                    <Link
+                      href={item.href}
+                      onMouseEnter={() => (item.panel ? openPanel(item.panel) : setPanel(null))}
+                      onFocus={() => (item.panel ? openPanel(item.panel) : setPanel(null))}
+                      aria-expanded={item.panel ? panel === item.panel : undefined}
+                      aria-current={active ? "page" : undefined}
+                      className={`group relative flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-2 font-brand text-[0.875rem] xl:px-3 xl:text-[0.9375rem] font-semibold tracking-[-0.005em] transition-colors ${
+                        active
+                          ? dark ? "text-white" : "text-ink-950"
+                          : dark ? "text-white/65 hover:text-white" : "text-graphite-600 hover:text-ink-950"
+                      }`}
+                    >
+                      {active && <span aria-hidden="true" className="mr-1 size-1 rounded-full bg-flame-500" />}
+                      {item.label}
+                      {item.panel && (
+                        <ChevronDown
+                          className={`size-3 opacity-50 transition-transform duration-200 ${panel === item.panel ? "rotate-180" : ""}`}
+                          aria-hidden="true"
+                        />
+                      )}
+                      <span
                         aria-hidden="true"
+                        className={`absolute inset-x-3.5 bottom-0 h-0.5 rounded-full origin-left bg-flame-500 transition-transform duration-300 ${active ? "scale-x-0" : "scale-x-0 group-hover:scale-x-100"}`}
                       />
-                    )}
-                    <span
-                      aria-hidden="true"
-                      className={`absolute inset-x-3.5 bottom-0 h-0.5 rounded-full origin-left bg-flame-500 transition-transform duration-300 ${active ? "scale-x-0" : "scale-x-0 group-hover:scale-x-100"}`}
-                    />
-                  </Link>
+                    </Link>
+                    {item.panel && panel === item.panel && panels[item.panel]}
+                  </Fragment>
                 );
               })}
             </nav>
 
-            <div className="hidden items-center gap-2 lg:flex">
+            <div className="hidden items-center gap-1 lg:flex">
+              <Link
+                href="/capability-statement"
+                className={`hidden min-h-11 items-center gap-2 whitespace-nowrap rounded-full px-3.5 font-brand text-[0.875rem] font-semibold transition-colors min-[1536px]:inline-flex ${dark ? "text-white/75 hover:text-white" : "text-graphite-600 hover:text-ink-950"}`}
+              >
+                <FileText className="size-4" aria-hidden="true" />
+                Capability statement
+              </Link>
               <Link
                 href="/contact"
                 className={`inline-flex min-h-11 items-center gap-2 whitespace-nowrap rounded-full px-4 font-brand text-[0.875rem] xl:px-5 xl:text-[0.9375rem] font-bold transition-colors ${dark ? "bg-flame-500 text-ink-950 hover:bg-white" : "bg-ink-950 text-white hover:bg-flame-500 hover:text-ink-950"}`}
@@ -189,79 +293,6 @@ export function Header({ initialDay }: { initialDay: string }) {
           <div ref={progress} className="h-px origin-left scale-x-0 bg-flame-500" />
         </div>
 
-        {/* ---- Desktop mega panels ---- */}
-        {panel === "capabilities" && (
-          <div
-            className="absolute inset-x-0 top-full hidden border-b border-paper-200 bg-white shadow-[0_24px_48px_-24px_rgba(8,13,26,0.18)] lg:block"
-            onMouseEnter={() => openPanel("capabilities")}
-          >
-            <div className="container-page grid grid-cols-4 gap-x-8 gap-y-8 py-10">
-              {pillars.map((pillar) => (
-                <div key={pillar.id}>
-                  <p className={`${label} text-flame-600`}>{pillar.label}</p>
-                  <p className="mt-2 text-[0.8125rem] leading-relaxed text-graphite-500">{pillar.description}</p>
-                  <ul className="mt-4 space-y-0.5">
-                    {capabilities
-                      .filter((c) => c.pillar === pillar.id)
-                      .map((c) => (
-                        <li key={c.slug}>
-                          <Link
-                            href={`/capabilities/${c.slug}`}
-                            className="group -mx-2 flex items-center justify-between rounded px-2 py-1.5 text-[0.875rem] text-ink-800 transition-colors hover:bg-paper-100 hover:text-ink-950"
-                          >
-                            {c.name}
-                            <ArrowRight className="size-3.5 -translate-x-1 opacity-0 transition-[opacity,transform] group-hover:translate-x-0 group-hover:opacity-100" aria-hidden="true" />
-                          </Link>
-                        </li>
-                      ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-            <div className="border-t border-paper-200 bg-paper-50">
-              <div className="container-page flex items-center justify-between py-4">
-                <p className="text-[0.875rem] text-graphite-600">
-                  {capabilities.length} capabilities delivered by one accountable team.
-                </p>
-                <Link href="/capabilities" className={`${label} inline-flex items-center gap-1.5 text-ink-900 hover:text-flame-600`}>
-                  View all capabilities <ArrowRight className="size-3.5" aria-hidden="true" />
-                </Link>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {panel === "vehicles" && (
-          <div
-            className="absolute inset-x-0 top-full hidden border-b border-paper-200 bg-white shadow-[0_24px_48px_-24px_rgba(8,13,26,0.18)] lg:block"
-            onMouseEnter={() => openPanel("vehicles")}
-          >
-            <div className="container-page grid grid-cols-[1fr_1.2fr] gap-12 py-10">
-              <div>
-                <p className={`${label} text-flame-600`}>Ready to award</p>
-                <p className="mt-3 max-w-sm text-[0.9375rem] leading-relaxed text-graphite-600">
-                  {vehicles.length === 1 ? "One contract vehicle is" : `${vehicles.length} contract vehicles are`} open for new orders. Each page explains exactly how to place one.
-                </p>
-                <Link href="/contract-vehicles" className={`${label} mt-5 inline-flex items-center gap-1.5 text-ink-900 hover:text-flame-600`}>
-                  All contract vehicles <ArrowRight className="size-3.5" aria-hidden="true" />
-                </Link>
-              </div>
-              <ul className="grid content-start gap-1">
-                {vehicles.map((v) => (
-                  <li key={v.slug}>
-                    <Link
-                      href={`/contract-vehicles#${v.slug}`}
-                      className="-mx-3 flex items-baseline justify-between gap-4 rounded px-3 py-2.5 transition-colors hover:bg-paper-100"
-                    >
-                      <span className="text-[0.9375rem] font-medium text-ink-900">{v.name}</span>
-                      <span className="font-tech text-[0.75rem] text-graphite-500">{v.number}</span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        )}
       </header>
 
       {/* Holds the header's resting height in the flow, so compacting never shifts the page. */}
@@ -298,9 +329,14 @@ export function Header({ initialDay }: { initialDay: string }) {
             ))}
           </ul>
 
-          <Link href="/contact" className="btn-tech mt-10 w-full bg-flame-500 text-ink-950">
-            Talk to us <ArrowUpRight className="size-3.5" aria-hidden="true" />
-          </Link>
+          <div className="mt-10 grid gap-3 sm:grid-cols-2">
+            <Link href="/contact" className="btn-tech w-full bg-flame-500 text-ink-950">
+              Talk to us <ArrowUpRight className="size-3.5" aria-hidden="true" />
+            </Link>
+            <Link href="/capability-statement" className="btn-tech w-full border border-white/25 text-white">
+              <FileText className="size-4" aria-hidden="true" /> Capability statement
+            </Link>
+          </div>
           <div className="mt-8 grid gap-3 text-sm text-white/60">
             <a href={`tel:${contact.phoneHref}`} className="inline-flex items-center gap-3"><Phone className="size-4" aria-hidden="true" /> {contact.phone}</a>
             <a href={`mailto:${contact.emailGeneral}`} className="inline-flex items-center gap-3"><Mail className="size-4" aria-hidden="true" /> {contact.emailGeneral}</a>

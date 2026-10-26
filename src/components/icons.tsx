@@ -47,6 +47,7 @@ export const ChevronRight = make(<path d="m9.5 6.5 5.5 5.5-5.5 5.5" />);
 export const Plus = make(<path d="M12 5v14M5 12h14" />);
 export const X = make(<path d="m6.5 6.5 11 11M17.5 6.5l-11 11" />);
 export const Check = make(<path d="m5 12.5 4.5 4.5L19 7.5" />);
+export const Copy = make(<><A d="M9 9h11v11H9z" /><path d="M9 9h11v11H9zM15 9V4H4v11h5" /></>);
 export const Search = make(<><circle cx="10.5" cy="10.5" r="6" /><path d="m15 15 5 5" /></>);
 export const Loader2 = make(<path d="M20 12a8 8 0 1 1-8-8" />);
 

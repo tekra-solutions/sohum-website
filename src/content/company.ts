@@ -397,6 +397,9 @@ export type Program = {
   /** Fields below come from federal award records; omitted when not public. */
   contract?: string;
   period?: string;
+  /** ISO dates for `period`. The record gives months; the days are nominal. */
+  start?: string;
+  end?: string;
   contractType?: string;
   naics?: string;
   placeOfPerformance?: string;
@@ -413,6 +416,8 @@ export const pastPerformance: Program[] = [
     work: ["GIS O&M and modernization", "Financial management systems (CFMIS)", "Reporting and data platforms"],
     contract: "IDIQ AG3151C140045",
     period: "Sep 2014 – Mar 2022",
+    start: "2014-09-01",
+    end: "2022-03-31",
     contractType: "Labor-hour task orders",
     naics: "541511",
     placeOfPerformance: "Kansas City, MO",

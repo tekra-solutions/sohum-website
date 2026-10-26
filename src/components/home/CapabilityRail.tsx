@@ -9,6 +9,9 @@ import { useScrollProgress } from "./useScrollProgress";
  * behind them. On narrow screens, or with reduced motion, it is an ordinary
  * swipeable row, which is also what renders before JavaScript runs.
  */
+/** Pixels of vertical scroll per pixel of sideways travel; under 1 keeps the pin short. */
+const PACE = 0.6;
+
 export function CapabilityRail({ word, intro, children }: { word: string; intro: ReactNode; children: ReactNode }) {
   const section = useRef<HTMLElement>(null);
   const track = useRef<HTMLDivElement>(null);
@@ -47,7 +50,7 @@ export function CapabilityRail({ word, intro, children }: { word: string; intro:
   useScrollProgress(section, onProgress, "pin");
 
   return (
-    <section ref={section} className="relative bg-[#0b0d12]" style={pinned ? { height: `calc(100vh + ${distance}px)` } : undefined}>
+    <section ref={section} className="relative bg-[#0b0d12]" style={pinned ? { height: `calc(100vh + ${Math.round(distance * PACE)}px)` } : undefined}>
       <div className={pinned ? "sticky top-0 flex h-screen flex-col overflow-hidden" : "overflow-hidden"}>
         <div className="relative overflow-hidden bg-white pt-24 lg:flex-[0_0_38%] lg:pt-0">
           <p
@@ -62,7 +65,7 @@ export function CapabilityRail({ word, intro, children }: { word: string; intro:
         <div className="relative flex flex-1 flex-col justify-center py-12 lg:py-0">
           <div
             ref={track}
-            className={`flex will-change-transform ${pinned ? "w-max pl-[max(2.5rem,calc((100vw-1280px)/2+2.5rem))] pr-[10vw]" : "snap-x snap-mandatory overflow-x-auto px-5 pb-4 [scrollbar-width:none] md:px-8"}`}
+            className={`flex will-change-transform ${pinned ? "w-max pl-[var(--page-gutter)] pr-[10vw]" : "snap-x snap-mandatory overflow-x-auto px-5 pb-4 [scrollbar-width:none] md:px-8"}`}
           >
             {children}
           </div>

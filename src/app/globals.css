@@ -154,31 +154,28 @@
   }
 }
 
-@utility container-page {
-  width: 100%;
-  margin-inline: auto;
-  max-width: 1280px;
-  padding-inline: 1.25rem;
+/*
+ * One page grid for everything: header, heroes, sections, footer.
+ *
+ * Up to a 1440px screen the content column is 1200px with the margins growing
+ * evenly; past that the margins grow at a quarter of the extra width, so a
+ * 1920 monitor gets a 1440px column with 240px margins rather than a narrow
+ * column floating in the middle. Percentages (not vw) keep the Windows
+ * scrollbar out of the sums, so the logo and the content share one edge.
+ */
+:root {
+  --page-gutter: 1.25rem;
   @media (width >= 768px) {
-    padding-inline: 2rem;
+    --page-gutter: 2rem;
   }
   @media (width >= 1280px) {
-    padding-inline: 2.5rem;
+    --page-gutter: max(2.5rem, min(calc((100% - 1280px) / 2 + 2.5rem), calc(120px + (100% - 1440px) / 4)));
   }
 }
 
-/* Full-width layout for the header and homepage hero. Matches container-page
-   up to a 1440px screen, then stays anchored 120px from the left edge instead
-   of drifting to the centre on large monitors. */
-@utility container-wide {
+@utility container-page {
   width: 100%;
-  padding-inline: 1.25rem;
-  @media (width >= 768px) {
-    padding-inline: 2rem;
-  }
-  @media (width >= 1280px) {
-    padding-inline: max(2.5rem, min(calc((100vw - 1280px) / 2 + 2.5rem), 7.5rem));
-  }
+  padding-inline: var(--page-gutter);
 }
 
 /* ---- Eyebrow / kicker label ---- */

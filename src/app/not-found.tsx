@@ -14,11 +14,11 @@ export default function NotFound() {
     <>
       <Header initialDay={today()} />
       <main id="main" className="flex flex-1 flex-col">
-        <section className="relative isolate flex flex-1 flex-col overflow-hidden bg-ink-950 text-white">
-          <div className="container-page relative flex min-h-[70vh] flex-col justify-center py-24">
+        <section className="relative isolate mt-[-4.5rem] flex flex-1 flex-col overflow-hidden bg-ink-950 text-white lg:mt-[-5rem]">
+          <div className="container-page relative flex min-h-[70vh] flex-col justify-center pb-24 pt-40">
             <div className="max-w-2xl">
               <Eyebrow tone="light">Error 404</Eyebrow>
-              <h1 className="mt-6 text-[2.25rem] font-bold leading-[1.1] tracking-[-0.03em] sm:text-[3rem]">
+              <h1 className="font-brand mt-6 text-[clamp(2.25rem,4.6vw,3.5rem)] font-extrabold leading-[1.04] tracking-[-0.035em]">
                 That page is not here.
               </h1>
               <p className="mt-6 text-[1.0625rem] leading-[1.7] text-white/60">
