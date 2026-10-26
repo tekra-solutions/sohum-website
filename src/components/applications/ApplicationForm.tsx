@@ -205,7 +205,7 @@ export function ApplicationForm({
         <button
           type="submit"
           disabled={pending}
-          className="group/btn inline-flex items-center justify-center gap-2 rounded-[3px] bg-ink-900 px-7 py-4 text-[0.9375rem] font-medium text-white transition-colors hover:bg-ink-700 disabled:pointer-events-none disabled:opacity-60"
+          className="group/btn inline-flex items-center justify-center gap-2 rounded-full font-brand bg-ink-900 px-7 py-4 text-[0.9375rem] font-bold text-white transition-colors hover:bg-ink-700 disabled:pointer-events-none disabled:opacity-60"
         >
           {pending ? (
             <>

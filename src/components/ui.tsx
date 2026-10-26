@@ -1,25 +1,27 @@
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight } from "@/components/icons";
 import type { ComponentProps, ReactNode } from "react";
 
 /* ------------------------------------------------------------------ Button */
 
-type ButtonVariant = "primary" | "secondary" | "ghost" | "onDark";
+type ButtonVariant = "primary" | "secondary" | "ghost" | "onDark" | "outlineDark";
 
 const buttonBase =
-  "group/btn inline-flex items-center justify-center gap-2 rounded-[3px] text-[0.9375rem] font-medium leading-none " +
+  "group/btn inline-flex items-center justify-center gap-2 rounded-full font-brand text-[0.9375rem] font-bold leading-none " +
   "transition-[background-color,color,border-color,box-shadow,transform] duration-200 ease-out " +
   "active:translate-y-px disabled:pointer-events-none disabled:opacity-50 px-6 py-[0.9375rem]";
 
 const buttonVariants: Record<ButtonVariant, string> = {
   primary:
-    "bg-ink-900 text-white hover:bg-ink-700 shadow-[0_1px_2px_rgba(8,13,26,0.16)] hover:shadow-[0_6px_20px_-8px_rgba(8,13,26,0.4)]",
+    "bg-ink-950 text-white hover:bg-flame-500 hover:text-ink-950",
   secondary:
     "border border-paper-300 bg-white text-ink-900 hover:border-ink-500 hover:bg-paper-50",
   ghost:
     "text-ink-900 hover:bg-paper-100 px-4",
   onDark:
-    "bg-white text-ink-950 hover:bg-flame-300 shadow-[0_8px_28px_-12px_rgba(0,0,0,0.6)]",
+    "bg-flame-500 text-ink-950 hover:bg-white",
+  outlineDark:
+    "border border-white/25 text-white hover:border-white hover:bg-white hover:text-ink-950",
 };
 
 export function Button({
@@ -70,7 +72,7 @@ export function ArrowLink({
   return (
     <Link
       href={href}
-      className={`group/al inline-flex items-center gap-1.5 text-[0.9375rem] font-medium underline decoration-1 underline-offset-[6px] transition-colors ${color} ${className}`}
+      className={`group/al inline-flex items-center gap-1.5 font-brand text-[0.9375rem] font-bold underline decoration-1 underline-offset-[6px] transition-colors ${color} ${className}`}
     >
       {children}
       <ArrowRight
@@ -95,13 +97,9 @@ export function Eyebrow({
   return (
     <p
       className={`eyebrow ${
-        tone === "dark" ? "text-graphite-500" : "text-flame-400"
+        tone === "dark" ? "text-flame-600" : "text-flame-400"
       } ${className}`}
     >
-      <span
-        aria-hidden="true"
-        className={`h-px w-6 ${tone === "dark" ? "bg-paper-300" : "bg-flame-500/50"}`}
-      />
       {children}
     </p>
   );

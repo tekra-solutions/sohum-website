@@ -41,7 +41,7 @@ export const capabilities: Capability[] = [
     problem:
       "Mission workflows rarely match a commercial product's assumptions. Agencies end up bending the mission around the software, or maintaining a thicket of spreadsheets and manual handoffs beside it. Both options quietly raise cost and risk every year they continue.",
     approach: [
-      "Start from the workflow, not the wireframe. We map how the work actually moves — including the exceptions people handle by hand — before proposing a system boundary.",
+      "Start from the workflow, not the wireframe. We map how the work actually moves, including the exceptions people handle by hand, before proposing a system boundary.",
       "Build in vertical slices. Each increment is a working, demonstrable path through the system, so stakeholders steer with software rather than status decks.",
       "Design for the sustainment team from day one: readable code, documented interfaces, and automated tests that let the next developer change things safely.",
       "Treat accessibility and security as acceptance criteria, not a hardening phase bolted on before launch.",
@@ -55,7 +55,7 @@ export const capabilities: Capability[] = [
       "Technical documentation and knowledge transfer",
     ],
     mission:
-      "Federal program offices carry application portfolios spanning decades of technology. The pressure is to modernize without interrupting a mission that runs every day — which makes incremental, well-tested delivery a requirement rather than a preference.",
+      "Federal program offices carry application portfolios spanning decades of technology. The pressure is to modernize without interrupting a mission that runs every day, which makes incremental, well-tested delivery a requirement rather than a preference.",
     outcomes: [
       "Software that fits the mission workflow instead of forcing workarounds",
       "A codebase your team or the next contractor can maintain",
@@ -65,7 +65,7 @@ export const capabilities: Capability[] = [
     ctaTitle:
       "Have an application that no longer fits the mission?",
     metaDescription:
-      "Custom application development for federal agencies — full-stack engineering, legacy re-platforming, API integration, and application sustainment from an SBA 8(a), CMMI Level 3 firm.",
+      "Custom application development for federal agencies: full-stack engineering, legacy re-platforming, API integration, and application sustainment from a CMMI Level 3 appraised small business.",
   },
   {
     slug: "cloud-services-migration",
@@ -78,7 +78,7 @@ export const capabilities: Capability[] = [
     approach: [
       "Assess the portfolio application by application and recommend a disposition for each: lift-and-shift, re-platform, modernize, or retire.",
       "Migrate the straightforward workloads first to build capability and credibility, then apply the savings to the applications that need real re-architecture.",
-      "Design cloud-native systems that use managed services deliberately — scaling and resilience should come from the platform, not from custom code.",
+      "Design cloud-native systems that use managed services deliberately. Scaling and resilience should come from the platform rather than custom code.",
       "Make the cost model visible early, so the modernization case rests on numbers rather than assumptions.",
     ],
     services: [
@@ -101,7 +101,7 @@ export const capabilities: Capability[] = [
     ctaTitle:
       "Weighing a cloud migration?",
     metaDescription:
-      "Federal cloud migration and modernization — portfolio assessment, lift-and-shift, re-architecture, and cloud-native development with Amazon and Oracle certified architects.",
+      "Federal cloud migration and modernization: portfolio assessment, lift-and-shift, re-architecture, and cloud-native development with Amazon and Oracle certified architects.",
   },
   {
     slug: "artificial-intelligence-data-analytics",
@@ -113,7 +113,7 @@ export const capabilities: Capability[] = [
       "Most agency AI work stops at the pilot. A promising model is demonstrated, and then it never reaches the people doing the work, because nobody planned for monitoring, retraining, data lineage, or the question of who is accountable when the model is wrong.",
     approach: [
       "Frame the decision before the model. If a human cannot say what they would do differently given the output, the model is not ready to be built.",
-      "Establish a framework for reliable AI and machine learning innovation — data lineage, evaluation criteria, and human review defined before training starts.",
+      "Establish a framework for reliable AI and machine learning innovation: data lineage, evaluation criteria, and human review defined before training starts.",
       "Build for production from the start: versioned data, reproducible training, monitored inference, and a documented retraining path.",
       "Keep a person in the loop wherever the decision affects a citizen, a benefit, or a compliance outcome.",
     ],
@@ -126,9 +126,9 @@ export const capabilities: Capability[] = [
       "Model evaluation, monitoring, and governance",
     ],
     mission:
-      "Federal AI adoption is judged on explainability and accountability as much as accuracy. Models that inform public-facing decisions must be documented, testable, and reviewable — which is a data engineering problem long before it is a modeling problem.",
+      "Federal AI adoption is judged on explainability and accountability as much as accuracy. Models that inform public-facing decisions must be documented, testable, and reviewable, which is a data engineering problem long before it is a modeling problem.",
     outcomes: [
-      "Models that reach production, not just a pilot report",
+      "Models that reach production instead of stopping at a pilot report",
       "Documented lineage and evaluation for oversight review",
       "Analysts working from evidence at machine scale",
       "A governed path to retrain as data shifts",
@@ -137,7 +137,7 @@ export const capabilities: Capability[] = [
     ctaTitle:
       "Have an AI pilot that never reached production?",
     metaDescription:
-      "Artificial intelligence and data analytics for government — production-ready AI/ML models, ML operations, predictive analytics, and AI governance frameworks.",
+      "Artificial intelligence and data analytics for government: production-ready AI/ML models, ML operations, predictive analytics, and AI governance frameworks.",
   },
   {
     slug: "geographic-information-systems",
@@ -146,7 +146,7 @@ export const capabilities: Capability[] = [
     blurb: "Enterprise GIS and interactive web mapping that turn spatial data into decisions.",
     pillar: "Decide",
     problem:
-      "Spatial data is often the most valuable and least usable asset an agency holds — locked in desktop tools, guarded by a handful of specialists, and disconnected from the systems where decisions actually get made.",
+      "Spatial data is often the most valuable and least usable asset an agency holds. It sits locked in desktop tools, guarded by a handful of specialists, and disconnected from the systems where decisions actually get made.",
     approach: [
       "Build enterprise GIS (EGIS) platforms that serve authoritative spatial data to whole organizations, not to a single analyst's desktop.",
       "Deliver mapping through the browser, so field staff, program analysts, and leadership all work from the same current picture.",
@@ -162,7 +162,7 @@ export const capabilities: Capability[] = [
       "Spatial data quality and stewardship",
     ],
     mission:
-      "Land, agriculture, transportation, and natural resource programs are inherently geographic. When mapping is available to everyone in the program — not only to the GIS office — resource allocation and field operations improve directly.",
+      "Land, agriculture, transportation, and natural resource programs are inherently geographic. When mapping is available to everyone in the program, not only the GIS office, resource allocation and field operations improve directly.",
     outcomes: [
       "Authoritative spatial data available across the organization",
       "Mapping in the browser for field and headquarters alike",
@@ -177,7 +177,7 @@ export const capabilities: Capability[] = [
     ctaTitle:
       "Have spatial data your program cannot reach?",
     metaDescription:
-      "Enterprise GIS and web mapping for federal agencies — EGIS architecture, spatial data management, and geospatial analysis by GISCI and Esri certified professionals.",
+      "Enterprise GIS and web mapping for federal agencies: EGIS architecture, spatial data management, and geospatial analysis by GISCI and Esri certified professionals.",
   },
   {
     slug: "data-warehousing",
@@ -189,7 +189,7 @@ export const capabilities: Capability[] = [
       "When every program office maintains its own extract, leadership meetings turn into arguments about whose number is right. The reconciliation work is invisible, expensive, and repeated every reporting cycle.",
     approach: [
       "Model the warehouse around the questions the organization has to answer, so the schema serves reporting rather than mirroring source systems.",
-      "Build ingestion that is scheduled, monitored, and recoverable — a pipeline nobody trusts is a pipeline nobody uses.",
+      "Build ingestion that is scheduled, monitored, and recoverable. A pipeline nobody trusts is a pipeline nobody uses.",
       "Make data quality measurable at the point of load, with rules and exception reporting instead of downstream cleanup.",
       "Enforce access control and auditability in the warehouse itself, not in the reporting tools layered above it.",
     ],
@@ -202,7 +202,7 @@ export const capabilities: Capability[] = [
       "Warehouse performance tuning and scaling",
     ],
     mission:
-      "Federal reporting obligations — to Congress, to OMB, to the public — depend on numbers that hold up under audit. A governed warehouse is what makes a reported figure defensible months after it was published.",
+      "Federal reporting obligations to Congress, OMB, and the public depend on numbers that hold up under audit. A governed warehouse is what makes a reported figure defensible months after it was published.",
     outcomes: [
       "A single unified view across program systems",
       "Reporting cycles measured in hours, not weeks",
@@ -213,7 +213,7 @@ export const capabilities: Capability[] = [
     ctaTitle:
       "Tired of reconciling numbers across systems?",
     metaDescription:
-      "Federal data warehousing services — dimensional modeling, ETL pipelines, data quality management, and reporting on secure, scalable architectures.",
+      "Federal data warehousing services: dimensional modeling, ETL pipelines, data quality management, and reporting on secure, scalable architectures.",
   },
   {
     slug: "business-intelligence",
@@ -226,7 +226,7 @@ export const capabilities: Capability[] = [
     approach: [
       "Start with the decision and its cadence. A weekly resource-allocation call needs a different instrument than a quarterly report to oversight.",
       "Design for the glance: the most important indicator is legible in seconds, with the supporting detail one interaction away.",
-      "Give every metric a definition, an owner, and a source — so a number in a briefing can be traced without a research project.",
+      "Give every metric a definition, an owner, and a source, so a number in a briefing can be traced without a research project.",
       "Retire dashboards deliberately. Fewer, trusted instruments beat a library nobody opens.",
     ],
     services: [
@@ -248,7 +248,7 @@ export const capabilities: Capability[] = [
     ctaTitle:
       "Have dashboards nobody uses?",
     metaDescription:
-      "Business intelligence for government — KPI governance, executive dashboards, self-service analytics, and performance reporting that support data-driven decisions.",
+      "Business intelligence for government: KPI governance, executive dashboards, self-service analytics, and performance reporting that support data-driven decisions.",
   },
   {
     slug: "devops",
@@ -257,7 +257,7 @@ export const capabilities: Capability[] = [
     blurb: "Automated pipelines and environments that make delivery routine rather than eventful.",
     pillar: "Engineer",
     problem:
-      "When a release takes a weekend and a bridge call, teams release rarely. Batches grow, risk concentrates, and the deployment itself becomes the most dangerous moment in the lifecycle — the opposite of the intended effect.",
+      "When a release takes a weekend and a bridge call, teams release rarely. Batches grow, risk concentrates, and the deployment itself becomes the most dangerous moment in the lifecycle. That is the opposite of the intended effect.",
     approach: [
       "Automate the path to production first: build, test, and deploy as one repeatable pipeline with no manual steps to forget.",
       "Define environments as code so development, test, and production differ by configuration rather than by history.",
@@ -284,7 +284,7 @@ export const capabilities: Capability[] = [
     ctaTitle:
       "Are releases the riskiest day in your lifecycle?",
     metaDescription:
-      "DevOps and DevSecOps for federal programs — CI/CD pipelines, infrastructure as code, release automation, and observability that make delivery repeatable.",
+      "DevOps and DevSecOps for federal programs: CI/CD pipelines, infrastructure as code, release automation, and observability that make delivery repeatable.",
   },
   {
     slug: "test-automation",
@@ -293,10 +293,10 @@ export const capabilities: Capability[] = [
     blurb: "Automated quality engineering that makes regression risk measurable.",
     pillar: "Engineer",
     problem:
-      "Manual regression testing sets a hard floor on release frequency and gets cut first when a schedule tightens — precisely when the risk of skipping it is highest.",
+      "Manual regression testing sets a hard floor on release frequency and gets cut first when a schedule tightens, which is exactly when the risk of skipping it is highest.",
     approach: [
       "Automate at the level that gives the clearest signal: fast unit and integration coverage underneath, a thin layer of end-to-end tests for the paths that matter most.",
-      "Treat test code as production code — reviewed, refactored, and owned. A flaky suite is worse than no suite, because it teaches the team to ignore failures.",
+      "Treat test code as production code: reviewed, refactored, and owned. A flaky suite is worse than no suite, because it teaches the team to ignore failures.",
       "Build accessibility and performance checks into the same automated run, so quality is one gate rather than several disconnected ones.",
       "Report coverage and defect trends in terms a program manager can act on.",
     ],
@@ -319,7 +319,7 @@ export const capabilities: Capability[] = [
     ctaTitle:
       "Is manual regression testing setting your release pace?",
     metaDescription:
-      "Test automation services for government software — automation frameworks, regression and API suites, performance testing, and accessibility verification.",
+      "Test automation services for government software: automation frameworks, regression and API suites, performance testing, and accessibility verification.",
   },
   {
     slug: "program-project-management",
@@ -328,10 +328,10 @@ export const capabilities: Capability[] = [
     blurb: "Certified program leadership that keeps scope, risk, and schedule under control.",
     pillar: "Deliver",
     problem:
-      "Programs rarely fail on a single decision. They drift — an unresolved dependency here, an unowned risk there — until the schedule is no longer recoverable and the reporting no longer reflects reality.",
+      "Programs rarely fail on a single decision. They drift, with an unresolved dependency here and an unowned risk there, until the schedule is no longer recoverable and the reporting no longer reflects reality.",
     approach: [
       "Establish one plan of record with named owners, so status reflects the work rather than the reporting cycle.",
-      "Manage risk as an active register with mitigations, triggers, and owners — reviewed on a cadence, not assembled for a milestone review.",
+      "Manage risk as an active register with mitigations, triggers, and owners, reviewed on a regular cadence rather than assembled for a milestone review.",
       "Report against baseline in terms of cost, schedule, and delivered scope, including the variances that are inconvenient.",
       "Keep the government program manager positioned to make decisions early, while options remain open and cheap.",
     ],
@@ -359,7 +359,7 @@ export const capabilities: Capability[] = [
     ctaTitle:
       "Need a program brought back under control?",
     metaDescription:
-      "Program and project management for federal agencies — PMI-certified managers, agile delivery leadership, risk management, and executive reporting.",
+      "Program and project management for federal agencies: PMI-certified managers, agile delivery leadership, risk management, and executive reporting.",
   },
   {
     slug: "enterprise-resource-planning",
@@ -371,7 +371,7 @@ export const capabilities: Capability[] = [
       "ERP programs fail on process and data far more often than on software. The system goes live technically correct and organizationally rejected, because the work of reconciling how people actually operate was deferred.",
     approach: [
       "Resolve the process questions before configuration. Where the organization needs to change, say so early and plan for it.",
-      "Treat data migration as a first-class workstream with its own quality gates — legacy data is almost always worse than believed.",
+      "Treat data migration as a first-class workstream with its own quality gates. Legacy data is almost always worse than believed.",
       "Integrate ERP with the systems of record around it, so the back office stops re-keying between platforms.",
       "Invest in training and adoption support, because an ERP nobody uses correctly is an expensive filing cabinet.",
     ],
@@ -394,7 +394,7 @@ export const capabilities: Capability[] = [
     ctaTitle:
       "Planning an ERP implementation?",
     metaDescription:
-      "Enterprise resource planning services — ERP implementation support, process design, data migration, system integration, and workflow automation for government.",
+      "Enterprise resource planning services: ERP implementation support, process design, data migration, system integration, and workflow automation for government.",
   },
   {
     slug: "administrative-support",
@@ -403,7 +403,7 @@ export const capabilities: Capability[] = [
     blurb: "Workflow automation, compliance reporting, and digital library and hosting services.",
     pillar: "Deliver",
     problem:
-      "Administrative burden is rarely one large problem. It is hundreds of small manual steps — rekeyed forms, reconciled spreadsheets, assembled reports — that quietly consume the capacity of skilled staff.",
+      "Administrative burden is rarely one large problem. It is hundreds of small manual steps (rekeyed forms, reconciled spreadsheets, assembled reports) that quietly consume the capacity of skilled staff.",
     approach: [
       "Find the repetitive, rule-based steps and automate those first, where the return is immediate and the risk is low.",
       "Build data fidelity checks into the workflow so errors are caught at entry instead of during reporting.",
@@ -429,7 +429,7 @@ export const capabilities: Capability[] = [
     ctaTitle:
       "Losing skilled staff time to manual administrative work?",
     metaDescription:
-      "Administrative support services for federal agencies — workflow automation, compliance reporting, digital library services, hosting, and asset management.",
+      "Administrative support services for federal agencies: workflow automation, compliance reporting, digital library services, hosting, and asset management.",
   },
 ];
 

@@ -1,18 +1,18 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { ArrowRight, Landmark, Lock, ShieldCheck, Workflow } from "lucide-react";
+import { ArrowRight, Landmark, Lock, ShieldCheck, Workflow } from "@/components/icons";
 import { PageHero } from "@/components/PageHero";
 import { CtaBand } from "@/components/CtaBand";
 import { Reveal } from "@/components/Reveal";
-import { LogoWall } from "@/components/LogoWall";
 import { Eyebrow, SectionHeading } from "@/components/ui";
 import { capabilities } from "@/lib/capabilities";
-import { activeVehicles, site } from "@/lib/site";
+import { siteActiveVehicles, site } from "@/lib/site";
+import { customers } from "@/content/company";
 
 export const metadata: Metadata = {
   title: "Federal Mission",
   description:
-    "How Sohum Systems supports federal missions — legacy modernization, secure delivery, mission data platforms, and program leadership under CMMI Level 3 appraised processes and ISO/IEC 27001 certification.",
+    "How Sohum Systems supports federal missions: legacy modernization, secure delivery, mission data platforms, and program leadership under CMMI Level 3 appraised processes and ISO/IEC 27001 certification.",
   alternates: { canonical: "/federal" },
   openGraph: {
     title: "Federal Mission | Sohum Systems",
@@ -32,7 +32,7 @@ const missionAreas = [
   {
     Icon: Workflow,
     title: "Legacy system modernization",
-    body: "Program offices carry application portfolios spanning decades of technology. We assess them application by application and modernize on a sequence that keeps the mission running — because the systems in question run every day.",
+    body: "Program offices carry application portfolios spanning decades of technology. We assess them application by application and modernize on a sequence that keeps the mission running, because the systems in question run every day.",
     caps: ["cloud-services-migration", "custom-application-development", "enterprise-resource-planning"],
   },
   {
@@ -44,7 +44,7 @@ const missionAreas = [
   {
     Icon: Lock,
     title: "Mission data & decision support",
-    body: "Agencies rarely lack data; they lack a governed path from data to a defensible decision. We build the warehouses, models, and instruments that make agency data usable — and traceable when oversight asks.",
+    body: "Agencies rarely lack data; they lack a governed path from data to a defensible decision. We build the warehouses, models, and instruments that make agency data usable and traceable when oversight asks.",
     caps: ["artificial-intelligence-data-analytics", "business-intelligence", "data-warehousing"],
   },
 ];
@@ -63,7 +63,7 @@ export default function FederalPage() {
           <div className="rounded-[4px] border border-white/10 bg-white/[0.035] p-7">
             <p className="eyebrow text-white/40">Award-ready</p>
             <ul className="mt-5 space-y-3.5">
-              {activeVehicles.map((v) => (
+              {siteActiveVehicles().map((v) => (
                 <li key={v.slug} className="border-b border-white/[0.07] pb-3.5 last:border-0 last:pb-0">
                   <p className="text-[0.9375rem] font-medium text-white">{v.name}</p>
                   <p className="mt-0.5 font-mono text-[0.75rem] text-white/45">
@@ -103,7 +103,7 @@ export default function FederalPage() {
                   instead of big-bang cutovers, automated verification instead of end-stage testing,
                   and documented handover instead of institutional knowledge that leaves with a
                   contract. It is also why appraised processes matter more here than in commercial
-                  work — an agency needs to know the discipline survives staff turnover on both
+                  work. An agency needs to know the discipline survives staff turnover on both
                   sides.
                 </p>
               </div>
@@ -163,19 +163,25 @@ export default function FederalPage() {
           <Reveal>
             <SectionHeading
               eyebrow="Organizations"
-              title="Who we work with, stated plainly."
-              lede="Logo walls usually blur the line between a customer, a platform, and a framework. We separate them, because a contracting officer evaluating past performance deserves to know which is which."
+              title="Agencies we have delivered for."
+              lede="Named from public federal award records, so a contracting officer can verify every one."
             />
           </Reveal>
-          <Reveal delay={80} className="mt-14">
-            <LogoWall />
+          <Reveal delay={80} className="mt-12">
+            <ul className="grid gap-px overflow-hidden rounded-2xl border border-paper-200 bg-paper-200 sm:grid-cols-2 lg:grid-cols-3">
+              {customers.map((name) => (
+                <li key={name} className="flex items-center gap-3 bg-white px-6 py-5">
+                  <Landmark className="size-5 shrink-0 text-flame-600" />
+                  <span className="font-brand text-[1rem] font-bold tracking-[-0.01em] text-ink-900">{name}</span>
+                </li>
+              ))}
+            </ul>
           </Reveal>
           <Reveal>
-            <p className="mt-10 max-w-3xl border-t border-paper-200 pt-6 text-[0.875rem] leading-relaxed text-graphite-600">
-              Marks shown are the property of their respective owners. Their appearance
-              indicates the organizations represented in our work and the technologies our
-              teams are certified in — it does not imply endorsement or a current contractual
-              relationship. Detailed past performance references are available on request.
+            <p className="mt-8 max-w-3xl text-[0.875rem] leading-relaxed text-graphite-600">
+              Each agency above is named in a public federal award record for work Sohum Systems
+              performed. We list names rather than agency seals, which are reserved for official
+              use. Past performance references are available on request.
             </p>
           </Reveal>
         </div>
@@ -183,13 +189,12 @@ export default function FederalPage() {
 
       {/* ---- Security & compliance posture ---- */}
       <section className="relative overflow-hidden bg-ink-900 text-white">
-        <div aria-hidden="true" className="absolute inset-0 grid-fine opacity-45" />
         <div className="container-page relative section-y">
           <Reveal>
             <SectionHeading
               tone="light"
               eyebrow="Security posture"
-              title="Confidentiality, integrity, and availability — as policy, not posture."
+              title="Confidentiality, integrity, and availability, written into policy."
               lede="Our quality policy commits us to keeping information accessible only to authorized users, through proper authentication and access control. ISO/IEC 27001 certification is the independent verification of that commitment."
             />
           </Reveal>
@@ -202,7 +207,7 @@ export default function FederalPage() {
               },
               {
                 h: "Certified service management",
-                p: "ISO/IEC 20000-1:2018 governs the service lifecycle — incident, change, and problem management run to a defined standard rather than to local habit.",
+                p: "ISO/IEC 20000-1:2018 governs the service lifecycle. Incident, change, and problem management run to a defined standard rather than to local habit.",
               },
               {
                 h: "Appraised process maturity",
@@ -255,7 +260,7 @@ export default function FederalPage() {
               },
               {
                 h: "Pick the fastest lawful route",
-                p: "8(a) sole source, SEWP VI, or CIO-SP3 — we help your contracting officer identify which pathway gets a team in place soonest.",
+                p: "GSA MAS, SeaPort NxG, or CIO-SP3. We help your contracting officer pick the vehicle that puts a team in place soonest.",
               },
               {
                 h: "Deliver in visible increments",

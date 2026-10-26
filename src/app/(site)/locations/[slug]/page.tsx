@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { ArrowRight, MapPin, Phone } from "lucide-react";
+import { ArrowRight, MapPin, Phone } from "@/components/icons";
 import { PageHero } from "@/components/PageHero";
 import { CtaBand } from "@/components/CtaBand";
 import { Reveal } from "@/components/Reveal";
@@ -158,7 +158,7 @@ export default async function LocationPage({
           </Reveal>
           <ul className="mt-12 grid gap-px overflow-hidden rounded-[4px] border border-paper-300 bg-paper-300 sm:grid-cols-2">
             {capabilities.map((c, i) => (
-              <Reveal key={c.slug} as="li" delay={i * 30} className="bg-white">
+              <Reveal key={c.slug} as="li" delay={i * 30} className={`bg-white ${i === capabilities.length - 1 && capabilities.length % 2 === 1 ? "sm:col-span-2" : ""}`}>
                 <div>
                   <Link
                     href={`/capabilities/${c.slug}`}

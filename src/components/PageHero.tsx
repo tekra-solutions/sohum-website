@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight } from "@/components/icons";
 import type { ReactNode } from "react";
 import { site } from "@/lib/site";
+import { LogoMark } from "./Logo";
 
 export type Crumb = { label: string; href?: string };
 
@@ -38,16 +39,12 @@ export function PageHero({
   };
 
   return (
-    <section className="relative isolate overflow-hidden bg-ink-950 text-white">
+    <section className="relative isolate overflow-hidden bg-[#05070d] text-white">
+      {/* The chakra, cropped off the right edge: the one decorative element. */}
+      <LogoMark tone="light" className="pointer-events-none absolute -right-32 -top-24 -z-10 size-[34rem] opacity-[0.04]" />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
-      />
-      <div aria-hidden="true" className="absolute inset-0 grid-fine opacity-55" />
-      <div
-        aria-hidden="true"
-        className="absolute left-[-15%] top-[-40%] h-[620px] w-[620px] rounded-full blur-3xl"
-        style={{ background: "radial-gradient(circle, rgba(242,88,6,0.12) 0%, transparent 68%)" }}
       />
 
       <div className="container-page relative">
@@ -85,15 +82,12 @@ export function PageHero({
           }`}
         >
           <div className={aside ? "" : "max-w-3xl"}>
-            <p className="eyebrow text-flame-400">
-              <span aria-hidden="true" className="h-px w-8 bg-flame-500/60" />
-              {eyebrow}
-            </p>
-            <h1 className="mt-5 text-[1.875rem] font-medium leading-[1.1] tracking-[-0.03em] sm:text-[2.375rem] lg:text-[2.75rem]">
+            <p className="eyebrow text-flame-400">{eyebrow}</p>
+            <h1 className="mt-4 text-[2rem] font-bold leading-[1.08] tracking-[-0.03em] sm:text-[2.5rem] lg:text-[3rem]">
               {title}
             </h1>
             {lede && (
-              <p className="mt-4 max-w-2xl text-[1rem] leading-[1.65] text-white/60 sm:text-[1.0625rem]">
+              <p className="mt-5 max-w-2xl text-[1rem] leading-[1.7] text-white/65 sm:text-[1.0625rem]">
                 {lede}
               </p>
             )}

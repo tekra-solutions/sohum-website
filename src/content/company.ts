@@ -206,7 +206,7 @@ export const credentials: Credential[] = [
     kind: "Maturity appraisal",
     badge: "/certs/cmmi-dev.png",
     meaning:
-      "Development work follows defined, organization-wide processes rather than per-project improvisation — the baseline many agencies require for software sustainment.",
+      "Development work follows defined, organization-wide processes rather than per-project improvisation. That is the baseline many agencies require for software sustainment.",
     verifyAt: { label: "Verify on CMMI PARS", href: sources.cmmiPars },
   },
   {
@@ -320,7 +320,7 @@ export const vehicles: Vehicle[] = [
     number: "N0017819D8532",
     orderingStartsOn: "2019-01-02",
     orderingEndsOn: "2029-01-01",
-    orderTypes: "Order-dependent — pricing set per task order",
+    orderTypes: "Order-dependent; pricing is set per task order",
     detail: [{ label: "Contract type", value: "Multiple-award IDIQ" }],
     summary:
       "SeaPort is the Navy's electronic platform for acquiring support services across 22 functional areas, used by the Navy Systems Commands, Office of Naval Research, Military Sealift Command, and the Marine Corps.",

@@ -1,12 +1,12 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight } from "@/components/icons";
 import { PageHero } from "@/components/PageHero";
 import { CtaBand } from "@/components/CtaBand";
 import { Reveal } from "@/components/Reveal";
 import { SectionHeading } from "@/components/ui";
 import { capabilities, pillars } from "@/lib/capabilities";
-import { credentials, site } from "@/lib/site";
+import { siteCredentials, site } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Capabilities",
@@ -28,12 +28,12 @@ export default function CapabilitiesPage() {
         eyebrow="Capabilities"
         crumbs={[{ label: "Capabilities" }]}
         title="Engineering, modernization, and decision support for federal missions."
-        lede="Eleven capabilities delivered by one accountable team. We organize them around what an agency is actually trying to accomplish — not around our internal org chart."
+        lede="Eleven capabilities delivered by one accountable team. We organize them around what an agency is trying to accomplish, not around our org chart."
         aside={
           <div className="rounded-[4px] border border-white/10 bg-white/[0.035] p-7">
             <p className="eyebrow text-white/40">Delivered under</p>
             <ul className="mt-5 space-y-2.5">
-              {credentials.slice(0, 5).map((c) => (
+              {siteCredentials().slice(0, 5).map((c) => (
                 <li key={c.short} className="flex items-baseline gap-3 text-[0.875rem]">
                   <span className="mt-1.5 size-1 shrink-0 rounded-full bg-flame-400" aria-hidden="true" />
                   <span className="text-white/70">{c.name}</span>

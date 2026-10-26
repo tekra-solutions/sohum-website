@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { ArrowRight, MapPin } from "lucide-react";
+import { ArrowRight, MapPin } from "@/components/icons";
 import { PageHero } from "@/components/PageHero";
 import { CtaBand } from "@/components/CtaBand";
 import { Reveal } from "@/components/Reveal";
@@ -8,7 +8,7 @@ import { locations } from "@/lib/locations";
 import { contact, site } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "Locations — Kansas City & Overland Park IT Services",
+  title: "Locations: Kansas City & Overland Park IT Services",
   description:
     "Sohum Systems is headquartered in Overland Park, Kansas, serving the Kansas City metro and federal customers nationwide with software engineering, cloud, data, and GIS services.",
   alternates: { canonical: "/locations" },

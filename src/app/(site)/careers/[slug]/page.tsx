@@ -2,7 +2,7 @@ import { JobView } from "@/components/careers/JobView";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { ArrowRight, Banknote, Briefcase, Building2, MapPin, Signal } from "lucide-react";
+import { ArrowRight, Banknote, Briefcase, Building2, MapPin, Signal } from "@/components/icons";
 import { PageHero } from "@/components/PageHero";
 import { Reveal } from "@/components/Reveal";
 import { ButtonLink, Eyebrow } from "@/components/ui";
@@ -26,7 +26,7 @@ export async function generateMetadata({
 
   const description =
     job.summary ??
-    `${job.title} at Sohum Systems — ${job.location}. ${employmentTypeLabel[job.employmentType] ?? ""}.`;
+    `${job.title} at Sohum Systems, ${job.location}. ${employmentTypeLabel[job.employmentType] ?? ""}.`;
 
   return {
     title: job.title,

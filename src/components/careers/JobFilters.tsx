@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useId, useRef, useState, useTransition } from "react";
-import { Search, X } from "lucide-react";
+import { Search, X } from "@/components/icons";
 import { employmentTypeLabel, experienceLevelLabel } from "@/lib/format";
 
 type Facets = {

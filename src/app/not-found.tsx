@@ -5,7 +5,6 @@ import { capabilities } from "@/lib/capabilities";
 export default function NotFound() {
   return (
     <section className="relative isolate overflow-hidden bg-ink-950 text-white">
-      <div aria-hidden="true" className="absolute inset-0 grid-fine opacity-55" />
       <div className="container-page relative flex min-h-[70vh] flex-col justify-center py-24">
         <div className="max-w-2xl">
           <Eyebrow tone="light">Error 404</Eyebrow>

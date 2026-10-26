@@ -21,7 +21,7 @@ export default function PrivacyPage() {
       <h2>Information we collect</h2>
       <p>
         This website collects only the information you choose to send us. When you use the contact
-        form, your message is composed in your own email client and sent directly to us — the
+        form, your message is composed in your own email client and sent directly to us. The
         website itself does not store submissions on a server.
       </p>
       <p>Information you may choose to provide includes:</p>

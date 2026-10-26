@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { credentials } from "@/lib/site";
+import { siteCredentials } from "@/lib/site";
 
 /**
  * Trust Center cards.
@@ -13,7 +13,7 @@ import { credentials } from "@/lib/site";
 export function CredentialCards() {
   return (
     <ul className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-      {credentials.map((c) => (
+      {siteCredentials().map((c) => (
         <li
           key={c.short}
           className="group/cred flex h-full flex-col overflow-hidden rounded-[4px] border border-paper-300 bg-white transition-[border-color,box-shadow,transform] duration-300 ease-out hover:-translate-y-0.5 hover:border-ink-500/25 hover:shadow-[var(--shadow-lift-lg)]"

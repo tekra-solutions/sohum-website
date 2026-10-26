@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Briefcase, Mail, MapPin, Phone, Printer, Users } from "lucide-react";
+import { Briefcase, Mail, MapPin, Phone, Printer, Users } from "@/components/icons";
 import { PageHero } from "@/components/PageHero";
 import { ContactForm } from "@/components/ContactForm";
 import { Reveal } from "@/components/Reveal";
@@ -8,7 +8,7 @@ import { contact, identifiers, site } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Contact",
-  description: `Contact Sohum Systems — ${contact.address}. Phone ${contact.phone}. For contracting, capability, teaming, and recruiting inquiries.`,
+  description: `Contact Sohum Systems at ${contact.address}. Phone ${contact.phone}. For contracting, capability, teaming, and recruiting inquiries.`,
   alternates: { canonical: "/contact" },
   openGraph: {
     title: "Contact | Sohum Systems",

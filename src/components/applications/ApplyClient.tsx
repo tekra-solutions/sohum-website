@@ -59,13 +59,13 @@ export function ApplyClient({ jobId, jobTitle }: { jobId: string; jobTitle: stri
         <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
           <Link
             href="/careers"
-            className="inline-flex items-center justify-center rounded-[3px] bg-ink-900 px-6 py-3.5 text-[0.9375rem] font-medium text-white transition-colors hover:bg-ink-700"
+            className="inline-flex items-center justify-center rounded-full font-brand bg-ink-900 px-6 py-3.5 text-[0.9375rem] font-bold text-white transition-colors hover:bg-ink-700"
           >
             View other openings
           </Link>
           <Link
             href="/"
-            className="inline-flex items-center justify-center rounded-[3px] border border-paper-300 bg-white px-6 py-3.5 text-[0.9375rem] font-medium text-ink-900 transition-colors hover:border-ink-500"
+            className="inline-flex items-center justify-center rounded-full font-brand border border-paper-300 bg-white px-6 py-3.5 text-[0.9375rem] font-bold text-ink-900 transition-colors hover:border-ink-500"
           >
             Back to home
           </Link>

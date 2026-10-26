@@ -1,7 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Sora } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
-import { contact, credentials, naics, site } from "@/lib/site";
+import { contact, siteCredentials, naics, site } from "@/lib/site";
+import { brand, mono, wide } from "./fonts";
 import "./globals.css";
 
 const inter = Inter({
@@ -38,12 +39,12 @@ export const metadata: Metadata = {
     "software development Kansas City",
     "federal IT services",
     "government technology solutions",
-    "SBA 8(a) IT contractor",
+    "GSA MAS IT contractor",
     "CMMI Level 3",
     "federal cloud modernization",
     "government AI and data analytics",
     "enterprise GIS",
-    "NASA SEWP VI",
+    "SeaPort NxG",
     "CIO-SP3",
     "custom application development",
   ],
@@ -108,7 +109,7 @@ const organizationSchema = {
     { "@type": "City", name: "Kansas City" },
   ],
   slogan: "Technology | Talent | Trust",
-  hasCredential: credentials.map((c) => ({
+  hasCredential: siteCredentials().map((c) => ({
     "@type": "EducationalOccupationalCredential",
     name: c.name,
     credentialCategory: c.kind,
@@ -161,7 +162,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${display.variable}`}
+      className={`${inter.variable} ${display.variable} ${wide.variable} ${mono.variable} ${brand.variable}`}
       // The inline script below adds the "js" class before hydration.
       suppressHydrationWarning
     >

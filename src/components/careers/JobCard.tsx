@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Briefcase, MapPin } from "lucide-react";
+import { ArrowRight, Briefcase, MapPin } from "@/components/icons";
 import type { Job } from "@/db/schema";
 import { employmentTypeLabel, experienceLevelLabel, remoteTypeLabel } from "@/lib/format";
 

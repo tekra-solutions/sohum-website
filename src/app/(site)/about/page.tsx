@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import { Quote } from "lucide-react";
 import { PageHero } from "@/components/PageHero";
 import { CtaBand } from "@/components/CtaBand";
 import { Reveal } from "@/components/Reveal";
@@ -11,12 +10,12 @@ import { CredentialCards } from "@/components/CredentialCards";
 export const metadata: Metadata = {
   title: "About",
   description:
-    "Sohum Systems, LLC — an SBA 8(a) certified, CMMI Level 3 appraised technology firm founded in 2013 in Overland Park, Kansas, serving federal, state, and commercial customers.",
+    "Sohum Systems, LLC is a CMMI Level 3 appraised small business founded in 2013 in Overland Park, Kansas, serving federal, state, and commercial customers.",
   alternates: { canonical: "/about" },
   openGraph: {
     title: "About | Sohum Systems",
     description:
-      "Founded in 2013 in Overland Park, Kansas. SBA 8(a) certified, CMMI Level 3 appraised, ISO certified.",
+      "Founded in 2013 in Overland Park, Kansas. CMMI Level 3 appraised and ISO certified.",
     url: `${site.url}/about`,
   },
 };
@@ -95,7 +94,7 @@ export default function AboutPage() {
                 </p>
                 <div className="mt-7 space-y-5 text-[1.0625rem] leading-[1.75] text-graphite-600">
                   <p>
-                    That structure is not a limitation we work around — it is the reason our
+                    That structure is the reason our
                     customers stay. A flat organization means the people who scope your work are the
                     people who deliver it, decisions do not queue behind management layers, and the
                     rate you pay is not carrying overhead you will never benefit from.
@@ -122,24 +121,14 @@ export default function AboutPage() {
 
       {/* ---- Mission / quality policy ---- */}
       <section className="relative overflow-hidden bg-ink-950 text-white">
-        <div aria-hidden="true" className="absolute inset-0 grid-fine opacity-50" />
-        <div
-          aria-hidden="true"
-          className="absolute left-1/2 top-0 h-[500px] w-[900px] -translate-x-1/2 blur-3xl"
-          style={{ background: "radial-gradient(ellipse, rgba(242,88,6,0.09) 0%, transparent 70%)" }}
-        />
         <div className="container-page relative section-y">
           <Reveal>
             <div className="mx-auto max-w-3xl text-center">
-              <Quote
-                className="mx-auto size-8 text-flame-500/60"
-                strokeWidth={1.25}
-                aria-hidden="true"
-              />
-              <p className="mt-8 text-[1.375rem] font-medium leading-[1.5] tracking-[-0.015em] text-white sm:text-[1.75rem]">
+              <p className="eyebrow text-flame-400">Our quality policy</p>
+              <p className="mt-6 font-brand text-[1.375rem] font-semibold leading-[1.45] tracking-[-0.015em] text-white sm:text-[1.75rem]">
                 We are committed to delivering innovative, high-quality, and cost-effective software
                 development, maintenance, and sustainment services that meet our customers&rsquo;
-                requirements — and to maintaining the confidentiality, integrity, and availability
+                requirements, and to maintaining the confidentiality, integrity, and availability
                 of their information.
               </p>
               <p className="mt-7 text-[0.8125rem] font-semibold uppercase tracking-[0.14em] text-white/40">
@@ -152,7 +141,7 @@ export default function AboutPage() {
             {[
               {
                 h: "Agility",
-                p: "We respond to the dynamic nature of our customers&rsquo; programs rather than defending an original plan.",
+                p: "We respond to the dynamic nature of our customers’ programs rather than defending an original plan.",
               },
               {
                 h: "Quality focus",
@@ -185,7 +174,7 @@ export default function AboutPage() {
             <SectionHeading
               eyebrow="Leadership"
               title="The people accountable for the work."
-              lede="Three leaders, each reachable. On a program of our size, that is not a courtesy — it is how issues get resolved in days instead of quarters."
+              lede="Three leaders, each reachable. On a program our size, that is how issues get resolved in days instead of quarters."
             />
           </Reveal>
 

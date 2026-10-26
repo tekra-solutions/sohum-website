@@ -1,17 +1,46 @@
 /**
- * Sohum Systems brand mark.
+ * Sohum Systems brand mark: a stylised Sudarshana Chakra.
  *
- * Paths are taken verbatim from the supplied brand SVG. The artwork is a
- * two-part rotationally symmetric bird form: one half in the brand orange,
- * one in the brand navy.
- *
- * Rendering notes:
- *  - The source file packs the symbol (x 286-587, y 0-292) above the wordmark.
- *    We crop the viewBox to the symbol and set the wordmark in live text, so
- *    the lockup stays crisp, searchable, and translatable.
- *  - On dark grounds the navy half would nearly vanish, so `tone="light"`
- *    swaps it for a light slate that keeps the two halves legible.
+ * Two counter-sweeping blade pairs, saffron and navy, turn about a central hub,
+ * the spinning discus of order and protection. This is a precision redraw of
+ * the original artwork:
+ *  - exact 180° rotational symmetry about one true centre (436.76, 143.49);
+ *  - the hub bite is a true circular arc, and the white ring around the hub
+ *    matches the channel between the blades;
+ *  - the inner blades end in clean cuts instead of the small hooked nubs.
+ * Source lives in public/brand/sohum-chakra-2026.svg.
  */
+
+const BLADE_OUTER = "M428.93 0.00C398.52 8.17 286.01 63.88 286.55 116.97C286.55 175.52 401.59 167.37 430.01 163.66A21.27 21.27 0 0 1 430.01 123.32C399.62 121.53 345.38 130.19 343.66 87.70C343.66 43.22 423.25 8.40 428.93 0.00Z";
+const BLADE_INNER = "M432.65 16.92C405.45 23.22 369.14 46.16 359.05 73.06C354.02 86.48 359.95 101.50 373.05 107.31C395.28 117.16 431.29 112.95 431.29 112.95L431.55 93.46C425.30 91.85 385.53 98.06 385.60 71.26C386.41 44.26 425.19 22.46 432.65 16.92Z";
+
+export function LogoMark({
+  className = "",
+  tone = "dark",
+}: {
+  className?: string;
+  tone?: "dark" | "light";
+}) {
+  const navy = tone === "light" ? "#c9d4ea" : "#304368";
+  return (
+    <svg viewBox="285.76 -7.51 302 302" className={`shrink-0 ${className}`} aria-hidden="true" focusable="false">
+      {/* The discus turns once about its hub on hover. */}
+      <g
+        style={{ transformOrigin: "436.76px 143.49px", transformBox: "view-box" }}
+        className="transition-transform duration-[900ms] ease-[cubic-bezier(.22,1,.36,1)] motion-reduce:transition-none group-hover/logo:rotate-[360deg]"
+      >
+        <path fill="#f25806" d={BLADE_OUTER} />
+        <path fill={navy} d={BLADE_INNER} />
+        <g transform="rotate(180 436.76 143.49)">
+          <path fill={navy} d={BLADE_OUTER} />
+          <path fill="#f25806" d={BLADE_INNER} />
+        </g>
+        <circle cx="436.76" cy="143.49" r="12.3" fill={navy} />
+      </g>
+    </svg>
+  );
+}
+
 export function Logo({
   className = "",
   showWordmark = true,
@@ -22,74 +51,33 @@ export function Logo({
   showWordmark?: boolean;
   /** "dark" = for light backgrounds; "light" = for dark backgrounds. */
   tone?: "dark" | "light";
-  /** sm = compact rails such as the admin sidebar; md = header/footer default;
-   *  lg = generous, for the footer masthead. */
+  /** sm = compact rails such as the admin sidebar; md = header default; lg = footer masthead. */
   size?: "sm" | "md" | "lg";
 }) {
-  const navy = tone === "light" ? "#8fa2c4" : "#304368";
-  const wordNavy = tone === "light" ? "text-white" : "text-brand-navy";
-  // Stepped down on narrow screens: at full size the lockup pushed the mobile
-  // menu button past the viewport edge (41px overflow at 320px).
-  const markSize =
-    size === "sm"
-      ? "h-[2rem] w-[2.0625rem]"
-      : size === "lg"
-        ? "h-[3rem] w-[3.0625rem] sm:h-[3.5rem] sm:w-[3.625rem] lg:h-[4rem] lg:w-[4.125rem]"
-        : "h-[2.625rem] w-[2.6875rem] sm:h-[3rem] sm:w-[3.0625rem] lg:h-[3.375rem] lg:w-[3.4375rem]";
-  const wordSize =
-    size === "sm"
-      ? "text-[1.0625rem]"
-      : size === "lg"
-        ? "text-[1.375rem] sm:text-[1.625rem] lg:text-[2rem]"
-        : "text-[1.1875rem] sm:text-[1.4375rem] lg:text-[1.75rem]";
+  const mark = size === "sm" ? "size-8" : size === "lg" ? "size-14 sm:size-16" : "size-10 lg:size-11";
+  const word = size === "sm" ? "text-[0.9375rem]" : size === "lg" ? "text-[1.5rem] sm:text-[1.75rem]" : "text-[1.0625rem] lg:text-[1.1875rem]";
 
   return (
-    <span className={`inline-flex items-center gap-3 ${className}`}>
-      <svg
-        viewBox="286 0 301 292"
-        className={`${markSize} shrink-0`}
-        fill="none"
-        aria-hidden="true"
-        focusable="false"
-      >
-        {/* Upper sweep — orange outer, navy inner */}
-        <path
-          fill="#f25806"
-          d="m428.93,0c-30.41,8.17-142.92,63.88-142.38,116.97,0,58.55,115.04,50.4,143.46,46.7,0,0-14.78-3.13-14.78-19.7s14.78-20.65,14.78-20.65c-30.39-1.79-84.63,6.87-86.35-35.62,0-44.48,79.59-79.3,85.26-87.7Z"
-        />
-        <path
-          fill={navy}
-          d="m432.65,16.92c-27.2,6.3-63.51,29.24-73.6,56.14-5.03,13.42.9,28.44,14,34.25,22.23,9.85,58.24,5.64,58.24,5.64,0,0-6.46-1.34-6.63-10.42-.17-9.21,6.9-9.07,6.9-9.07-6.25-1.61-46.02,4.6-45.95-22.2.81-27,39.59-48.8,47.03-54.34Z"
-        />
-        {/* Pivot */}
-        <circle fill={navy} cx="435" cy="143.06" r="10.11" />
-        {/* Lower sweep — navy outer, orange inner */}
-        <path
-          fill={navy}
-          d="m444.59,286.98c30.41-8.17,142.92-63.88,142.38-116.97,0-58.55-115.04-50.4-143.46-46.7,0,0,14.78,3.13,14.78,19.7s-14.78,20.65-14.78,20.65c30.39,1.79,84.63-6.87,86.35,35.62,0,44.48-79.59,79.3-85.26,87.7Z"
-        />
-        <path
-          fill="#f25806"
-          d="m440.87,270.06c27.2-6.3,63.51-29.24,73.6-56.14,5.03-13.42-.9-28.44-14-34.25-22.23-9.85-58.24-5.64-58.24-5.64,0,0,6.46,1.34,6.63,10.42.17,9.21-6.9,9.07-6.9,9.07,6.25,1.61,46.02-4.6,45.95,22.2-.81,27-39.59,48.8-47.03,54.34Z"
-        />
-      </svg>
-
-      {showWordmark && (
-        <span className="flex flex-col leading-none">
+    <span className={`group/logo inline-flex items-center gap-2.5 ${className}`}>
+      <LogoMark className={mark} tone={tone} />
+      {showWordmark ? (
+        // Stacked lockup: SOHUM in heavy caps, SYSTEMS spaced to exactly the same width.
+        <span className={`flex flex-col font-brand ${word}`}>
+          <span className="sr-only">Sohum Systems</span>
+          <span aria-hidden="true" className={`font-extrabold leading-none tracking-[0.06em] ${tone === "light" ? "text-white" : "text-ink-950"}`}>
+            SOHUM
+          </span>
           <span
-            className={`whitespace-nowrap font-[family-name:var(--font-display)] ${wordSize} font-semibold tracking-[-0.03em] ${wordNavy}`}
+            aria-hidden="true"
+            className={`mt-[0.3em] flex justify-between pl-[0.05em] text-[0.43em] font-semibold leading-none ${tone === "light" ? "text-flame-400" : "text-flame-600"}`}
           >
-            {/* "Sohum" carries the orange; "Systems" stays navy. The artwork's
-                orange (#f25806) is 3.4:1 on white — right for a graphic, short
-                of AA for text — so light grounds use flame-600 (4.82:1) and
-                dark grounds the brighter flame-400. Same colour family either
-                way, so the header and footer lockups read identically. */}
-            <span className={tone === "light" ? "text-flame-400" : "text-flame-600"}>
-              Sohum
-            </span>{" "}
-            Systems
+            {"SYSTEMS".split("").map((c, i) => (
+              <span key={i}>{c}</span>
+            ))}
           </span>
         </span>
+      ) : (
+        <span className="sr-only">Sohum Systems</span>
       )}
     </span>
   );

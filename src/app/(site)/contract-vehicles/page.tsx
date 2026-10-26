@@ -1,29 +1,29 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import Image from "next/image";
-import { AlertCircle, ArrowRight, FileText, Phone } from "lucide-react";
+import { AlertCircle, ArrowRight, FileText, Phone } from "@/components/icons";
 import { PageHero } from "@/components/PageHero";
 import { CtaBand } from "@/components/CtaBand";
 import { Reveal } from "@/components/Reveal";
 import { Badge, Eyebrow, SectionHeading } from "@/components/ui";
-import { contact, identifiers, naics, site, vehicles } from "@/lib/site";
+import { contact, identifiers, naics, site, siteVehicles } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Contract Vehicles",
   description:
-    "Contract vehicles for Sohum Systems — NASA SEWP VI Category A, SBA 8(a) sole source through 2027, and CIO-SP3 Small Business, with contract numbers, periods of performance, and ordering guidance.",
+    "Contract vehicles for Sohum Systems: GSA Multiple Award Schedule, SeaPort NxG, and CIO-SP3 Small Business, with contract numbers, ordering periods, and how to place an order.",
   alternates: { canonical: "/contract-vehicles" },
   openGraph: {
     title: "Contract Vehicles | Sohum Systems",
     description:
-      "NASA SEWP VI, SBA 8(a), and CIO-SP3 Small Business — contract numbers, periods of performance, and how to order.",
+      "GSA MAS, SeaPort NxG, and CIO-SP3 Small Business. Contract numbers, ordering periods, and how to order.",
     url: `${site.url}/contract-vehicles`,
   },
 };
 
 export default function ContractVehiclesPage() {
-  const active = vehicles.filter((v) => v.status === "active");
-  const expired = vehicles.filter((v) => v.status === "expired");
+  const active = siteVehicles().filter((v) => v.status === "active");
+  const expired = siteVehicles().filter((v) => v.status === "expired");
 
   return (
     <>
@@ -31,7 +31,7 @@ export default function ContractVehiclesPage() {
         eyebrow="Procurement"
         crumbs={[{ label: "Contract Vehicles" }]}
         title="How to put our team under contract."
-        lede="Three active pathways, with the contract data your contracting officer needs to build an acquisition. Vehicles whose period of performance has ended are listed separately and labelled as such."
+        lede={`${active.length === 1 ? "One vehicle is" : `${active.length} vehicles are`} open for new orders. Each entry has the contract data your contracting officer needs to build an acquisition.`}
         aside={
           <div className="rounded-[4px] border border-white/10 bg-white/[0.035] p-7">
             <p className="eyebrow text-white/40">Entity identifiers</p>
@@ -59,23 +59,24 @@ export default function ContractVehiclesPage() {
           <Reveal>
             <div className="grid gap-8 rounded-[4px] border border-flame-500/30 bg-flame-500/[0.045] p-7 sm:p-9 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
               <div>
-                <p className="eyebrow text-flame-700">Fastest path to award</p>
+                <p className="eyebrow text-flame-700">Simplest path to award</p>
                 <p className="mt-4 text-[1.1875rem] font-medium leading-[1.5] text-ink-900 sm:text-[1.3125rem]">
-                  As an SBA-certified 8(a) small business, we can be awarded directly without full
-                  and open competition — within program thresholds — through November 11, 2027.
+                  Any federal agency can order from us on the GSA Multiple Award Schedule, contract
+                  47QTCA19D00FK, under FAR 8.4. State and local buyers can use it through cooperative
+                  purchasing.
                 </p>
               </div>
               <div className="flex flex-col gap-3 sm:flex-row lg:justify-end">
                 <Link
-                  href="#8a"
-                  className="inline-flex items-center justify-center gap-2 rounded-[3px] bg-ink-900 px-5 py-3.5 text-[0.875rem] font-medium text-white transition-colors hover:bg-ink-700"
+                  href="#gsa-mas"
+                  className="inline-flex items-center justify-center gap-2 rounded-full font-brand bg-ink-900 px-5 py-3.5 text-[0.875rem] font-bold text-white transition-colors hover:bg-ink-700"
                 >
-                  8(a) details
+                  GSA MAS details
                   <ArrowRight className="size-4" aria-hidden="true" />
                 </Link>
                 <a
-                  href={`mailto:${contact.emailGeneral}?subject=8(a)%20sole%20source%20inquiry`}
-                  className="inline-flex items-center justify-center gap-2 rounded-[3px] border border-paper-300 bg-white px-5 py-3.5 text-[0.875rem] font-medium text-ink-900 transition-colors hover:border-ink-500"
+                  href={`mailto:${contact.emailGeneral}?subject=GSA%20MAS%20order%20inquiry`}
+                  className="inline-flex items-center justify-center gap-2 rounded-full font-brand border border-paper-300 bg-white px-5 py-3.5 text-[0.875rem] font-bold text-ink-900 transition-colors hover:border-ink-500"
                 >
                   Contact contracts
                 </a>
@@ -108,8 +109,8 @@ export default function ContractVehiclesPage() {
                     <div className="p-7 sm:p-9">
                       <div className="flex flex-wrap items-center gap-3">
                         <Badge tone="active">
-                          <span className="size-1.5 rounded-full bg-flame-500" aria-hidden="true" />
-                          Active
+                          <span className="size-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
+                          Open for orders
                         </Badge>
                         <span className="text-[0.8125rem] text-graphite-500">{v.holder}</span>
                       </div>
@@ -166,7 +167,7 @@ export default function ContractVehiclesPage() {
                         href={`mailto:${contact.emailGeneral}?subject=${encodeURIComponent(
                           `${v.name} inquiry`,
                         )}`}
-                        className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-[3px] border border-paper-300 bg-white px-5 py-3 text-[0.875rem] font-medium text-ink-900 transition-colors hover:border-ink-500"
+                        className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full font-brand border border-paper-300 bg-white px-5 py-3 text-[0.875rem] font-bold text-ink-900 transition-colors hover:border-ink-500"
                       >
                         Request a quote
                         <ArrowRight className="size-3.5" aria-hidden="true" />
@@ -180,14 +181,15 @@ export default function ContractVehiclesPage() {
         </div>
       </section>
 
-      {/* ---- Prior vehicles: disclosed honestly ---- */}
+      {/* ---- Prior vehicles: disclosed honestly, shown only when one exists ---- */}
+      {expired.length > 0 && (
       <section className="border-y border-paper-200 bg-white">
         <div className="container-page section-y">
           <Reveal>
             <SectionHeading
               eyebrow="Prior vehicles"
-              title="Vehicles no longer in their period of performance."
-              lede="We list these because the past performance is real and relevant. We label them clearly because a contracting officer should never have to discover an expiration on their own."
+              title="Vehicles closed to new orders."
+              lede="We list these because the work under them is real and relevant. We label them clearly so a contracting officer never has to discover a closed ordering period on their own."
             />
           </Reveal>
 
@@ -204,7 +206,7 @@ export default function ContractVehiclesPage() {
               </caption>
               <thead>
                 <tr className="border-b border-paper-300">
-                  {["Vehicle", "Holder", "Contract number", "Period of performance", "Status"].map(
+                  {["Vehicle", "Holder", "Contract number", "Ordering period", "Status"].map(
                     (h) => (
                       <th
                         key={h}
@@ -236,7 +238,7 @@ export default function ContractVehiclesPage() {
                       {v.pop}
                     </td>
                     <td className="py-5 pr-6">
-                      <Badge tone="muted">Expired</Badge>
+                      <Badge tone="muted">{v.statusLabel}</Badge>
                     </td>
                   </tr>
                 ))}
@@ -252,15 +254,15 @@ export default function ContractVehiclesPage() {
                 aria-hidden="true"
               />
               <p className="text-[0.9375rem] leading-[1.7] text-graphite-600">
-                For requirements you would have routed through GSA Schedule 70 or SeaPort NxG,
-                contact us before you build the acquisition. GSA IT Schedule 70 has since been
-                consolidated into the GSA Multiple Award Schedule, and in most cases the same scope
-                can be reached today through 8(a) or CIO-SP3.
+                If a requirement was planned around one of these vehicles, contact us before you
+                build the acquisition. In most cases the same scope can be reached today through
+                one of the open vehicles above.
               </p>
             </div>
           </Reveal>
         </div>
       </section>
+      )}
 
       {/* ---- Codes + POC ---- */}
       <section className="bg-paper-50">

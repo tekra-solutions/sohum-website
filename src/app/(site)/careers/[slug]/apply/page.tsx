@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "@/components/icons";
 import { PageHero } from "@/components/PageHero";
 import { ApplyClient } from "@/components/applications/ApplyClient";
 import { getPublishedJobBySlug } from "@/lib/services/jobs";
@@ -18,7 +18,7 @@ export async function generateMetadata({
   const job = await getPublishedJobBySlug(slug);
   if (!job) return { title: "Position not available", robots: { index: false } };
   return {
-    title: `Apply — ${job.title}`,
+    title: `Apply: ${job.title}`,
     description: `Apply for ${job.title} at Sohum Systems in ${job.location}.`,
     // Application forms should not compete with the job page in search.
     robots: { index: false, follow: true },

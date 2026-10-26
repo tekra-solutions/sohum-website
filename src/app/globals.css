@@ -101,9 +101,9 @@
 
   /* Optical typography: tighten tracking as display sizes grow */
   h1, h2, h3, h4 {
-    font-family: var(--font-display);
-    font-weight: 500;
-    letter-spacing: -0.022em;
+    font-family: var(--font-brand);
+    font-weight: 700;
+    letter-spacing: -0.025em;
     text-wrap: balance;
   }
 
@@ -172,9 +172,10 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: 0.14em;
+  font-family: var(--font-brand);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   font-feature-settings: "tnum";
 }
@@ -277,6 +278,7 @@
    (the homepage wrapper), not at :root where they are undefined. */
 @theme inline {
   --font-wide: var(--ff-wide), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-brand: var(--ff-brand), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-tech: var(--ff-tech), ui-monospace, "SFMono-Regular", Menlo, monospace;
 }
 

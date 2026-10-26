@@ -21,8 +21,8 @@ import {
   Plus,
   UsersRound,
   Workflow,
-  type LucideIcon,
-} from "lucide-react";
+  type IconComponent,
+} from "@/components/icons";
 import { CapabilityRail } from "@/components/home/CapabilityRail";
 import { CountUp } from "@/components/home/CountUp";
 import { DotGlobe } from "@/components/home/DotGlobe";
@@ -30,7 +30,7 @@ import { MilestoneRoute, type Milestone } from "@/components/home/MilestoneRoute
 import { ParallaxPanel } from "@/components/home/ParallaxPanel";
 import { ScrollWords } from "@/components/home/ScrollWords";
 import { SweepText } from "@/components/home/SweepText";
-import { mono, wide } from "@/components/home/fonts";
+
 import {
   businessDevelopment,
   contact,
@@ -51,7 +51,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/" },
 };
 
-const capabilityIcons: Record<string, LucideIcon> = {
+const capabilityIcons: Record<string, IconComponent> = {
   "custom-application-development": Braces,
   "cloud-services-migration": Cloud,
   "artificial-intelligence-data-analytics": Cpu,
@@ -69,12 +69,12 @@ const milestones: Milestone[] = [
   {
     step: "01 / Understand",
     title: "Start with the mission",
-    body: "The people, policy, and data behind the requirement, so what we build fits how your program runs.",
+    body: "We learn the people, policy, and data behind the requirement first, so what we build fits how your program runs.",
   },
   {
     step: "02 / Deliver",
-    title: "Ship in the open",
-    body: "Short, visible increments with automated testing. Progress you can see, not a report you have to trust.",
+    title: "Deliver in increments",
+    body: "Short increments backed by automated testing, so progress shows up as working software you can try.",
   },
   {
     step: "03 / Sustain",
@@ -100,9 +100,9 @@ export default function HomePage() {
     .map((v) => ({ v, days: orderingClosesIn(v, day) }))
     .find((x) => x.days !== null);
 
-  const reasons: { icon: LucideIcon; title: string; body: string }[] = [
-    { icon: UsersRound, title: "One accountable team", body: "Engineering, operations, and program management under one roof. No hand-offs, no one else to blame." },
-    { icon: ClipboardCheck, title: "An appraised process", body: "Appraised at CMMI Level 3 for Development and Services. Quality is built in, not inspected in." },
+  const reasons: { icon: IconComponent; title: string; body: string }[] = [
+    { icon: UsersRound, title: "One accountable team", body: "Engineering, operations, and program management work together under one roof, from kickoff to support." },
+    { icon: ClipboardCheck, title: "An appraised process", body: "Appraised at CMMI Level 3 for Development and Services. Quality checks are part of every project plan." },
     { icon: Landmark, title: "Easy to buy from", body: `Open for orders on ${activeVehicles.map((v) => v.name).join(", ")}.` },
     { icon: Handshake, title: "A line to leadership", body: `Our ${businessDevelopment.title.toLowerCase()} is your contact for contracts and teaming.` },
     { icon: FileCheck2, title: "A record you can verify", body: "Every award we cite is listed in public federal records." },
@@ -141,14 +141,14 @@ export default function HomePage() {
   ];
 
   return (
-    <div className={`${wide.variable} ${mono.variable}`}>
+    <div>
       {/* ================================================================ Hero */}
-      <section className="relative isolate -mt-[calc(5.25rem+1px)] flex min-h-[100svh] flex-col overflow-hidden bg-[#05070d] text-white sm:-mt-[calc(6.25rem+1px)] lg:-mt-[calc(7rem+1px)]">
+      <section className="relative isolate mt-[-4.5rem] flex min-h-[100svh] flex-col overflow-hidden bg-[#05070d] text-white lg:mt-[-7.25rem]">
         <div aria-hidden="true" className="absolute inset-0 -z-20 opacity-60 [background-image:radial-gradient(rgba(255,255,255,.5)_1px,transparent_1px)] [background-size:120px_120px] [mask-image:radial-gradient(ellipse_at_30%_40%,black,transparent_70%)]" />
         <div className="absolute -right-[72vw] top-[calc(-6vh-12vw)] -z-10 size-[195vw] sm:-right-[49vw] sm:size-[138vw] lg:right-[calc(26vw-89.5vh)] lg:-top-[17vh] lg:size-[179vh]">
           <DotGlobe unroll className="font-tech" />
         </div>
-        <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(5,7,13,.9)_0%,rgba(5,7,13,.45)_45%,transparent_70%),linear-gradient(0deg,#05070d_0%,transparent_30%)]" />
+        <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(5,7,13,.9)_0%,rgba(5,7,13,.45)_45%,transparent_70%),linear-gradient(0deg,#05070d_0%,transparent_30%),linear-gradient(180deg,rgba(5,7,13,.85)_0%,transparent_22%)]" />
 
         <div className="container-page flex flex-1 flex-col justify-end pb-8 pt-32 sm:pb-10">
           <Link
@@ -239,20 +239,20 @@ export default function HomePage() {
           <div>
             <ScrollWords
               className="text-[1.5rem] font-medium leading-[1.35] tracking-[-.02em] sm:text-[1.9rem]"
-              accent={["accountable", "predictably", "transparently", "excuses"]}
-              text="With engineering, cloud, data, and program management under one roof and one accountable team, your systems run the way your mission demands: predictably, transparently, and without excuses."
+              accent={["build", "support"]}
+              text="Engineering, cloud, data, and program management sit under one roof here. The people who scope your work are the same people who build and support it, so nothing gets lost in a hand-off."
             />
             <ScrollWords
               className="mt-8 text-[1.25rem] font-medium leading-[1.4] tracking-[-.02em] sm:text-[1.45rem]"
-              accent={["outcome"]}
-              text="No fragmented vendors. No finger-pointing. One team that owns the outcome."
+              accent={["owns"]}
+              text="When something needs fixing, you call one team, and that team owns the fix."
             />
             <Link href="/about" className="btn-tech mt-10 border border-ink-950/20 text-ink-950 hover:border-ink-950 hover:bg-ink-950 hover:text-white">
               Learn more about us
             </Link>
 
             <p className={`${label} mt-20 border-b border-paper-300 pb-4 text-graphite-500`}>
-              From {years} years of federal work, <span className="text-flame-600">clarity emerges</span>
+              Sohum Systems <span className="text-flame-600">by the numbers</span>
             </p>
             <dl>
               {[
@@ -296,7 +296,7 @@ export default function HomePage() {
             >
               <span className="flex items-center justify-between">
                 <span className="grid size-14 place-items-center bg-white/[0.05] transition-colors group-hover:bg-flame-500/15">
-                  <Icon className="dot-matrix size-10 text-white transition-colors group-hover:text-flame-400" strokeWidth={3} aria-hidden="true" />
+                  <Icon className="size-8 text-white transition-colors group-hover:text-flame-400" strokeWidth={1.5} aria-hidden="true" />
                 </span>
                 <span className="font-tech text-xs text-white/30">{String(i + 1).padStart(2, "0")}</span>
               </span>
@@ -383,7 +383,7 @@ export default function HomePage() {
         <div className="container-page py-28 sm:py-36">
           <p className={`${label} text-center text-white/60`}>Why Sohum</p>
           <SweepText className="font-wide mx-auto mt-6 max-w-[16ch] text-center text-[clamp(2.2rem,5.4vw,5rem)] font-semibold uppercase leading-[.95] tracking-[-.02em] text-white [--sweep-from:#fa752e] [--sweep-to:#5b84ff]">
-            Technology that works as hard as you do
+            Why agencies choose Sohum
           </SweepText>
           <div className="mt-20 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {reasons.map(({ icon: Icon, title, body }, i) => (

@@ -101,7 +101,7 @@ export default function CapabilityStatementPage() {
                   .map((p) => (
                     <li key={p.id}>
                       <p className="font-semibold">
-                        {p.agency} — {p.name}
+                        {p.agency}: {p.name}
                       </p>
                       <p className="text-graphite-700">
                         {p.work.join("; ")}. {p.contract}, {p.period}.

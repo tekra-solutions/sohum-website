@@ -1,5 +1,6 @@
-import { ArrowRight } from "lucide-react";
+import { ArrowRight } from "@/components/icons";
 import { ButtonLink, Eyebrow } from "./ui";
+import { LogoMark } from "./Logo";
 import { contact } from "@/lib/site";
 
 /** Closing conversion band used at the foot of inner pages. */
@@ -17,18 +18,13 @@ export function CtaBand({
   secondary?: { href: string; label: string };
 }) {
   return (
-    <section className="relative overflow-hidden border-t border-paper-200 bg-ink-900 text-white">
-      <div aria-hidden="true" className="absolute inset-0 grid-fine opacity-45" />
-      <div
-        aria-hidden="true"
-        className="absolute right-[-8%] bottom-[-50%] h-[520px] w-[520px] rounded-full blur-3xl"
-        style={{ background: "radial-gradient(circle, rgba(242,88,6,0.11) 0%, transparent 68%)" }}
-      />
+    <section className="relative isolate overflow-hidden bg-[#0b0f1a] text-white">
+      <LogoMark tone="light" className="pointer-events-none absolute -bottom-40 -right-24 -z-10 size-[30rem] opacity-[0.045]" />
       <div className="container-page relative section-y-tight">
         <div className="flex flex-col gap-10 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-2xl">
             <Eyebrow tone="light">{eyebrow}</Eyebrow>
-            <h2 className="mt-5 text-[1.75rem] leading-[1.15] text-white sm:text-[2.125rem]">
+            <h2 className="mt-4 text-[2rem] leading-[1.08] text-white sm:text-[2.5rem]">
               {title}
             </h2>
             <p className="mt-5 text-[1.0625rem] leading-[1.7] text-white/60">{lede}</p>
@@ -44,8 +40,7 @@ export function CtaBand({
             </ButtonLink>
             <ButtonLink
               href={secondary?.href ?? `mailto:${contact.emailGeneral}`}
-              variant="secondary"
-              className="border-white/20 bg-white/[0.04] text-white hover:border-white/40 hover:bg-white/[0.09]"
+              variant="outlineDark"
             >
               {secondary?.label ?? contact.emailGeneral}
             </ButtonLink>

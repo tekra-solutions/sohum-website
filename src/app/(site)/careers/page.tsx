@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ArrowUpRight, GraduationCap, HeartHandshake, MapPin, Users2 } from "lucide-react";
+import { ArrowUpRight, GraduationCap, HeartHandshake, MapPin, Users2 } from "@/components/icons";
 import { JobCard } from "@/components/careers/JobCard";
 import { JobFilters } from "@/components/careers/JobFilters";
 import { jobFacets, listPublishedJobs } from "@/lib/services/jobs";
@@ -12,7 +12,7 @@ import { contact, site } from "@/lib/site";
 export const metadata: Metadata = {
   title: "Careers",
   description:
-    "Careers at Sohum Systems — engineering, analysis, and program roles building federal systems, with health, dental, vision, 401(k), tuition reimbursement, and mentorship programs.",
+    "Careers at Sohum Systems: engineering, analysis, and program roles building federal systems, with health, dental, vision, 401(k), tuition reimbursement, and mentorship programs.",
   alternates: { canonical: "/careers" },
   openGraph: {
     title: "Careers | Sohum Systems",
@@ -98,8 +98,8 @@ export default async function CareersPage({
                   the program that uses it.
                 </p>
                 <p className="mt-4 max-w-2xl text-[1rem] leading-[1.7] text-graphite-600">
-                  We are selective about hiring — every applicant goes through a thorough interview
-                  process — and deliberate about what happens afterward. Everyone we hire joins our
+                  We are selective about hiring. Every applicant goes through a thorough interview
+                  process, and we are just as deliberate about what happens afterward. Everyone we hire joins our
                   ongoing training programs and becomes an automatic member of our mentorship
                   program. Most of our people hold certification in their primary area of focus, and
                   we support them in getting there.
@@ -113,7 +113,7 @@ export default async function CareersPage({
               {
                 Icon: Users2,
                 h: "Mentorship from day one",
-                p: "Every hire becomes an automatic member of our mentorship program — not a program you have to seek out.",
+                p: "Every hire becomes an automatic member of our mentorship program. You never have to ask to join.",
               },
               {
                 Icon: GraduationCap,
@@ -204,7 +204,6 @@ export default async function CareersPage({
 
       {/* ---- Benefits ---- */}
       <section className="relative overflow-hidden border-y border-paper-200 bg-ink-900 text-white">
-        <div aria-hidden="true" className="absolute inset-0 grid-fine opacity-45" />
         <div className="container-page relative section-y">
           <Reveal>
             <SectionHeading
@@ -253,7 +252,7 @@ export default async function CareersPage({
                 Our goal is always to employ the best person for the right job, regardless of
                 background, nationality, age, sex, race, disability, ethnic origin, religion, or any
                 other parameter or circumstance. We are committed to equal employment opportunity for
-                all, and we maintain robust policies to ensure that discrimination in any form is not
+                all, and we maintain written policies to ensure that discrimination in any form is not
                 tolerated.
               </p>
             </div>

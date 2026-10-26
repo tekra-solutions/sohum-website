@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { ArrowRight, Check, CircleDot, Target } from "lucide-react";
+import { ArrowRight, Check } from "@/components/icons";
 import { PageHero } from "@/components/PageHero";
 import { CtaBand } from "@/components/CtaBand";
 import { Reveal } from "@/components/Reveal";
 import { Eyebrow } from "@/components/ui";
 import { capabilities, getCapability } from "@/lib/capabilities";
-import { activeVehicles, site } from "@/lib/site";
+import { siteActiveVehicles, site } from "@/lib/site";
 
 /** All capability pages are known at build time — prerender every one. */
 export function generateStaticParams() {
@@ -129,7 +129,6 @@ export default async function CapabilityPage({
 
       {/* ---- Our approach ---- */}
       <section className="relative overflow-hidden bg-ink-900 text-white">
-        <div aria-hidden="true" className="absolute inset-0 grid-fine opacity-45" />
         <div className="container-page relative section-y">
           <div className="grid gap-10 lg:grid-cols-[0.32fr_0.68fr] lg:gap-16">
             <Reveal className="lg:sticky lg:top-40 lg:self-start">
@@ -172,16 +171,14 @@ export default async function CapabilityPage({
                   Services under this capability
                 </h2>
                 <ul className="mt-8 grid gap-px overflow-hidden rounded-[4px] border border-paper-300 bg-paper-300">
-                  {capability.services.map((s) => (
+                  {capability.services.map((s, i) => (
                     <li
                       key={s}
-                      className="flex items-start gap-3 bg-white px-5 py-4 text-[0.9375rem] leading-snug text-graphite-700"
+                      className="flex items-baseline gap-4 bg-white px-5 py-4 text-[0.9375rem] leading-snug text-graphite-700"
                     >
-                      <CircleDot
-                        className="mt-0.5 size-4 shrink-0 text-flame-600"
-                        strokeWidth={1.75}
-                        aria-hidden="true"
-                      />
+                      <span className="w-5 shrink-0 font-tech text-[0.75rem] text-flame-600">
+                        {String(i + 1).padStart(2, "0")}
+                      </span>
                       {s}
                     </li>
                   ))}
@@ -197,12 +194,7 @@ export default async function CapabilityPage({
                 </h2>
                 <ul className="mt-8 space-y-5">
                   {capability.outcomes.map((o) => (
-                    <li key={o} className="flex items-start gap-3.5">
-                      <Target
-                        className="mt-0.5 size-[1.125rem] shrink-0 text-ink-500"
-                        strokeWidth={1.75}
-                        aria-hidden="true"
-                      />
+                    <li key={o} className="border-l-2 border-flame-500 pl-4">
                       <span className="text-[1.0625rem] leading-[1.6] text-ink-800">{o}</span>
                     </li>
                   ))}
@@ -228,12 +220,11 @@ export default async function CapabilityPage({
               <div className="max-w-xl">
                 <Eyebrow>Procurement path</Eyebrow>
                 <p className="mt-4 text-[1.0625rem] leading-[1.7] text-graphite-600">
-                  This capability can be acquired through any of our active vehicles, including
-                  8(a) sole source.
+                  This capability can be ordered through any of our open contract vehicles.
                 </p>
               </div>
               <ul className="flex flex-wrap gap-2.5">
-                {activeVehicles.map((v) => (
+                {siteActiveVehicles().map((v) => (
                   <li key={v.slug}>
                     <Link
                       href={`/contract-vehicles#${v.slug}`}
