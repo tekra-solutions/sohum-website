@@ -1,4 +1,4 @@
-import { Archivo, JetBrains_Mono, Manrope } from "next/font/google";
+import { Geist, JetBrains_Mono, Manrope } from "next/font/google";
 
 /** Mono face for labels, buttons, and readouts. */
 export const mono = JetBrains_Mono({
@@ -16,10 +16,10 @@ export const brand = Manrope({
   weight: ["500", "600", "700", "800"],
 });
 
-/** Wordmark face: a sturdy grotesque, as used by established federal contractors. */
-export const wordmark = Archivo({
+/** Wordmark face: Geist, tight optical spacing in the big-tech tradition. */
+export const wordmark = Geist({
   subsets: ["latin"],
   variable: "--ff-wordmark",
   display: "swap",
-  weight: ["400", "800"],
+  weight: ["400", "600"],
 });

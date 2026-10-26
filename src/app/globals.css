@@ -167,6 +167,20 @@
   }
 }
 
+/* Full-width layout for the header and homepage hero. Matches container-page
+   up to a 1440px screen, then stays anchored 120px from the left edge instead
+   of drifting to the centre on large monitors. */
+@utility container-wide {
+  width: 100%;
+  padding-inline: 1.25rem;
+  @media (width >= 768px) {
+    padding-inline: 2rem;
+  }
+  @media (width >= 1280px) {
+    padding-inline: max(2.5rem, min(calc((100vw - 1280px) / 2 + 2.5rem), 7.5rem));
+  }
+}
+
 /* ---- Eyebrow / kicker label ---- */
 @utility eyebrow {
   display: inline-flex;

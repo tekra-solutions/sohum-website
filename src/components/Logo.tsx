@@ -51,17 +51,17 @@ export function Logo({
   size?: "sm" | "md" | "lg";
 }) {
   const mark = size === "sm" ? "size-9" : size === "lg" ? "size-16 sm:size-[4.5rem]" : "size-12 xl:size-14";
-  const word = size === "sm" ? "text-[0.9375rem]" : size === "lg" ? "text-[1.375rem] sm:text-[1.625rem]" : "text-[1.0625rem] xl:text-[1.25rem]";
+  const word = size === "sm" ? "text-[1.0625rem]" : size === "lg" ? "text-[1.625rem] sm:text-[1.875rem]" : "text-[1.3125rem] xl:text-[1.5rem]";
 
   return (
-    <span className={`inline-flex items-center gap-3 ${className}`}>
+    <span className={`inline-flex items-center gap-2.5 ${className}`}>
       <LogoMark className={mark} tone={tone} />
       {showWordmark ? (
-        // One-line wordmark: SOHUM heavy, SYSTEMS regular, one colour, even tracking.
-        <span
-          className={`whitespace-nowrap font-wordmark leading-none tracking-[0.07em] ${word} ${tone === "light" ? "text-white" : "text-[#0b1a33]"}`}
-        >
-          <span className="font-extrabold">SOHUM</span> <span className="font-normal">SYSTEMS</span>
+        // "Sohum" carries the name at semibold; "Systems" steps back in weight and
+        // colour, the way Azure or Google Cloud treat a descriptor.
+        <span className={`whitespace-nowrap font-wordmark leading-none tracking-[-0.035em] [font-kerning:normal] ${word}`}>
+          <span className={`font-semibold ${tone === "light" ? "text-white" : "text-[#0b1220]"}`}>Sohum</span>
+          <span className={`ml-[0.24em] font-normal ${tone === "light" ? "text-[#a3aec3]" : "text-[#4e586b]"}`}>Systems</span>
         </span>
       ) : (
         <span className="sr-only">Sohum Systems</span>

@@ -32,8 +32,8 @@ export default function OpengraphImage() {
           </svg>
           <div style={{ display: "flex", flexDirection: "column" }}>
             <div style={{ display: "flex", fontSize: 34, fontWeight: 700, color: "#ffffff" }}>
-              <span style={{ fontWeight: 800, letterSpacing: 2 }}>SOHUM</span>
-              <span style={{ fontWeight: 400, letterSpacing: 2 }}>&nbsp;SYSTEMS</span>
+              <span style={{ fontWeight: 700, letterSpacing: -1 }}>Sohum</span>
+              <span style={{ fontWeight: 400, letterSpacing: -1, color: "#a3aec3" }}>&nbsp;Systems</span>
             </div>
           </div>
         </div>

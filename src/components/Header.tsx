@@ -117,7 +117,7 @@ export function Header({ initialDay }: { initialDay: string }) {
         </a>
 
         {/* ---- Main bar ---- */}
-        <div className="container-page">
+        <div className="container-wide">
           <div className={`flex items-center justify-between gap-4 xl:gap-6 transition-[height] duration-300 ${scrolled ? "h-16 lg:h-[4.25rem]" : "h-[4.5rem] lg:h-[5rem]"}`}>
             <Link href="/" className="rounded" aria-label="Sohum Systems, home">
               <Logo tone={dark ? "light" : "dark"} />
