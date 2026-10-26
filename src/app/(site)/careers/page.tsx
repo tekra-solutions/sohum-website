@@ -74,7 +74,7 @@ export default async function CareersPage({
             </p>
             <a
               href={`mailto:${contact.emailHr}?subject=Application`}
-              className="mt-6 inline-flex items-center gap-1.5 text-[0.875rem] font-medium text-flame-400 transition-colors hover:text-white"
+              className="mt-5 inline-flex min-h-10 items-center gap-1.5 text-[0.875rem] font-medium text-flame-400 transition-colors hover:text-white"
             >
               {contact.emailHr}
               <ArrowUpRight className="size-3.5" aria-hidden="true" />

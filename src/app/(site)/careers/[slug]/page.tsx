@@ -236,7 +236,7 @@ export default async function JobPage({ params }: { params: Promise<{ slug: stri
 
                 <Link
                   href="/careers"
-                  className="mt-6 inline-block text-[0.875rem] font-medium text-ink-900 underline decoration-paper-300 underline-offset-4 hover:decoration-flame-500"
+                  className="mt-5 inline-flex min-h-10 items-center text-[0.875rem] font-medium text-ink-900 underline decoration-paper-300 underline-offset-4 hover:decoration-flame-500"
                 >
                   All open positions
                 </Link>

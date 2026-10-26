@@ -58,7 +58,7 @@ export function PageHero({
                   {c.href && !last ? (
                     <Link
                       href={c.href}
-                      className="rounded text-white/45 transition-colors hover:text-white"
+                      className="inline-flex min-h-8 items-center rounded text-white/55 transition-colors hover:text-white"
                     >
                       {c.label}
                     </Link>

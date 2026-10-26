@@ -515,11 +515,12 @@ export const leadership = [
 /* ----------------------------------------------------------------- Logos */
 
 /**
- * Commercial and technology logos stay hidden until each organization has
- * approved their use. Agency seals are never shown; see `customers`.
+ * Organizations shown on the logo wall, as on the previous sohumsystems.com.
+ *
+ * Displayed at the site owner's direction (2026-10-25). Groups are kept
+ * separate so a platform or framework is never read as a client, and every
+ * placement carries the trademark disclaimer in components/ClientLogos.tsx.
  */
-export const SHOW_PARTNER_LOGOS = false;
-
 export type LogoGroup = {
   id: string;
   label: string;
@@ -529,6 +530,18 @@ export type LogoGroup = {
 };
 
 export const logoGroups: LogoGroup[] = [
+  {
+    id: "government",
+    label: "Government organizations",
+    note: "Federal organizations represented in our work and contract vehicles.",
+    items: [
+      { name: "U.S. Department of Agriculture", file: "usda.webp", alt: "U.S. Department of Agriculture" },
+      { name: "Farm Service Agency", file: "fsa.webp", alt: "USDA Farm Service Agency" },
+      { name: "U.S. General Services Administration", file: "gsa.webp", alt: "U.S. General Services Administration" },
+      { name: "U.S. Department of Transportation", file: "usdot.webp", alt: "U.S. Department of Transportation" },
+      { name: "U.S. Department of the Navy", file: "navy.webp", alt: "U.S. Department of the Navy" },
+    ],
+  },
   {
     id: "commercial",
     label: "Commercial organizations",

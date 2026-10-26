@@ -58,7 +58,7 @@ export default async function ApplyPage({ params }: { params: Promise<{ slug: st
             <div className="apply-chrome">
               <Link
                 href={`/careers/${job.slug}`}
-                className="inline-flex items-center gap-2 text-[0.875rem] font-medium text-graphite-700 transition-colors hover:text-ink-900"
+                className="inline-flex min-h-10 items-center gap-2 text-[0.875rem] font-medium text-graphite-700 transition-colors hover:text-ink-900"
               >
                 <ArrowLeft className="size-4" aria-hidden="true" />
                 Back to position details

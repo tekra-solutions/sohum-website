@@ -87,13 +87,13 @@ export default function ContactPage() {
                       <span>
                         <a
                           href={`tel:${contact.phoneHref}`}
-                          className="block font-mono text-[0.9375rem] text-ink-800 transition-colors hover:text-flame-700"
+                          className="flex min-h-8 items-center font-mono text-[0.9375rem] text-ink-800 transition-colors hover:text-flame-700"
                         >
                           {contact.phone}
                         </a>
                         <a
                           href="tel:+19132217204"
-                          className="mt-1 block font-mono text-[0.9375rem] text-graphite-600 transition-colors hover:text-flame-700"
+                          className="flex min-h-8 items-center font-mono text-[0.9375rem] text-graphite-600 transition-colors hover:text-flame-700"
                         >
                           {contact.phoneAlt}
                         </a>
@@ -131,7 +131,7 @@ export default function ContactPage() {
                         </p>
                         <a
                           href={`mailto:${r.email}`}
-                          className="mt-4 inline-flex items-center gap-2 text-[0.875rem] font-medium text-ink-900 underline decoration-paper-300 underline-offset-4 transition-colors hover:decoration-flame-500"
+                          className="mt-3 inline-flex min-h-10 items-center gap-2 text-[0.875rem] font-medium text-ink-900 underline decoration-paper-300 underline-offset-4 transition-colors hover:decoration-flame-500"
                         >
                           <Mail className="size-3.5" aria-hidden="true" />
                           {r.email}
@@ -147,7 +147,7 @@ export default function ContactPage() {
                   <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-4">
                     {identifiers.map((i) => (
                       <div key={i.label}>
-                        <dt className="text-[0.6875rem] uppercase tracking-[0.12em] text-graphite-500">
+                        <dt className="text-[0.75rem] uppercase tracking-[0.12em] text-graphite-500">
                           {i.label}
                         </dt>
                         <dd className="mt-1.5 font-mono text-[0.875rem] text-ink-900">

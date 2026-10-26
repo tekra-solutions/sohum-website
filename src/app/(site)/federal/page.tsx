@@ -8,6 +8,7 @@ import { Eyebrow, SectionHeading } from "@/components/ui";
 import { capabilities } from "@/lib/capabilities";
 import { siteActiveVehicles, site } from "@/lib/site";
 import { customers } from "@/content/company";
+import { LOGO_DISCLAIMER, LogoWall } from "@/components/ClientLogos";
 
 export const metadata: Metadata = {
   title: "Federal Mission",
@@ -74,7 +75,7 @@ export default function FederalPage() {
             </ul>
             <Link
               href="/contract-vehicles"
-              className="mt-6 inline-flex items-center gap-1.5 text-[0.875rem] font-medium text-flame-400 transition-colors hover:text-white"
+              className="mt-5 inline-flex min-h-10 items-center gap-1.5 text-[0.875rem] font-medium text-flame-400 transition-colors hover:text-white"
             >
               Procurement detail
               <ArrowRight className="size-3.5" aria-hidden="true" />
@@ -158,30 +159,22 @@ export default function FederalPage() {
       </section>
 
       {/* ---- Organizations ---- */}
-      <section className="border-t border-paper-200 bg-white">
+      <section id="organizations" className="scroll-mt-24 border-t border-paper-200 bg-white">
         <div className="container-page section-y">
           <Reveal>
             <SectionHeading
               eyebrow="Organizations"
-              title="Agencies we have delivered for."
-              lede="Named from public federal award records, so a contracting officer can verify every one."
+              title="Who we work with, grouped plainly."
+              lede="Customers, platforms, and frameworks are listed separately, because a contracting officer evaluating past performance deserves to know which is which."
             />
           </Reveal>
           <Reveal delay={80} className="mt-12">
-            <ul className="grid gap-px overflow-hidden rounded-2xl border border-paper-200 bg-paper-200 sm:grid-cols-2 lg:grid-cols-3">
-              {customers.map((name) => (
-                <li key={name} className="flex items-center gap-3 bg-white px-6 py-5">
-                  <Landmark className="size-5 shrink-0 text-flame-600" />
-                  <span className="font-brand text-[1rem] font-bold tracking-[-0.01em] text-ink-900">{name}</span>
-                </li>
-              ))}
-            </ul>
+            <LogoWall />
           </Reveal>
           <Reveal>
-            <p className="mt-8 max-w-3xl text-[0.875rem] leading-relaxed text-graphite-600">
-              Each agency above is named in a public federal award record for work Sohum Systems
-              performed. We list names rather than agency seals, which are reserved for official
-              use. Past performance references are available on request.
+            <p className="mt-10 max-w-3xl border-t border-paper-200 pt-6 text-[0.875rem] leading-relaxed text-graphite-600">
+              Agencies named in public federal award records: {customers.join(", ")}.{" "}
+              {LOGO_DISCLAIMER} Past performance references are available on request.
             </p>
           </Reveal>
         </div>
@@ -244,7 +237,7 @@ export default function FederalPage() {
             <SectionHeading
               eyebrow="Engagement"
               title="What working with us looks like."
-              lede="A small firm's advantage is directness. Here is the sequence, without the pre-sales theatre."
+              lede="A small firm's advantage is directness. Here is the sequence, without the pre-sales theater."
             />
           </Reveal>
 

@@ -20,7 +20,7 @@ export function JobCard({ job }: { job: Job }) {
     >
       <div className="min-w-0 flex-1">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <span className="text-[0.6875rem] font-semibold uppercase tracking-[0.1em] text-flame-700">
+        <span className="text-[0.75rem] font-semibold uppercase tracking-[0.1em] text-flame-700">
           {job.department}
         </span>
         <span aria-hidden="true" className="text-paper-300">

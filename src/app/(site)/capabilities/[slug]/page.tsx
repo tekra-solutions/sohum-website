@@ -252,7 +252,7 @@ export default async function CapabilityPage({
                 </h2>
                 <Link
                   href="/capabilities"
-                  className="text-[0.875rem] font-medium text-ink-900 underline decoration-paper-300 underline-offset-4 hover:decoration-flame-500"
+                  className="inline-flex min-h-10 items-center text-[0.875rem] font-medium text-ink-900 underline decoration-paper-300 underline-offset-4 hover:decoration-flame-500"
                 >
                   All capabilities
                 </Link>

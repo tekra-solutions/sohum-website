@@ -108,7 +108,7 @@ export default async function LocationPage({
                 <Phone className="mt-0.5 size-4 shrink-0 text-white/40" aria-hidden="true" />
                 <a
                   href={`tel:${contact.phoneHref}`}
-                  className="font-mono text-[0.9375rem] text-white/80 transition-colors hover:text-white"
+                  className="inline-flex min-h-8 items-center font-mono text-[0.9375rem] text-white/80 transition-colors hover:text-white"
                 >
                   {contact.phone}
                 </a>

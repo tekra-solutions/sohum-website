@@ -11,12 +11,17 @@ import { siteCredentials } from "@/lib/site";
  * Badge art has a baked-in white background, so it sits in a white plate.
  */
 export function CredentialCards() {
+  const list = siteCredentials();
+  // Appraisals share the first row in halves; certifications fill the second in
+  // thirds, so the grid never leaves an empty cell.
   return (
-    <ul className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-      {siteCredentials().map((c) => (
+    <ul className="grid gap-5 md:grid-cols-2 lg:grid-cols-6">
+      {list.map((c, i) => (
         <li
           key={c.short}
-          className="group/cred flex h-full flex-col overflow-hidden rounded-[4px] border border-paper-300 bg-white transition-[border-color,box-shadow,transform] duration-300 ease-out hover:-translate-y-0.5 hover:border-ink-500/25 hover:shadow-[var(--shadow-lift-lg)]"
+          className={`${c.kind === "Maturity appraisal" ? "lg:col-span-3" : "lg:col-span-2"} ${
+            i === list.length - 1 && list.length % 2 === 1 ? "md:col-span-2 lg:col-span-2" : ""
+          } group/cred flex h-full flex-col overflow-hidden rounded-[4px] border border-paper-300 bg-white transition-[border-color,box-shadow,transform] duration-300 ease-out hover:-translate-y-0.5 hover:border-ink-500/25 hover:shadow-[var(--shadow-lift-lg)]`}
         >
           {/* Badge plate */}
           <div className="flex h-[9rem] items-center justify-center border-b border-paper-200 bg-paper-50 px-5">
@@ -31,7 +36,7 @@ export function CredentialCards() {
           </div>
 
           <div className="flex flex-1 flex-col p-6">
-            <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.1em] text-flame-700">
+            <p className="text-[0.75rem] font-semibold uppercase tracking-[0.1em] text-flame-700">
               {c.kind}
             </p>
             <h3 className="mt-2.5 text-[1.0625rem] font-medium leading-snug text-ink-900">

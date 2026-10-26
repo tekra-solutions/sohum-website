@@ -64,7 +64,7 @@
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-display: var(--ff-brand), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-plex: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: ui-monospace, "SFMono-Regular", "SF Mono", Menlo, Consolas, monospace;
+  --font-mono: var(--ff-tech), ui-monospace, "SFMono-Regular", "SF Mono", Menlo, Consolas, monospace;
 
   --radius-card: 4px;
 
@@ -296,20 +296,24 @@
   --font-tech: var(--ff-tech), ui-monospace, "SFMono-Regular", Menlo, monospace;
 }
 
-/* Headline whose colour sweeps from the brand gradient into solid type,
-   leaving a warm-to-cool tail on the right. SweepText sets data-swept. */
+/* Headline with a single light sweep. A narrow saffron-to-blue band passes
+   across the words once, then the headline rests in its solid colour, so no
+   word is ever left half-tinted. The gradient is three times the element's
+   width with solid colour at both ends: position 100% shows the right end,
+   0% the left end, and moving between them carries the band across.
+   SweepText sets data-swept; without JavaScript the text is simply solid. */
 @utility text-sweep {
-  background-image: linear-gradient(100deg, currentColor 0 42%, var(--sweep-from, #fa752e) 58%, var(--sweep-to, #4678ff) 78%, color-mix(in srgb, currentColor 12%, transparent) 100%);
-  background-size: 250% 100%;
-  background-position: 45% 0;
+  background-image: linear-gradient(100deg, currentColor 0 38%, var(--sweep-from, #fa752e) 46%, var(--sweep-to, #4678ff) 54%, currentColor 62% 100%);
+  background-size: 300% 100%;
+  background-position: 0% 0;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
-  transition: background-position 2.4s var(--ease-out-quint);
+  transition: background-position 1.8s var(--ease-out-quint);
 }
 .text-sweep[data-swept="false"] { background-position: 100% 0; }
 @media (prefers-reduced-motion: reduce) {
-  .text-sweep, .text-sweep[data-swept="false"] { background-position: 45% 0; transition: none; }
+  .text-sweep, .text-sweep[data-swept="false"] { background-position: 0% 0; transition: none; }
 }
 
 /* Paragraph words that light up as they scroll past. */
@@ -367,7 +371,7 @@
 }
 @keyframes hero-sweep {
   from { background-position: 100% 0; }
-  to { background-position: 45% 0; }
+  to { background-position: 0% 0; }
 }
 @keyframes hero-in {
   from { opacity: 0; transform: translateY(14px); }

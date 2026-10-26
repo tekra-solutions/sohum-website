@@ -38,7 +38,7 @@ export default function ContractVehiclesPage() {
             <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-4">
               {identifiers.map((id) => (
                 <div key={id.label}>
-                  <dt className="text-[0.6875rem] uppercase tracking-[0.12em] text-white/40">
+                  <dt className="text-[0.75rem] uppercase tracking-[0.12em] text-white/40">
                     {id.label}
                   </dt>
                   <dd className="mt-1.5 font-mono text-[0.875rem] text-white/85">{id.value}</dd>
@@ -122,7 +122,7 @@ export default function ContractVehiclesPage() {
                         {v.badge && (
                           <Image
                             src={v.badge}
-                            alt={`${v.name} programme badge`}
+                            alt={`${v.name} program badge`}
                             width={272}
                             height={170}
                             sizes="120px"
@@ -211,7 +211,7 @@ export default function ContractVehiclesPage() {
                       <th
                         key={h}
                         scope="col"
-                        className="py-3 pr-6 text-[0.6875rem] font-semibold uppercase tracking-[0.1em] text-graphite-500"
+                        className="py-3 pr-6 text-[0.75rem] font-semibold uppercase tracking-[0.1em] text-graphite-500"
                       >
                         {h}
                       </th>
@@ -305,7 +305,7 @@ export default function ContractVehiclesPage() {
                 </h2>
                 <div className="mt-8 space-y-4">
                   <div className="rounded-[4px] border border-paper-300 bg-white p-6">
-                    <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.1em] text-graphite-500">
+                    <p className="text-[0.75rem] font-semibold uppercase tracking-[0.1em] text-graphite-500">
                       CIO-SP3 program manager
                     </p>
                     <p className="mt-3 text-[1.0625rem] font-medium text-ink-900">
@@ -316,7 +316,7 @@ export default function ContractVehiclesPage() {
                     </p>
                     <a
                       href="tel:+19132217204"
-                      className="mt-4 inline-flex items-center gap-2 font-mono text-[0.875rem] text-ink-800 transition-colors hover:text-flame-700"
+                      className="mt-3 inline-flex min-h-10 items-center gap-2 font-mono text-[0.875rem] text-ink-800 transition-colors hover:text-flame-700"
                     >
                       <Phone className="size-3.5" aria-hidden="true" />
                       {contact.phoneAlt}
@@ -324,7 +324,7 @@ export default function ContractVehiclesPage() {
                   </div>
 
                   <div className="rounded-[4px] border border-paper-300 bg-white p-6">
-                    <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.1em] text-graphite-500">
+                    <p className="text-[0.75rem] font-semibold uppercase tracking-[0.1em] text-graphite-500">
                       Contracts &amp; business development
                     </p>
                     <a
@@ -335,7 +335,7 @@ export default function ContractVehiclesPage() {
                     </a>
                     <a
                       href={`tel:${contact.phoneHref}`}
-                      className="mt-3 inline-flex items-center gap-2 font-mono text-[0.875rem] text-ink-800 transition-colors hover:text-flame-700"
+                      className="mt-2 inline-flex min-h-10 items-center gap-2 font-mono text-[0.875rem] text-ink-800 transition-colors hover:text-flame-700"
                     >
                       <Phone className="size-3.5" aria-hidden="true" />
                       {contact.phone}

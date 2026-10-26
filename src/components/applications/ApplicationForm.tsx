@@ -77,7 +77,7 @@ function YesNo({
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="border-t border-paper-200 pt-8 first:border-0 first:pt-0">
+    <section className="border-t border-paper-200 pt-8 first-of-type:border-0 first-of-type:pt-0">
       <h2 className="text-[1.125rem] font-medium text-ink-900">{title}</h2>
       <div className="mt-5 grid gap-5 sm:grid-cols-2">{children}</div>
     </section>
@@ -126,7 +126,7 @@ export function ApplicationForm({
         <input id="website" name="website" type="text" tabIndex={-1} autoComplete="off" />
       </div>
 
-      <div ref={summaryRef} tabIndex={-1} aria-live="polite" className="scroll-mt-40">
+      <div ref={summaryRef} tabIndex={-1} aria-live="polite" className="scroll-mt-40 empty:hidden">
         {state.duplicateWarning && (
           <div className="flex gap-3 rounded-[3px] border border-flame-500/40 bg-flame-500/[0.06] p-4">
             <AlertCircle className="mt-0.5 size-4 shrink-0 text-flame-700" aria-hidden="true" />

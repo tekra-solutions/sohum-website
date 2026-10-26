@@ -38,7 +38,7 @@ export const locations: Location[] = [
     body: [
       "Our headquarters is at 9232 W 143rd Terrace in Overland Park, and our engineering teams work from the greater Kansas City area. That matters more than it sounds: the people who scope your work are the people who deliver it, and they are reachable in your time zone.",
       "We are a small business appraised at CMMI Level 3 for both Development and Services, and certified to ISO 9001, ISO/IEC 20000-1, and ISO/IEC 27001. For a public-sector buyer in Kansas, that combination means a local supplier whose delivery processes have been audited by an outside body rather than self-declared.",
-      "Our federal work centres on the U.S. Department of Agriculture and its Farm Service Agency, where we build interactive web mapping applications, business intelligence dashboards, and data warehouses used by program staff nationwide.",
+      "Our federal work centers on the U.S. Department of Agriculture and its Farm Service Agency, where we build interactive web mapping applications, business intelligence dashboards, and data warehouses used by program staff nationwide.",
     ],
     serves: [
       "Overland Park",

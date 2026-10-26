@@ -72,7 +72,7 @@ export function ArrowLink({
   return (
     <Link
       href={href}
-      className={`group/al inline-flex items-center gap-1.5 font-brand text-[0.9375rem] font-bold underline decoration-1 underline-offset-[6px] transition-colors ${color} ${className}`}
+      className={`group/al inline-flex min-h-10 items-center gap-1.5 font-brand text-[0.9375rem] font-bold underline decoration-1 underline-offset-[6px] transition-colors ${color} ${className}`}
     >
       {children}
       <ArrowRight
@@ -168,7 +168,7 @@ export function Badge({
   };
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[0.6875rem] font-semibold uppercase tracking-[0.08em] ${tones[tone]}`}
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[0.75rem] font-semibold uppercase tracking-[0.08em] ${tones[tone]}`}
     >
       {children}
     </span>
