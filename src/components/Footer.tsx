@@ -22,7 +22,7 @@ const company = [
   { href: "/contact", label: "Contact" },
 ];
 
-const heading = "font-tech text-[0.6875rem] uppercase tracking-[.14em] text-white/40";
+const heading = "font-brand text-[0.75rem] font-bold uppercase tracking-[.1em] text-white/45";
 const link = "text-[0.9375rem] text-white/65 transition-colors hover:text-white";
 
 export function Footer() {

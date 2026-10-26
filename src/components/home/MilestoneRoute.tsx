@@ -55,7 +55,7 @@ export function MilestoneRoute({ milestones, heading }: { milestones: Milestone[
   return (
     <section ref={section} className={`relative bg-white text-ink-950 ${animated ? "h-[260vh]" : ""}`}>
       <div className={`${animated ? "sticky top-0 h-screen" : "pb-16"} flex flex-col overflow-hidden`}>
-        <div className={`pointer-events-none absolute left-5 top-36 z-10 font-tech text-[0.6875rem] uppercase tracking-[.12em] text-graphite-500 md:left-8 ${animated ? "" : "hidden"}`}>
+        <div className={`pointer-events-none absolute left-5 top-36 z-10 font-brand text-[0.75rem] font-bold uppercase tracking-[.1em] text-graphite-500 md:left-8 ${animated ? "" : "hidden"}`}>
           Delivery progress <span ref={readout}>100</span>%
         </div>
         <svg

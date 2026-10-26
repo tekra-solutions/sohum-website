@@ -89,7 +89,7 @@ const vehicleShort: Record<string, string> = {
   "cio-sp3": "CIO-SP3 SB",
 };
 
-const label = "font-tech text-[0.6875rem] uppercase tracking-[.14em]";
+const label = "font-brand text-[0.75rem] font-bold uppercase tracking-[.1em]";
 
 export default function HomePage() {
   const day = today();
@@ -143,7 +143,7 @@ export default function HomePage() {
   return (
     <div>
       {/* ================================================================ Hero */}
-      <section className="relative isolate mt-[-4.5rem] flex min-h-[100svh] flex-col overflow-hidden bg-[#05070d] text-white lg:mt-[-7.25rem]">
+      <section className="relative isolate mt-[-4.5rem] flex min-h-[100svh] flex-col overflow-hidden bg-[#05070d] text-white lg:mt-[-5rem]">
         <div aria-hidden="true" className="absolute inset-0 -z-20 opacity-60 [background-image:radial-gradient(rgba(255,255,255,.5)_1px,transparent_1px)] [background-size:120px_120px] [mask-image:radial-gradient(ellipse_at_30%_40%,black,transparent_70%)]" />
         <div className="absolute -right-[72vw] top-[calc(-6vh-12vw)] -z-10 size-[195vw] sm:-right-[49vw] sm:size-[138vw] lg:right-[calc(26vw-89.5vh)] lg:-top-[17vh] lg:size-[179vh]">
           <DotGlobe unroll className="font-tech" />
@@ -153,7 +153,7 @@ export default function HomePage() {
         <div className="container-page flex flex-1 flex-col justify-end pb-8 pt-32 sm:pb-10">
           <Link
             href="/contract-vehicles"
-            className="hero-in group inline-flex w-fit items-center gap-2.5 rounded-full border border-white/15 bg-white/[0.05] py-1.5 pl-3 pr-4 font-tech text-[0.6875rem] uppercase tracking-[.1em] text-white/80 backdrop-blur transition-colors hover:border-white/35"
+            className="hero-in group inline-flex w-fit items-center gap-2.5 rounded-full border border-white/15 bg-white/[0.05] py-1.5 pl-3 pr-4 font-brand text-[0.75rem] font-bold uppercase tracking-[.08em] text-white/80 backdrop-blur transition-colors hover:border-white/35"
           >
             <span className="relative flex size-2">
               <span className="absolute inset-0 animate-ping rounded-full bg-emerald-400/70 motion-reduce:animate-none" />
@@ -165,7 +165,7 @@ export default function HomePage() {
             <ArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
           </Link>
 
-          <h1 className="font-wide mt-7 text-[clamp(2rem,min(8.6vw,10vh),5.2rem)] font-semibold uppercase leading-[.96] tracking-[-.02em] text-white">
+          <h1 className="font-brand mt-7 text-[clamp(2.4rem,min(7.4vw,9vh),5rem)] font-extrabold leading-[.96] tracking-[-.035em] text-white">
             {["The systems", "your mission", "runs on."].map((line, i) => (
               <span key={line} className="-mb-[0.08em] block overflow-hidden pb-[0.08em]">
                 <span
@@ -210,7 +210,7 @@ export default function HomePage() {
               <div key={item.k} className="bg-[#070a12]/80 px-4 py-4 sm:px-5">
                 <dt className={`${label} text-white/40`}>{item.k}</dt>
                 <dd className="mt-2 text-sm font-semibold text-white sm:text-[0.9375rem]">{item.v}</dd>
-                <dd className={`mt-0.5 font-tech text-[0.6875rem] ${item.warn ? "text-flame-400" : "text-white/45"}`}>{item.d}</dd>
+                <dd className={`mt-0.5 text-[0.75rem] ${item.warn ? "font-semibold text-flame-400" : "text-white/50"}`}>{item.d}</dd>
               </div>
             ))}
           </dl>
@@ -227,7 +227,7 @@ export default function HomePage() {
             <div className="relative aspect-[16/10] w-56 overflow-hidden rounded-xl bg-night-950 sm:w-64">
               <Image src="/images/mission/ai-data-network.webp" alt="" fill sizes="256px" className="object-cover" />
             </div>
-            <SweepText className="font-wide mt-10 text-[clamp(2.3rem,5vw,4.4rem)] font-semibold uppercase leading-[.95] tracking-[-.02em] text-ink-950 [--sweep-from:#f25806] [--sweep-to:#304368]">
+            <SweepText className="font-brand mt-10 text-[clamp(2.3rem,5vw,4.4rem)] font-extrabold leading-[.95] tracking-[-.035em] text-ink-950 [--sweep-from:#f25806] [--sweep-to:#304368]">
               We build it.
               <br />
               We own the
@@ -238,12 +238,12 @@ export default function HomePage() {
 
           <div>
             <ScrollWords
-              className="text-[1.5rem] font-medium leading-[1.35] tracking-[-.02em] sm:text-[1.9rem]"
+              className="text-[1.5rem] font-medium leading-[1.35] tracking-[-.035em] sm:text-[1.9rem]"
               accent={["build", "support"]}
               text="Engineering, cloud, data, and program management sit under one roof here. The people who scope your work are the same people who build and support it, so nothing gets lost in a hand-off."
             />
             <ScrollWords
-              className="mt-8 text-[1.25rem] font-medium leading-[1.4] tracking-[-.02em] sm:text-[1.45rem]"
+              className="mt-8 text-[1.25rem] font-medium leading-[1.4] tracking-[-.035em] sm:text-[1.45rem]"
               accent={["owns"]}
               text="When something needs fixing, you call one team, and that team owns the fix."
             />
@@ -261,7 +261,7 @@ export default function HomePage() {
                 { value: openAwards.length, suffix: "", text: "Federal orders in performance today" },
               ].map((s) => (
                 <div key={s.text} className="border-b border-paper-300 py-8">
-                  <dd className="font-wide text-[clamp(4rem,10vw,8rem)] font-semibold leading-none tracking-[-.04em]">
+                  <dd className="font-brand text-[clamp(3.5rem,8vw,6.5rem)] font-extrabold leading-none tracking-[-.04em]">
                     <CountUp value={s.value} suffix={s.suffix} />
                   </dd>
                   <dt className="mt-3 text-lg text-graphite-600">{s.text}</dt>
@@ -277,7 +277,7 @@ export default function HomePage() {
         word="Capabilities"
         intro={
           <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-            <SweepText className="font-wide max-w-[18ch] text-[clamp(1.8rem,3.4vw,3rem)] font-semibold uppercase leading-[1] tracking-[-.02em] text-ink-950 [--sweep-from:#f25806] [--sweep-to:#304368]">
+            <SweepText className="font-brand max-w-[18ch] text-[clamp(1.8rem,3.4vw,3rem)] font-extrabold leading-[1] tracking-[-.035em] text-ink-950 [--sweep-from:#f25806] [--sweep-to:#304368]">
               Everything the mission needs. Under one team.
             </SweepText>
             <Link href="/capabilities" className="btn-tech w-fit shrink-0 bg-ink-950 text-white hover:bg-flame-500 hover:text-ink-950">
@@ -300,7 +300,7 @@ export default function HomePage() {
                 </span>
                 <span className="font-tech text-xs text-white/30">{String(i + 1).padStart(2, "0")}</span>
               </span>
-              <SweepText as="h3" className="font-wide mt-8 min-h-[3.2em] text-[1.3rem] font-semibold uppercase leading-[1.1] text-white [--sweep-from:#fa752e] [--sweep-to:#5b84ff]">
+              <SweepText as="h3" className="font-brand mt-8 min-h-[3.2em] text-[1.3rem] font-extrabold leading-[1.1] text-white [--sweep-from:#fa752e] [--sweep-to:#5b84ff]">
                 {c.name}
               </SweepText>
               <p className="mt-4 text-sm leading-[1.65] text-white/55">{c.blurb}</p>
@@ -316,7 +316,7 @@ export default function HomePage() {
       <MilestoneRoute
         milestones={milestones}
         heading={
-          <SweepText className="font-wide text-[clamp(2.1rem,4.6vw,4.2rem)] font-semibold uppercase leading-[.95] tracking-[-.02em] text-ink-950 [--sweep-from:#f25806] [--sweep-to:#304368]">
+          <SweepText className="font-brand text-[clamp(2.1rem,4.6vw,4.2rem)] font-extrabold leading-[.95] tracking-[-.035em] text-ink-950 [--sweep-from:#f25806] [--sweep-to:#304368]">
             Accountable
             <br />
             at every
@@ -330,7 +330,7 @@ export default function HomePage() {
       <section className="overflow-hidden bg-[#0b0d12] text-white">
         <div className="container-page section-y">
           <div className="grid gap-8 lg:grid-cols-2 lg:items-end">
-            <SweepText className="font-wide text-[clamp(2.1rem,4.6vw,4.2rem)] font-semibold uppercase leading-[.95] tracking-[-.02em] text-white [--sweep-from:#fa752e] [--sweep-to:#5b84ff]">
+            <SweepText className="font-brand text-[clamp(2.1rem,4.6vw,4.2rem)] font-extrabold leading-[.95] tracking-[-.035em] text-white [--sweep-from:#fa752e] [--sweep-to:#5b84ff]">
               Trusted with
               <br />
               the details
@@ -344,7 +344,7 @@ export default function HomePage() {
               <li key={a.order} className="group grid gap-3 border-b border-white/10 py-7 transition-colors hover:bg-white/[0.03] sm:grid-cols-[4rem_1.2fr_2fr_auto] sm:items-center sm:gap-6 sm:px-4">
                 <span className="font-tech text-xs text-white/30">{String(i + 1).padStart(2, "0")}</span>
                 <span className={`${label} text-white/50`}>{a.agency}</span>
-                <span className="text-xl font-medium tracking-[-.02em] transition-colors group-hover:text-flame-400 sm:text-2xl">{a.work}</span>
+                <span className="text-xl font-medium tracking-[-.035em] transition-colors group-hover:text-flame-400 sm:text-2xl">{a.work}</span>
                 <span className={`${label} text-white/40`}>{a.vehicle} · to {formatMonth(a.end)}</span>
               </li>
             ))}
@@ -359,7 +359,7 @@ export default function HomePage() {
             {[0, 1].map((copy) => (
               <ul key={copy} className="flex shrink-0 items-center" aria-hidden={copy === 1 || undefined}>
                 {customers.map((name) => (
-                  <li key={name} className="font-wide flex items-center whitespace-nowrap text-[clamp(1.6rem,3.2vw,2.8rem)] font-semibold uppercase text-transparent [-webkit-text-stroke:1px_rgba(255,255,255,.45)]">
+                  <li key={name} className="font-brand flex items-center whitespace-nowrap text-[clamp(1.6rem,3.2vw,2.8rem)] font-extrabold text-transparent [-webkit-text-stroke:1px_rgba(255,255,255,.45)]">
                     <span className="px-8">{name}</span>
                     <span className="size-2.5 rounded-full bg-flame-500" />
                   </li>
@@ -382,7 +382,7 @@ export default function HomePage() {
       >
         <div className="container-page py-28 sm:py-36">
           <p className={`${label} text-center text-white/60`}>Why Sohum</p>
-          <SweepText className="font-wide mx-auto mt-6 max-w-[16ch] text-center text-[clamp(2.2rem,5.4vw,5rem)] font-semibold uppercase leading-[.95] tracking-[-.02em] text-white [--sweep-from:#fa752e] [--sweep-to:#5b84ff]">
+          <SweepText className="font-brand mx-auto mt-6 max-w-[16ch] text-center text-[clamp(2.2rem,5.4vw,5rem)] font-extrabold leading-[.95] tracking-[-.035em] text-white [--sweep-from:#fa752e] [--sweep-to:#5b84ff]">
             Why agencies choose Sohum
           </SweepText>
           <div className="mt-20 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -392,7 +392,7 @@ export default function HomePage() {
                   <Icon className="size-6 text-flame-400" strokeWidth={1.6} aria-hidden="true" />
                   <span className="font-tech text-xs text-white/30">{String(i + 1).padStart(2, "0")}</span>
                 </div>
-                <h3 className="mt-10 text-lg font-semibold tracking-[-.02em]">{title}</h3>
+                <h3 className="mt-10 text-lg font-semibold tracking-[-.035em]">{title}</h3>
                 <p className="mt-2 text-sm leading-[1.7] text-white/65">{body}</p>
               </div>
             ))}
@@ -404,7 +404,7 @@ export default function HomePage() {
       <section className="bg-white text-ink-950">
         <div className="container-page section-y grid gap-12 lg:grid-cols-[.8fr_1.2fr] lg:gap-20">
           <div className="lg:sticky lg:top-32 lg:self-start">
-            <SweepText className="font-wide text-[clamp(3rem,8vw,7rem)] font-semibold uppercase leading-[.9] text-ink-950 [--sweep-from:#f25806] [--sweep-to:#304368]">
+            <SweepText className="font-brand text-[clamp(2.6rem,6vw,4.5rem)] font-extrabold leading-[.9] text-ink-950 [--sweep-from:#f25806] [--sweep-to:#304368]">
               F.A.Q
             </SweepText>
             <p className="mt-6 max-w-sm text-base leading-[1.75] text-graphite-600">
@@ -420,7 +420,7 @@ export default function HomePage() {
               <details key={f.q} className="group border-b border-ink-950/15">
                 <summary className="flex cursor-pointer list-none items-center gap-5 py-7 text-left [&::-webkit-details-marker]:hidden">
                   <span className="font-tech w-7 shrink-0 text-xs text-graphite-400">{String(i + 1).padStart(2, "0")}</span>
-                  <span className="flex-1 text-lg font-medium tracking-[-.02em] sm:text-xl">{f.q}</span>
+                  <span className="flex-1 text-lg font-medium tracking-[-.035em] sm:text-xl">{f.q}</span>
                   <span className="grid size-10 shrink-0 place-items-center rounded-full border border-ink-950/15 transition-[transform,background-color,border-color] duration-300 group-open:rotate-45 group-open:border-flame-500 group-open:bg-flame-500">
                     <Plus className="size-4" aria-hidden="true" />
                   </span>
@@ -441,13 +441,9 @@ export default function HomePage() {
 
       {/* ======================================================= Closing CTA */}
       <section className="relative isolate overflow-hidden bg-[#05070d] text-white">
-        <div className="absolute left-1/2 top-[60%] -z-10 aspect-square w-[184vw] -translate-x-1/2 sm:w-[138vw] lg:w-[110vw]">
-          <DotGlobe tilt={34} spin={3} lens={false} startLng={60} className="font-tech" />
-        </div>
-        <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,#05070d_20%,transparent_70%)]" />
-        <div className="container-page flex min-h-[85vh] flex-col items-center pt-28 text-center sm:pt-36">
+        <div className="container-page flex flex-col items-center py-24 text-center sm:py-32">
           <p className={`${label} text-white/60`}>Work with Sohum</p>
-          <SweepText className="font-wide mt-6 max-w-[14ch] text-[clamp(2.4rem,6.4vw,6rem)] font-semibold uppercase leading-[.94] tracking-[-.02em] text-white [--sweep-from:#fa752e] [--sweep-to:#5b84ff]">
+          <SweepText className="font-brand mt-6 max-w-[14ch] text-[clamp(2.4rem,6.4vw,6rem)] font-extrabold leading-[.94] tracking-[-.035em] text-white [--sweep-from:#fa752e] [--sweep-to:#5b84ff]">
             Ready to modernize the mission?
           </SweepText>
           <p className="mt-6 max-w-md text-base leading-[1.7] text-white/65">

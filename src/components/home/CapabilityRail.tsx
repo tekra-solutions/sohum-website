@@ -53,7 +53,7 @@ export function CapabilityRail({ word, intro, children }: { word: string; intro:
           <p
             ref={wordRef}
             aria-hidden="true"
-            className="font-wide pointer-events-none whitespace-nowrap text-[19vw] font-semibold leading-[0.8] tracking-[-.04em] text-[#ececef] will-change-transform lg:absolute lg:bottom-[-2vw] lg:left-0"
+            className="font-brand pointer-events-none whitespace-nowrap text-[19vw] font-extrabold leading-[0.8] tracking-[-.04em] text-[#ececef] will-change-transform lg:absolute lg:bottom-[-2vw] lg:left-0"
           >
             {word}
           </p>

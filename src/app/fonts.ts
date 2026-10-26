@@ -1,12 +1,4 @@
-import { JetBrains_Mono, Manrope, Unbounded } from "next/font/google";
-
-/** Wide display face for the homepage's uppercase headlines. */
-export const wide = Unbounded({
-  subsets: ["latin"],
-  variable: "--ff-wide",
-  display: "swap",
-  weight: ["500", "600", "700"],
-});
+import { Archivo, JetBrains_Mono, Manrope } from "next/font/google";
 
 /** Mono face for labels, buttons, and readouts. */
 export const mono = JetBrains_Mono({
@@ -22,4 +14,12 @@ export const brand = Manrope({
   variable: "--ff-brand",
   display: "swap",
   weight: ["500", "600", "700", "800"],
+});
+
+/** Wordmark face: a sturdy grotesque, as used by established federal contractors. */
+export const wordmark = Archivo({
+  subsets: ["latin"],
+  variable: "--ff-wordmark",
+  display: "swap",
+  weight: ["400", "800"],
 });

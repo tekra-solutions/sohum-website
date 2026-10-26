@@ -7,7 +7,7 @@ import { ArrowRight, ArrowUpRight, ChevronDown, Mail, Phone } from "@/components
 import { Logo } from "./Logo";
 import { useToday } from "./home/useToday";
 import { capabilities, pillars } from "@/lib/capabilities";
-import { contact, getActiveVehicles, orderingClosesIn, procurement, site } from "@/content/company";
+import { contact, getActiveVehicles, procurement } from "@/content/company";
 
 const nav = [
   { href: "/capabilities", label: "Capabilities", panel: "capabilities" as const },
@@ -16,12 +16,6 @@ const nav = [
   { href: "/about", label: "About" },
   { href: "/careers", label: "Careers" },
 ];
-
-const vehicleShort: Record<string, string> = {
-  "gsa-mas": "GSA MAS",
-  "seaport-nxg": "SeaPort NxG",
-  "cio-sp3": "CIO-SP3 SB",
-};
 
 /**
  * Site header.
@@ -35,7 +29,6 @@ export function Header({ initialDay }: { initialDay: string }) {
   const pathname = usePathname();
   const day = useToday(initialDay);
   const vehicles = getActiveVehicles(day);
-  const closing = vehicles.map((v) => ({ v, days: orderingClosesIn(v, day) })).find((x) => x.days !== null);
 
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -102,7 +95,7 @@ export function Header({ initialDay }: { initialDay: string }) {
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
   const dark = mobileOpen || (pathname === "/" && !scrolled && !panel);
-  const label = "font-tech text-[0.6875rem] uppercase tracking-[.12em]";
+  const label = "font-brand text-[0.75rem] font-bold uppercase tracking-[.1em]";
 
   return (
     <>
@@ -123,44 +116,9 @@ export function Header({ initialDay }: { initialDay: string }) {
           Skip to main content
         </a>
 
-        {/* ---- Utility strip: folds away once the reader scrolls ---- */}
-        <div
-          className={`hidden overflow-hidden transition-[height,opacity] duration-300 lg:block ${scrolled || panel ? "h-0 opacity-0" : "h-9 opacity-100"}`}
-        >
-          <div className={`container-page flex h-9 items-center justify-between border-b ${dark ? "border-white/10 text-white/55" : "border-ink-950/[0.07] text-graphite-500"} ${label} whitespace-nowrap !text-[0.625rem]`}>
-            {pathname === "/" ? (
-              // The homepage hero already leads with order status, so the strip says who we are.
-              <span className="inline-flex items-center gap-2.5">
-                <span className="size-1.5 rounded-full bg-flame-500" />
-                Federal technology partner · {contact.city}, {contact.state} · Since {site.founded}
-              </span>
-            ) : (
-              <Link href="/contract-vehicles" className="group inline-flex items-center gap-2.5 transition-colors hover:text-flame-500">
-                <span className="relative flex size-1.5">
-                  <span className="absolute inset-0 animate-ping rounded-full bg-emerald-400/70 motion-reduce:animate-none" />
-                  <span className="relative size-1.5 rounded-full bg-emerald-400" />
-                </span>
-                Open for orders on {vehicles.length} contract {vehicles.length === 1 ? "vehicle" : "vehicles"}
-                {closing && (
-                  <span className="text-flame-500">
-                    · {vehicleShort[closing.v.slug] ?? closing.v.name} closes in {closing.days} {closing.days === 1 ? "day" : "days"}
-                  </span>
-                )}
-              </Link>
-            )}
-            <span className="flex items-center gap-6">
-              <span>CAGE {procurement.cage}</span>
-              <span>UEI {procurement.uei}</span>
-              <Link href="/capability-statement" className={`transition-colors hover:text-flame-500 ${dark ? "text-white/85" : "text-ink-900"}`}>
-                Capability statement ↗
-              </Link>
-            </span>
-          </div>
-        </div>
-
         {/* ---- Main bar ---- */}
         <div className="container-page">
-          <div className={`flex items-center justify-between gap-6 transition-[height] duration-300 ${scrolled ? "h-16 lg:h-[4.25rem]" : "h-[4.5rem] lg:h-[5rem]"}`}>
+          <div className={`flex items-center justify-between gap-4 xl:gap-6 transition-[height] duration-300 ${scrolled ? "h-16 lg:h-[4.25rem]" : "h-[4.5rem] lg:h-[5rem]"}`}>
             <Link href="/" className="rounded" aria-label="Sohum Systems, home">
               <Logo tone={dark ? "light" : "dark"} />
             </Link>
@@ -176,7 +134,7 @@ export function Header({ initialDay }: { initialDay: string }) {
                     onFocus={() => (item.panel ? openPanel(item.panel) : setPanel(null))}
                     aria-expanded={item.panel ? panel === item.panel : undefined}
                     aria-current={active ? "page" : undefined}
-                    className={`group relative flex items-center gap-1 rounded-full px-3.5 py-2 font-brand text-[0.9375rem] font-semibold tracking-[-0.005em] transition-colors ${
+                    className={`group relative flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-2 font-brand text-[0.875rem] xl:px-3.5 xl:text-[0.9375rem] font-semibold tracking-[-0.005em] transition-colors ${
                       active
                         ? dark ? "text-white" : "text-ink-950"
                         : dark ? "text-white/65 hover:text-white" : "text-graphite-600 hover:text-ink-950"
@@ -202,7 +160,7 @@ export function Header({ initialDay }: { initialDay: string }) {
             <div className="hidden items-center gap-2 lg:flex">
               <Link
                 href="/contact"
-                className={`inline-flex min-h-11 items-center gap-2 rounded-full px-5 font-brand text-[0.9375rem] font-bold transition-colors ${dark ? "bg-flame-500 text-ink-950 hover:bg-white" : "bg-ink-950 text-white hover:bg-flame-500 hover:text-ink-950"}`}
+                className={`inline-flex min-h-11 items-center gap-2 whitespace-nowrap rounded-full px-4 font-brand text-[0.875rem] xl:px-5 xl:text-[0.9375rem] font-bold transition-colors ${dark ? "bg-flame-500 text-ink-950 hover:bg-white" : "bg-ink-950 text-white hover:bg-flame-500 hover:text-ink-950"}`}
               >
                 Talk to us <ArrowUpRight className="size-3.5" aria-hidden="true" />
               </Link>
@@ -307,7 +265,7 @@ export function Header({ initialDay }: { initialDay: string }) {
       </header>
 
       {/* Holds the header's resting height in the flow, so compacting never shifts the page. */}
-      <div aria-hidden="true" className="h-[4.5rem] lg:h-[7.25rem]" />
+      <div aria-hidden="true" className="h-[4.5rem] lg:h-[5rem]" />
 
       {/* ---- Mobile: full-screen dark menu ---- */}
       <div

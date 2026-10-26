@@ -62,7 +62,7 @@
   --color-hairline: #263548;
 
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-display: var(--font-display), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--ff-brand), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-plex: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, "SFMono-Regular", "SF Mono", Menlo, Consolas, monospace;
 
@@ -277,7 +277,7 @@
 /* `inline` so the variables resolve where the font classes are applied
    (the homepage wrapper), not at :root where they are undefined. */
 @theme inline {
-  --font-wide: var(--ff-wide), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-wordmark: var(--ff-wordmark), var(--ff-brand), ui-sans-serif, system-ui, sans-serif;
   --font-brand: var(--ff-brand), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-tech: var(--ff-tech), ui-monospace, "SFMono-Regular", Menlo, monospace;
 }
@@ -338,11 +338,10 @@
   gap: 0.6rem;
   border-radius: 9999px;
   padding-inline: 1.6rem;
-  font-family: var(--font-tech);
-  font-size: 0.75rem;
-  font-weight: 500;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-family: var(--font-brand);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  letter-spacing: -0.005em;
   transition: background-color 0.25s, color 0.25s, border-color 0.25s;
 }
 

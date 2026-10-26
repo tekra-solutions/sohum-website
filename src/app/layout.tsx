@@ -1,8 +1,8 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Sora } from "next/font/google";
+import { Inter } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { contact, siteCredentials, naics, site } from "@/lib/site";
-import { brand, mono, wide } from "./fonts";
+import { brand, mono, wordmark } from "./fonts";
 import "./globals.css";
 
 const inter = Inter({
@@ -13,12 +13,6 @@ const inter = Inter({
   weight: ["400", "500", "600"],
 });
 
-const display = Sora({
-  subsets: ["latin"],
-  variable: "--font-display",
-  display: "swap",
-  weight: ["500", "600"],
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),
@@ -162,7 +156,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${display.variable} ${wide.variable} ${mono.variable} ${brand.variable}`}
+      className={`${inter.variable} ${mono.variable} ${brand.variable} ${wordmark.variable}`}
       // The inline script below adds the "js" class before hydration.
       suppressHydrationWarning
     >
