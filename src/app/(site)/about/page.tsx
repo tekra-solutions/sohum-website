@@ -24,7 +24,7 @@ const leadership = [
   {
     name: "Srinivas Moshugu",
     title: "Chief Executive Officer",
-    photo: "/team/srinivas-moshugu.webp",
+    photo: "/team/srinivas-moshugu-2026.webp",
     bio: "Srinivas founded Sohum Systems in 2013 in Overland Park, Kansas. He brings eighteen years of IT experience to the company and plays an integral role in strategic planning, alliances, and partnerships. He received his bachelor's degree from Osmania University in Hyderabad, India.",
     facts: ["18 years in IT", "Founder, 2013", "Osmania University"],
   },
@@ -141,11 +141,11 @@ export default function AboutPage() {
             {[
               {
                 h: "Agility",
-                p: "We respond to the dynamic nature of our customers’ programs rather than defending an original plan.",
+                p: "We adjust as our customers’ programs change.",
               },
               {
                 h: "Quality focus",
-                p: "Our processes are independently appraised and certified, not self-declared.",
+                p: "Our processes are independently appraised and certified.",
               },
               {
                 h: "Customer responsiveness",
@@ -173,8 +173,8 @@ export default function AboutPage() {
           <Reveal>
             <SectionHeading
               eyebrow="Leadership"
-              title="The people accountable for the work."
-              lede="Three leaders, each reachable. On a program our size, that is how issues get resolved in days instead of quarters."
+              title="Leadership team"
+              lede="Our leadership team works directly with customers on every program."
             />
           </Reveal>
 
@@ -203,11 +203,11 @@ export default function AboutPage() {
                     </p>
                   </div>
 
-                  <ul className="flex flex-wrap gap-2 lg:max-w-[13rem] lg:flex-col lg:items-end">
+                  <ul className="flex flex-wrap gap-2 lg:flex-col lg:items-end">
                     {person.facts.map((f) => (
                       <li
                         key={f}
-                        className="rounded-full border border-paper-300 bg-paper-50 px-3 py-1.5 text-[0.75rem] font-medium text-graphite-600 lg:text-right"
+                        className="whitespace-nowrap rounded-full border border-paper-300 bg-paper-50 px-3 py-1.5 text-[0.75rem] font-medium text-graphite-600"
                       >
                         {f}
                       </li>
@@ -227,7 +227,7 @@ export default function AboutPage() {
             <SectionHeading
               eyebrow="Credentials"
               title="Independently appraised and certified."
-              lede="Every credential below was awarded by an outside body against a published standard. That is the point of them."
+              lede="Each credential below was awarded by an outside body against a published standard."
             />
           </Reveal>
 

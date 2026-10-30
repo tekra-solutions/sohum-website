@@ -62,7 +62,7 @@ export const businessDevelopment = {
 export const sources = {
   checkedOn: "2026-10-05",
   usaspending: "https://www.usaspending.gov/recipient/f7040ec6-bd8c-e8b8-7682-fb74081b08a3-C/latest",
-  sbaProfile: "https://search.certifications.sba.gov/profile/M38RK2BCFE29",
+  sbaProfile: "https://search.certifications.sba.gov/profile/M38RK2BCFE29/7WCV6",
   nitaac: "https://nitaac.nih.gov/gwacs/cio-sp3-small-business/contract-holder/sohum-systems-llc",
   gsaElibrary:
     "https://www.gsaelibrary.gsa.gov/ElibMain/contractorInfo.do?contractNumber=47QTCA19D00FK&contractorName=SOHUM+SYSTEMS+LLC&executeQuery=YES",
@@ -495,7 +495,7 @@ export const leadership = [
     name: "Srinivas Moshugu",
     note: "Founded Sohum Systems in 2013. Eighteen years in IT, leading strategy, alliances, and partnerships.",
     title: "Chief Executive Officer",
-    photo: "/team/srinivas-moshugu.webp",
+    photo: "/team/srinivas-moshugu-2026.webp",
     bio: "Srinivas founded Sohum Systems in 2013 in Overland Park, Kansas. He brings eighteen years of IT experience to the company and plays an integral role in strategic planning, alliances, and partnerships. He received his bachelor's degree from Osmania University in Hyderabad, India.",
     facts: ["18 years in IT", "Founder, 2013", "Osmania University"],
   },

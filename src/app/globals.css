@@ -293,38 +293,6 @@
   --font-tech: var(--ff-tech), ui-monospace, "SFMono-Regular", Menlo, monospace;
 }
 
-/* Headline with a single light sweep. A narrow saffron-to-blue band passes
-   across the words once, then the headline rests in its solid colour, so no
-   word is ever left half-tinted. The gradient is three times the element's
-   width with solid colour at both ends: position 100% shows the right end,
-   0% the left end, and moving between them carries the band across.
-   SweepText sets data-swept; without JavaScript the text is simply solid. */
-@utility text-sweep {
-  background-image: linear-gradient(100deg, currentColor 0 38%, var(--sweep-from, #fa752e) 46%, var(--sweep-to, #4678ff) 54%, currentColor 62% 100%);
-  background-size: 300% 100%;
-  background-position: 0% 0;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  transition: background-position 1.8s var(--ease-out-quint);
-}
-.text-sweep[data-swept="false"] { background-position: 100% 0; }
-@media (prefers-reduced-motion: reduce) {
-  .text-sweep, .text-sweep[data-swept="false"] { background-position: 0% 0; transition: none; }
-}
-
-/* Paragraph words that light up as they scroll past. */
-.scroll-words [data-w] {
-  transition: color 0.35s ease;
-  color: color-mix(in srgb, currentColor 22%, transparent);
-}
-.scroll-words { color: var(--color-ink-950); }
-.scroll-words [data-w][data-on="true"] { color: var(--color-ink-950); }
-.scroll-words [data-w][data-on="true"][data-accent] { color: var(--color-flame-600); }
-@media (prefers-reduced-motion: reduce) {
-  .scroll-words [data-w] { color: var(--color-ink-950); }
-}
-
 /* Icons rendered as a dot matrix, like an LED panel. */
 @utility dot-matrix {
   -webkit-mask-image: radial-gradient(circle, #000 0 1.1px, transparent 1.3px);
@@ -360,24 +328,18 @@
   transition: background-color 0.25s, color 0.25s, border-color 0.25s;
 }
 
-/* Hero entrance: lines rise out of their masks, then the colour sweeps in;
-   supporting copy fades up behind them. Pure CSS, so it plays on first paint. */
+/* Hero entrance: lines rise out of their masks and the supporting copy
+   fades up behind them. Pure CSS, so it plays on first paint. */
 @keyframes hero-rise {
   from { transform: translateY(105%); }
   to { transform: none; }
-}
-@keyframes hero-sweep {
-  from { background-position: 100% 0; }
-  to { background-position: 0% 0; }
 }
 @keyframes hero-in {
   from { opacity: 0; transform: translateY(14px); }
   to { opacity: 1; transform: none; }
 }
 .hero-line {
-  animation:
-    hero-rise 1s var(--ease-out-quint) both,
-    hero-sweep 2.4s var(--ease-out-quint) both;
+  animation: hero-rise 1s var(--ease-out-quint) both;
 }
 .hero-in {
   animation: hero-in 0.9s var(--ease-out-quint) both;
