@@ -20,6 +20,7 @@ import {
   Workflow,
   type IconComponent,
 } from "@/components/icons";
+import { CapabilityRail } from "@/components/home/CapabilityRail";
 import { DotGlobe } from "@/components/home/DotGlobe";
 import { LOGO_DISCLAIMER, LogoMarquee } from "@/components/ClientLogos";
 import { CopyValue } from "@/components/CopyValue";
@@ -263,45 +264,42 @@ export default function HomePage() {
       </section>
 
       {/* ===================================================== Capabilities */}
-      <section className="border-t border-paper-200 bg-paper-50 text-ink-950">
-        <div className="container-page section-y">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <p className={`${label} text-flame-600`}>Capabilities</p>
-              <h2 className={heading}>What we do</h2>
-            </div>
-            <Link href="/capabilities" className="btn-tech w-fit shrink-0 border border-ink-950/20 text-ink-950 hover:border-ink-950 hover:bg-ink-950 hover:text-white">
+      <CapabilityRail
+        word="Capabilities"
+        intro={
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+            <h2 className="font-brand max-w-[18ch] text-[clamp(1.8rem,3.4vw,3rem)] font-extrabold leading-[1] tracking-[-.035em] text-ink-950">
+              What we do
+            </h2>
+            <Link href="/capabilities" className="btn-tech w-fit shrink-0 bg-ink-950 text-white hover:bg-flame-500 hover:text-ink-950">
               All {capabilities.length} capabilities <ArrowRight className="size-3.5" aria-hidden="true" />
             </Link>
           </div>
-
-          <ul className="mt-12 grid gap-px overflow-hidden rounded-xl border border-paper-200 bg-paper-200 sm:grid-cols-2 lg:grid-cols-3">
-            {capabilities.map((c) => {
-              const Icon = capabilityIcons[c.slug] ?? Braces;
-              return (
-                <li key={c.slug} className="bg-white">
-                  <Link href={`/capabilities/${c.slug}`} className="group flex h-full gap-4 p-6 transition-colors hover:bg-paper-50 sm:p-7">
-                    <Icon className="mt-0.5 size-6 shrink-0 text-flame-600" strokeWidth={1.5} aria-hidden="true" />
-                    <span>
-                      <span className="block text-[1.0625rem] font-bold tracking-[-.02em] group-hover:text-flame-700">{c.name}</span>
-                      <span className="mt-1.5 block text-[0.9375rem] leading-[1.6] text-graphite-600">{c.blurb}</span>
-                    </span>
-                  </Link>
-                </li>
-              );
-            })}
-            {/* Fills the grid's last cell; eleven capabilities leave one open in both layouts. */}
-            <li className="bg-ink-950 text-white">
-              <Link href="/contact" className="group flex h-full flex-col justify-between gap-6 p-6 sm:p-7">
-                <span className="text-[1.0625rem] font-bold tracking-[-.02em]">Not sure which fits your requirement?</span>
-                <span className="inline-flex items-center gap-1.5 text-[0.9375rem] font-semibold text-flame-400 group-hover:text-white">
-                  Ask us <ArrowRight className="size-3.5" aria-hidden="true" />
+        }
+      >
+        {capabilities.map((c, i) => {
+          const Icon = capabilityIcons[c.slug] ?? Braces;
+          return (
+            <Link
+              key={c.slug}
+              href={`/capabilities/${c.slug}`}
+              className="group flex w-[17.5rem] shrink-0 snap-start flex-col border-l border-white/10 px-7 py-3 text-white sm:w-[21rem] sm:px-9"
+            >
+              <span className="flex items-center justify-between">
+                <span className="grid size-14 place-items-center bg-white/[0.05] transition-colors group-hover:bg-flame-500/15">
+                  <Icon className="size-8 text-white transition-colors group-hover:text-flame-400" strokeWidth={1.5} aria-hidden="true" />
                 </span>
-              </Link>
-            </li>
-          </ul>
-        </div>
-      </section>
+                <span className="font-tech text-xs text-white/30">{String(i + 1).padStart(2, "0")}</span>
+              </span>
+              <h3 className="font-brand mt-8 min-h-[3.2em] text-[1.3rem] font-extrabold leading-[1.1] text-white">{c.name}</h3>
+              <p className="mt-4 text-sm leading-[1.65] text-white/55">{c.blurb}</p>
+              <span className={`${label} mt-6 inline-flex items-center gap-2 text-white/70 transition-colors group-hover:text-flame-400`}>
+                Explore <ArrowUpRight className="size-3.5" aria-hidden="true" />
+              </span>
+            </Link>
+          );
+        })}
+      </CapabilityRail>
 
       {/* ======================================================= Milestones */}
       <DeliveryTimeline
