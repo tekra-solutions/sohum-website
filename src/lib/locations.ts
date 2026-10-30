@@ -36,8 +36,8 @@ export const locations: Location[] = [
     lede:
       "Sohum Systems has been based in Overland Park since 2013, delivering custom software, cloud migration, data platforms, and GIS to federal, state, and commercial customers.",
     body: [
-      "Our headquarters is at 9232 W 143rd Terrace in Overland Park, and our engineering teams work from the greater Kansas City area. That matters more than it sounds: the people who scope your work are the people who deliver it, and they are reachable in your time zone.",
-      "We are a small business appraised at CMMI Level 3 for both Development and Services, and certified to ISO 9001, ISO/IEC 20000-1, and ISO/IEC 27001. For a public-sector buyer in Kansas, that combination means a local supplier whose delivery processes have been audited by an outside body rather than self-declared.",
+      "Our headquarters is at 9232 W 143rd Terrace in Overland Park, and our engineering teams work from the greater Kansas City area. The people who scope your work are the people who deliver it, and they work in your time zone.",
+      "We are a small business appraised at CMMI Level 3 for both Development and Services, and certified to ISO 9001, ISO/IEC 20000-1, and ISO/IEC 27001. For a public-sector buyer in Kansas, that means a local supplier whose delivery processes have been checked by an outside body.",
       "Our federal work centers on the U.S. Department of Agriculture and its Farm Service Agency, where we build interactive web mapping applications, business intelligence dashboards, and data warehouses used by program staff nationwide.",
     ],
     serves: [
@@ -90,7 +90,7 @@ export const locations: Location[] = [
     body: [
       "Kansas organizations working with a federal or state technology requirement often face the same trade-off: a large integrator with process and layers of it, or a small firm with speed and, too often, improvisation. We are built to give buyers both: a lean team you can reach, running processes that have been formally appraised.",
       "We are appraised at CMMI Level 3 for Development and for Services, and our information security management system is certified to ISO/IEC 27001.",
-      "Agencies can put a Kansas-based team under contract through the GSA Multiple Award Schedule, SeaPort NxG, or CIO-SP3 Small Business.",
+      "Agencies can put a Kansas-based team under contract through the GSA Multiple Award Schedule or SeaPort NxG.",
     ],
     serves: [
       "Overland Park",

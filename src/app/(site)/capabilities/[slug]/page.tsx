@@ -171,14 +171,12 @@ export default async function CapabilityPage({
                   Services under this capability
                 </h2>
                 <ul className="mt-8 grid gap-px overflow-hidden rounded-[4px] border border-paper-300 bg-paper-300">
-                  {capability.services.map((s, i) => (
+                  {capability.services.map((s) => (
                     <li
                       key={s}
-                      className="flex items-baseline gap-4 bg-white px-5 py-4 text-[0.9375rem] leading-snug text-graphite-700"
+                      className="flex items-baseline gap-3.5 bg-white px-5 py-4 text-[0.9375rem] leading-snug text-graphite-700"
                     >
-                      <span className="w-5 shrink-0 font-tech text-[0.75rem] text-flame-600">
-                        {String(i + 1).padStart(2, "0")}
-                      </span>
+                      <span aria-hidden="true" className="size-1.5 shrink-0 -translate-y-0.5 rounded-full bg-flame-500" />
                       {s}
                     </li>
                   ))}
@@ -285,7 +283,7 @@ export default async function CapabilityPage({
       <CtaBand
         eyebrow="Start a conversation"
         title={capability.ctaTitle}
-        lede="Tell us what you are trying to accomplish and the constraints you are working within. We will tell you plainly what it would take."
+        lede="Tell us what you are trying to accomplish and the constraints you are working within. We will tell you what it would take."
         secondary={{ href: "/capabilities", label: "All capabilities" }}
       />
     </>

@@ -39,13 +39,13 @@ const missionAreas = [
   {
     Icon: ShieldCheck,
     title: "Secure, verifiable delivery",
-    body: "Federal software is judged on evidence, not assertion. We build pipelines that produce test, security, and accessibility artifacts as a by-product of delivery, so compliance conversations start from documentation that already exists.",
+    body: "We build pipelines that produce test, security, and accessibility artifacts as a by-product of delivery, so compliance conversations start from documentation that already exists.",
     caps: ["devops", "test-automation"],
   },
   {
     Icon: Lock,
     title: "Mission data & decision support",
-    body: "Agencies rarely lack data; they lack a governed path from data to a defensible decision. We build the warehouses, models, and instruments that make agency data usable and traceable when oversight asks.",
+    body: "Most agencies have plenty of data. What they need is a governed path from that data to a decision they can defend. We build the warehouses, models, and instruments that make agency data usable and traceable when oversight asks.",
     caps: ["artificial-intelligence-data-analytics", "business-intelligence", "data-warehousing"],
   },
 ];
@@ -58,8 +58,8 @@ export default function FederalPage() {
       <PageHero
         eyebrow="Federal mission focus"
         crumbs={[{ label: "Federal Mission" }]}
-        title="Built for the way federal programs actually get delivered."
-        lede="Commercial modernization optimizes for speed. Federal modernization has to satisfy speed, authorization, accessibility, records, and oversight at the same time. We plan for that from the first sprint rather than discovering it before launch."
+        title="Software and data work for federal programs."
+        lede="Federal modernization has to meet authorization, accessibility, records, and oversight requirements while the system stays in service. We plan for all of them from the first sprint."
         aside={
           <div className="rounded-[4px] border border-white/10 bg-white/[0.035] p-7">
             <p className="eyebrow text-white/40">Award-ready</p>
@@ -96,16 +96,14 @@ export default function FederalPage() {
               <div>
                 <p className="max-w-3xl text-[1.25rem] font-medium leading-[1.55] tracking-[-0.015em] text-ink-900 sm:text-[1.4375rem]">
                   A federal system cannot be taken offline for a rewrite. Citizens depend on it,
-                  statute requires it, and the program is accountable for its output every single
-                  day it is being modernized.
+                  statute requires it, and the program is accountable for its output every day it
+                  is being modernized.
                 </p>
                 <p className="mt-6 max-w-2xl text-[1.0625rem] leading-[1.7] text-graphite-600">
-                  That single constraint shapes everything about how we work: incremental delivery
-                  instead of big-bang cutovers, automated verification instead of end-stage testing,
-                  and documented handover instead of institutional knowledge that leaves with a
-                  contract. It is also why appraised processes matter more here than in commercial
-                  work. An agency needs to know the discipline survives staff turnover on both
-                  sides.
+                  That shapes how we work. We deliver in increments, run automated tests on every
+                  change, and document the system as we go so the knowledge stays with the
+                  government when a contract ends. It is also why appraised processes matter: an
+                  agency needs to know the work will hold up through staff turnover on both sides.
                 </p>
               </div>
             </div>
@@ -120,7 +118,7 @@ export default function FederalPage() {
             <SectionHeading
               eyebrow="Where we work"
               title="Mission areas we support."
-              lede="We are deliberate about scope. These are the areas where our past performance and our certified practitioners genuinely line up."
+              lede="These are the areas where we have past performance and certified staff."
             />
           </Reveal>
 
@@ -164,8 +162,8 @@ export default function FederalPage() {
           <Reveal>
             <SectionHeading
               eyebrow="Organizations"
-              title="Who we work with, grouped plainly."
-              lede="Customers, platforms, and frameworks are listed separately, because a contracting officer evaluating past performance deserves to know which is which."
+              title="Who we work with."
+              lede="Customers, platforms, and frameworks are listed separately so it is clear which is which."
             />
           </Reveal>
           <Reveal delay={80} className="mt-12">
@@ -200,7 +198,7 @@ export default function FederalPage() {
               },
               {
                 h: "Certified service management",
-                p: "ISO/IEC 20000-1:2018 governs the service lifecycle. Incident, change, and problem management run to a defined standard rather than to local habit.",
+                p: "ISO/IEC 20000-1:2018 governs the service lifecycle. Incident, change, and problem management follow a defined standard.",
               },
               {
                 h: "Appraised process maturity",
@@ -208,11 +206,11 @@ export default function FederalPage() {
               },
               {
                 h: "Security in the pipeline",
-                p: "Security and compliance checks run as automated pipeline stages, so findings arrive as build results rather than as late-stage surprises.",
+                p: "Security and compliance checks run as automated pipeline stages, so findings show up early in the build.",
               },
               {
                 h: "Accessibility as acceptance criteria",
-                p: "Public-facing federal systems are held to accessibility standards that are not negotiable. We verify continuously instead of auditing at the end.",
+                p: "Public-facing federal systems must meet Section 508. We test accessibility on every build.",
               },
               {
                 h: "Documented handover",
@@ -237,7 +235,7 @@ export default function FederalPage() {
             <SectionHeading
               eyebrow="Engagement"
               title="What working with us looks like."
-              lede="A small firm's advantage is directness. Here is the sequence, without the pre-sales theater."
+              lede="How an engagement with us usually runs."
             />
           </Reveal>
 
@@ -245,19 +243,19 @@ export default function FederalPage() {
             {[
               {
                 h: "Talk to the people who will deliver",
-                p: "Your first conversation is with the technical and program leadership who would run the work, not a business development layer that hands you off after award.",
+                p: "Your first conversation is with the technical and program leaders who would run the work.",
               },
               {
-                h: "Get a straight assessment",
-                p: "We will tell you if the requirement is a fit, if the timeline is realistic, and if another firm is better positioned. That answer is worth more to you than a proposal.",
+                h: "Get an honest assessment",
+                p: "We will tell you if the requirement is a fit, if the timeline is realistic, and if another firm is better positioned.",
               },
               {
-                h: "Pick the fastest lawful route",
-                p: "GSA MAS, SeaPort NxG, or CIO-SP3. We help your contracting officer pick the vehicle that puts a team in place soonest.",
+                h: "Choose a contract vehicle",
+                p: "GSA MAS or SeaPort NxG. We help your contracting officer pick the one that gets a team in place soonest.",
               },
               {
                 h: "Deliver in visible increments",
-                p: "Working software on a predictable cadence, reported against baseline, with the variances included rather than smoothed over.",
+                p: "Working software on a predictable schedule, reported against baseline, including any variances.",
               },
             ].map((step, i) => (
               <Reveal key={step.h} as="li" delay={i * 65} className="flex h-full flex-col bg-white p-7">
@@ -278,8 +276,8 @@ export default function FederalPage() {
 
       <CtaBand
         eyebrow="Federal engagement"
-        title="Bring us a problem, not a solicitation."
-        lede="The most useful conversations start before the requirement is written. Tell us what the mission needs and we will tell you what it would take."
+        title="Talk to us early."
+        lede="The most useful conversations happen before the requirement is written. Tell us what the program needs and we will tell you what it would take."
         secondary={{ href: "/contract-vehicles", label: "Contract vehicles" }}
       />
     </>

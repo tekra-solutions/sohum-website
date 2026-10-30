@@ -52,20 +52,23 @@ export function CapabilityRail({ word, intro, children }: { word: string; intro:
   return (
     <section ref={section} className="relative bg-[#0b0d12]" style={pinned ? { height: `calc(100vh + ${Math.round(distance * PACE)}px)` } : undefined}>
       <div className={pinned ? "sticky top-0 flex h-screen flex-col overflow-hidden" : "overflow-hidden"}>
-        <div className="relative overflow-hidden bg-white pt-24 lg:flex-[0_0_38%] lg:pt-0">
+        {/* The absolute layout only applies while pinned. Unpinned (phones, reduced
+            motion, before hydration) the word and intro stack in normal flow, so the
+            block keeps its height instead of collapsing to nothing. */}
+        <div className={`relative overflow-hidden bg-white ${pinned ? "flex-[0_0_38%]" : "pt-24"}`}>
           <p
             ref={wordRef}
             aria-hidden="true"
-            className="font-brand pointer-events-none whitespace-nowrap text-[19vw] font-extrabold leading-[0.8] tracking-[-.04em] text-[#ececef] will-change-transform lg:absolute lg:bottom-[-2vw] lg:left-0"
+            className={`font-brand pointer-events-none whitespace-nowrap text-[19vw] font-extrabold leading-[0.8] tracking-[-.04em] text-[#ececef] will-change-transform ${pinned ? "absolute bottom-[-2vw] left-0" : ""}`}
           >
             {word}
           </p>
-          <div className="container-page relative pb-8 lg:absolute lg:inset-x-0 lg:top-36 lg:pb-0">{intro}</div>
+          <div className={`container-page ${pinned ? "absolute inset-x-0 top-36" : "relative pb-8"}`}>{intro}</div>
         </div>
         <div className="relative flex flex-1 flex-col justify-center py-12 lg:py-0">
           <div
             ref={track}
-            className={`flex will-change-transform ${pinned ? "w-max pl-[var(--page-gutter)] pr-[10vw]" : "snap-x snap-mandatory overflow-x-auto px-5 pb-4 [scrollbar-width:none] md:px-8"}`}
+            className={`flex will-change-transform ${pinned ? "w-max pl-[var(--page-gutter)] pr-[10vw]" : "snap-x snap-mandatory overflow-x-auto px-[var(--page-gutter)] pb-4 [scrollbar-width:none]"}`}
           >
             {children}
           </div>

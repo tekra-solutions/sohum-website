@@ -306,10 +306,9 @@ export function Header({ initialDay }: { initialDay: string }) {
       >
         <nav className="container-page pb-10 pt-6" aria-label="Mobile">
           <ul>
-            {nav.map((item, i) => (
+            {nav.map((item) => (
               <li key={item.href} className="border-b border-white/10">
                 <Link href={item.href} className="flex items-baseline gap-4 py-4">
-                  <span className="font-tech text-xs text-white/35">{String(i + 1).padStart(2, "0")}</span>
                   <span className={`font-brand text-[1.75rem] font-bold leading-none tracking-[-0.02em] ${isActive(item.href) ? "text-flame-400" : ""}`}>
                     {item.label}
                   </span>

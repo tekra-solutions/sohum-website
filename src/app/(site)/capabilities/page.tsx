@@ -28,7 +28,7 @@ export default function CapabilitiesPage() {
         eyebrow="Capabilities"
         crumbs={[{ label: "Capabilities" }]}
         title="Engineering, modernization, and decision support for federal missions."
-        lede="Eleven capabilities delivered by one accountable team. We organize them around what an agency is trying to accomplish, not around our org chart."
+        lede="Eleven capabilities, delivered by one team and grouped by what an agency is trying to get done."
         aside={
           <div className="rounded-[4px] border border-white/10 bg-white/[0.035] p-7">
             <p className="eyebrow text-white/40">Delivered under</p>
@@ -118,11 +118,11 @@ export default function CapabilitiesPage() {
               },
               {
                 h: "Deliver in working slices",
-                p: "Each increment is a demonstrable path through the system, so stakeholders steer with software rather than status decks.",
+                p: "Each increment is a demonstrable path through the system, so stakeholders can try the software as it grows.",
               },
               {
                 h: "Automate the verification",
-                p: "Tests, security checks, and accessibility gates run in the pipeline, so quality is continuous rather than audited late.",
+                p: "Tests, security checks, and accessibility gates run in the pipeline, so quality is checked on every change.",
               },
               {
                 h: "Hand over cleanly",

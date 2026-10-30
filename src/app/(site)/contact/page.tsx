@@ -39,7 +39,7 @@ export default function ContactPage() {
         eyebrow="Contact"
         crumbs={[{ label: "Contact" }]}
         title="Tell us what the mission needs."
-        lede="Whether you have a defined requirement, an expiring contract, or a modernization problem you are still scoping, we will give you a straight answer about fit, approach, and the fastest contracting path."
+        lede="Whether you have a defined requirement, an expiring contract, or a modernization problem you are still scoping, we will tell you honestly whether we are a fit, how we would approach it, and how to contract with us."
       />
 
       <section className="bg-white">

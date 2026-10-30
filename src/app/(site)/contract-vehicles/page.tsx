@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Contract Vehicles | Sohum Systems",
     description:
-      "GSA MAS, SeaPort NxG, and CIO-SP3 Small Business. Contract numbers, ordering periods, and how to order.",
+      "GSA MAS and SeaPort NxG are open for orders. Contract numbers, ordering periods, and how to order.",
     url: `${site.url}/contract-vehicles`,
   },
 };
@@ -211,7 +211,7 @@ export default function ContractVehiclesPage() {
                       <th
                         key={h}
                         scope="col"
-                        className="py-3 pr-6 text-[0.75rem] font-semibold uppercase tracking-[0.1em] text-graphite-500"
+                        className="whitespace-nowrap py-3 pr-6 text-[0.75rem] font-semibold uppercase tracking-[0.1em] text-graphite-500"
                       >
                         {h}
                       </th>
@@ -237,8 +237,8 @@ export default function ContractVehiclesPage() {
                     <td className="py-5 pr-6 font-mono text-[0.8125rem] text-graphite-600">
                       {v.pop}
                     </td>
-                    <td className="py-5 pr-6">
-                      <Badge tone="muted">{v.statusLabel}</Badge>
+                    <td className="py-5 pr-6 text-[0.875rem] text-graphite-600">
+                      {v.statusLabel}
                     </td>
                   </tr>
                 ))}

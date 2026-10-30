@@ -45,33 +45,50 @@ export default async function CareersPage({
     return Array.isArray(v) ? v[0] : v;
   };
 
-  const [openRoles, facets] = await Promise.all([
-    listPublishedJobs({
-      q: one("q"),
-      department: one("department"),
-      location: one("location"),
-      employmentType: one("employmentType"),
-      experienceLevel: one("experienceLevel"),
-    }),
+  const filters = {
+    q: one("q"),
+    department: one("department"),
+    location: one("location"),
+    employmentType: one("employmentType"),
+    experienceLevel: one("experienceLevel"),
+  };
+  const filtering = Object.values(filters).some(Boolean);
+  const [openRoles, facets, allRoles] = await Promise.all([
+    listPublishedJobs(filters),
     jobFacets(),
+    filtering ? listPublishedJobs() : null,
   ]);
+  // The hero counts every posted role, not just the ones a search matched.
+  const totalRoles = (allRoles ?? openRoles).length;
 
   return (
     <>
       <PageHero
         eyebrow="Careers"
         crumbs={[{ label: "Careers" }]}
-        title="Build systems that people actually depend on."
+        title="Build systems people depend on."
         lede="Our engineers, analysts, and project managers work on federal platforms used every day by program staff across the country. The work is technical, the scope is real, and what you ship stays in service."
         aside={
           <div className="rounded-[4px] border border-white/10 bg-white/[0.035] p-7">
-            <p className="eyebrow text-white/40">Now hiring</p>
-            <p className="mt-4 font-[family-name:var(--font-display)] text-[2.75rem] font-medium leading-none text-white">
-              {openRoles.length}
-            </p>
-            <p className="mt-2 text-[0.9375rem] text-white/55">
-              open roles across engineering, quality, and program delivery
-            </p>
+            {totalRoles > 0 ? (
+              <>
+                <p className="eyebrow text-white/40">Now hiring</p>
+                <p className="mt-4 font-[family-name:var(--font-display)] text-[2.75rem] font-medium leading-none text-white">
+                  {totalRoles}
+                </p>
+                <p className="mt-2 text-[0.9375rem] text-white/55">
+                  open role{totalRoles === 1 ? "" : "s"} across engineering, quality, and program delivery
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="eyebrow text-white/40">Hiring</p>
+                <p className="mt-4 text-[1.0625rem] leading-[1.6] text-white/80">
+                  No roles are posted right now, but we hire engineers and analysts throughout the year. Send us your
+                  résumé.
+                </p>
+              </>
+            )}
             <a
               href={`mailto:${contact.emailHr}?subject=Application`}
               className="mt-5 inline-flex min-h-10 items-center gap-1.5 text-[0.875rem] font-medium text-flame-400 transition-colors hover:text-white"
@@ -122,8 +139,8 @@ export default async function CareersPage({
               },
               {
                 Icon: HeartHandshake,
-                h: "A team, not a bench",
-                p: "We work hard to maintain a fun, energized environment. Team effort is how the work actually gets done here.",
+                h: "A real team",
+                p: "We work hard to maintain a fun, energized environment. Team effort is how the work gets done here.",
               },
               {
                 Icon: MapPin,
@@ -162,15 +179,17 @@ export default async function CareersPage({
             />
           </Reveal>
 
-          <Reveal delay={60} className="mt-8">
-            <JobFilters facets={facets} total={openRoles.length} />
-          </Reveal>
+          {totalRoles > 0 && (
+            <Reveal delay={60} className="mt-8">
+              <JobFilters facets={facets} total={openRoles.length} />
+            </Reveal>
+          )}
 
-          <div className="mt-5">
+          <div className={totalRoles > 0 ? "mt-5" : "mt-10"}>
             {openRoles.length === 0 ? (
               <div className="rounded-[4px] border border-dashed border-paper-300 bg-white p-10 text-center">
                 <p className="text-[1.0625rem] text-ink-900">
-                  No positions match your search.
+                  {filtering ? "No positions match your search." : "No positions are posted right now."}
                 </p>
                 <p className="mt-2 text-[0.9375rem] text-graphite-600">
                   We still welcome résumés at{" "}
@@ -265,7 +284,7 @@ export default async function CareersPage({
         title="Send us your résumé."
         lede="Tell us what you have built and what you want to work on next. Our recruiting team reads every submission."
         primary={{ href: `mailto:${contact.emailHr}?subject=Application`, label: "Email recruiting" }}
-        secondary={{ href: "#openings", label: "View open roles" }}
+        secondary={totalRoles > 0 ? { href: "#openings", label: "View open roles" } : { href: "/about", label: "About Sohum" }}
       />
     </>
   );

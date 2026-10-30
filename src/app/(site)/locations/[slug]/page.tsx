@@ -229,7 +229,7 @@ export default async function LocationPage({
       <CtaBand
         eyebrow="Start a conversation"
         title={`Talk to a team based in ${loc.name}.`}
-        lede="Tell us what you are trying to accomplish and the constraints you are working within. We will give you a straight answer about fit and approach."
+        lede="Tell us what you are trying to accomplish and the constraints you are working within. We will tell you whether we are a fit and how we would approach it."
         secondary={{ href: "/capabilities", label: "Review capabilities" }}
       />
     </>

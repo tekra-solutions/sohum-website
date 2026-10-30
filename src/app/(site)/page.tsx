@@ -21,15 +21,11 @@ import {
   type IconComponent,
 } from "@/components/icons";
 import { CapabilityRail } from "@/components/home/CapabilityRail";
-import { CountUp } from "@/components/home/CountUp";
 import { DotGlobe } from "@/components/home/DotGlobe";
-import { DotMap } from "@/components/home/DotMap";
 import { LOGO_DISCLAIMER, LogoMarquee } from "@/components/ClientLogos";
 import { CopyValue } from "@/components/CopyValue";
 import { AwardTimeline, type TimelineRow } from "@/components/home/AwardTimeline";
 import { DeliveryTimeline, type Milestone } from "@/components/home/DeliveryTimeline";
-import { ScrollWords } from "@/components/home/ScrollWords";
-import { SweepText } from "@/components/home/SweepText";
 
 import {
   businessDevelopment,
@@ -55,7 +51,7 @@ import {
 import { capabilities } from "@/lib/capabilities";
 
 export const metadata: Metadata = {
-  title: "Sohum Systems | Federal technology, built for the mission",
+  title: { absolute: "Sohum Systems | Federal software, cloud, data, and GIS" },
   description: site.description,
   alternates: { canonical: "/" },
 };
@@ -76,22 +72,16 @@ const capabilityIcons: Record<string, IconComponent> = {
 
 const milestones: Milestone[] = [
   {
-    n: "01",
-    phase: "Understand",
-    title: "Start with the mission",
-    body: "We learn the people, policy, and data behind the requirement first, so what we build fits how your program runs.",
+    title: "Learn the program first",
+    body: "We start with the people, policy, and data behind the requirement, so what we build fits how your program runs.",
   },
   {
-    n: "02",
-    phase: "Deliver",
-    title: "Deliver in increments",
-    body: "Short increments backed by automated testing, so progress shows up as working software you can try.",
+    title: "Deliver in short increments",
+    body: "Each increment is tested automatically and shows up as working software your team can try.",
   },
   {
-    n: "03",
-    phase: "Sustain",
-    title: "Stay accountable",
-    body: "We stay on after go-live, keeping systems secure, current, and performing for years.",
+    title: "Stay on after launch",
+    body: "We keep systems secure, current, and running for years after go-live.",
   },
 ];
 
@@ -105,7 +95,7 @@ const vehicleShort: Record<string, string> = {
 const listOf = (items: string[]) => new Intl.ListFormat("en-US", { style: "long", type: "conjunction" }).format(items);
 
 const label = "font-brand text-[0.75rem] font-bold uppercase tracking-[.1em]";
-const numberWord = ["No", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight"];
+const heading = "font-brand mt-5 text-[clamp(2.1rem,4.2vw,3.5rem)] font-extrabold leading-[1.02] tracking-[-.035em]";
 
 export default function HomePage() {
   const day = today();
@@ -137,37 +127,6 @@ export default function HomePage() {
   ].sort((x, y) => x.start.localeCompare(y.start));
   const recordFrom = record[0]?.start.slice(0, 4);
   const recordTo = record.reduce((m, r) => (r.end > m ? r.end : m), "").slice(0, 4);
-
-  /* Each reason carries its own evidence, so the claim can be checked. */
-  const reasons: { title: string; body: string; proof: string; href: string; external?: boolean }[] = [
-    {
-      title: "One accountable team",
-      body: "Engineering, operations, and program management work together under one roof. The people who scope your work build and support it.",
-      proof: "Meet the leadership team",
-      href: "/about#leadership",
-    },
-    {
-      title: "An appraised process",
-      body: "Appraised at CMMI Level 3 for both Development and Services. Quality checks are written into every project plan.",
-      proof: "Verify on CMMI PARS",
-      href: sources.cmmiPars,
-      external: true,
-    },
-    {
-      title: "A record you can verify",
-      body: "Every federal award we cite is listed in public records, with order numbers and dates.",
-      proof: "View on USAspending.gov",
-      href: sources.usaspending,
-      external: true,
-    },
-    {
-      title: "Small-business agility",
-      body: `A ${procurement.businessSize.toLowerCase()} under NAICS ${procurement.primaryNaics}, with senior people close to the work and quick decisions.`,
-      proof: `UEI ${procurement.uei}`,
-      href: sources.sbaProfile,
-      external: true,
-    },
-  ];
 
   const faqs = [
     {
@@ -211,14 +170,10 @@ export default function HomePage() {
         <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(5,7,13,.9)_0%,rgba(5,7,13,.45)_45%,transparent_70%),linear-gradient(0deg,#05070d_0%,transparent_30%),linear-gradient(180deg,rgba(5,7,13,.85)_0%,transparent_22%)]" />
 
         <div className="container-page flex flex-1 flex-col justify-end pb-8 pt-32 sm:pb-10">
-
-          <h1 className="font-brand text-[clamp(2.4rem,min(7.4vw,9vh),5rem)] font-extrabold leading-[.96] tracking-[-.035em] text-white">
-            {["The systems", "your mission", "runs on."].map((line, i) => (
+          <h1 className="font-brand text-[clamp(2.4rem,min(7vw,8.5vh),4.75rem)] font-extrabold leading-[.98] tracking-[-.035em] text-white">
+            {["Software, cloud,", "data, and GIS for", "federal agencies."].map((line, i) => (
               <span key={line} className="-mb-[0.08em] block overflow-hidden pb-[0.08em]">
-                <span
-                  className="hero-line text-sweep inline-block [--sweep-from:#fa752e] [--sweep-to:#5b84ff]"
-                  style={{ animationDelay: `${150 + i * 110}ms, ${700 + i * 110}ms` }}
-                >
+                <span className="hero-line inline-block" style={{ animationDelay: `${150 + i * 110}ms` }}>
                   {line}
                 </span>
               </span>
@@ -226,23 +181,21 @@ export default function HomePage() {
           </h1>
 
           <p className="hero-in mt-7 max-w-[34rem] text-base leading-[1.7] text-white/75 [animation-delay:650ms] sm:text-[1.0625rem]">
-            We design, build, and sustain software, cloud, data, and GIS systems for federal agencies. One accountable team since {site.founded}, trusted today by USDA and the Department of Transportation.
+            Sohum Systems is a small business in Overland Park, Kansas. Since {site.founded} we have designed, built, and
+            maintained systems for USDA, the Department of Transportation, and other federal customers.
           </p>
 
           <div className="hero-in mt-9 flex flex-wrap items-center gap-3 [animation-delay:780ms]">
-            <Link href="/contact" className="btn-tech bg-flame-500 text-ink-950 shadow-[0_10px_40px_-12px_rgba(242,88,6,.8)] hover:bg-white">
+            <Link href="/contact" className="btn-tech bg-flame-500 text-ink-950 hover:bg-white">
               Talk to our team <ArrowUpRight className="size-3.5" aria-hidden="true" />
             </Link>
             <Link href="/capability-statement" className="btn-tech border border-white/25 text-white hover:border-white hover:bg-white/10">
               Capability statement
             </Link>
-            <Link href="/capabilities" className={`${label} ml-1 inline-flex min-h-11 items-center gap-1.5 text-white/70 transition-colors hover:text-white`}>
-              Explore capabilities <ArrowRight className="size-3.5" aria-hidden="true" />
-            </Link>
           </div>
 
           {/* Proof a contracting officer looks for first. */}
-          <dl className="hero-in mt-10 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-white/10 bg-white/10 backdrop-blur-md [animation-delay:920ms] lg:mt-14 lg:grid-cols-4">
+          <dl className="hero-in mt-10 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-white/10 bg-white/10 [animation-delay:920ms] lg:mt-14 lg:grid-cols-4">
             {[
               { k: "Appraised", v: "CMMI Level 3", d: "Development & Services", href: "#credentials" },
               {
@@ -252,14 +205,11 @@ export default function HomePage() {
                 d: closing ? `${vehicleShort[closing.v.slug] ?? closing.v.name} closes in ${closing.days} days` : `${activeVehicles.length} open contract vehicles`,
                 warn: Boolean(closing),
               },
-              { k: "Trusted by", v: "USDA · DOT", d: "Also U.S. Navy and CFTC", href: "#record" },
+              { k: "Customers", v: "USDA · DOT", d: "Also U.S. Navy and CFTC", href: "#record" },
               { k: "Identifiers", v: `CAGE ${procurement.cage}`, d: `UEI ${procurement.uei}`, href: "#order" },
             ].map((item) => (
-              <div key={item.k} className="group relative bg-[#070a12]/80 px-4 py-4 transition-colors hover:bg-[#0d121f]/90 sm:px-5">
-                <dt className={`${label} flex items-center justify-between text-white/40`}>
-                  {item.k}
-                  <ArrowRight className="size-3.5 -translate-x-1 text-flame-400 opacity-0 transition group-hover:translate-x-0 group-hover:opacity-100" aria-hidden="true" />
-                </dt>
+              <div key={item.k} className="group relative bg-[#070a12] px-4 py-4 transition-colors hover:bg-[#0d121f] sm:px-5">
+                <dt className={`${label} text-white/40`}>{item.k}</dt>
                 <dd className="mt-2 text-sm font-semibold text-white sm:text-[0.9375rem]">
                   <a href={item.href} className="outline-none after:absolute after:inset-0 after:rounded-[inherit] focus-visible:after:ring-2 focus-visible:after:ring-flame-400">
                     {item.v}
@@ -277,44 +227,36 @@ export default function HomePage() {
         <div className="container-page pb-20 pt-24 sm:pt-28 lg:pb-28">
           <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:gap-20">
             <div>
-              <p className={`${label} text-flame-600`}>Who we are</p>
-              <SweepText className="font-brand mt-5 text-[clamp(2.3rem,4.6vw,4rem)] font-extrabold leading-[1] tracking-[-.035em] text-ink-950 [--sweep-from:#f25806] [--sweep-to:#304368]">
-                We build it.
-                <br />
-                We own the outcome.
-              </SweepText>
+              <p className={`${label} text-flame-600`}>About Sohum</p>
+              <h2 className={`${heading} max-w-[14ch]`}>One team from scoping to support.</h2>
             </div>
-            <div className="lg:pt-10">
-              <ScrollWords
-                className="text-[1.375rem] font-medium leading-[1.4] tracking-[-.025em] sm:text-[1.625rem]"
-                accent={["build", "support"]}
-                text="Engineering, cloud, data, and program management sit under one roof here. The people who scope your work are the same people who build and support it, so nothing gets lost in a hand-off."
-              />
-              <ScrollWords
-                className="mt-6 text-[1.125rem] font-medium leading-[1.5] tracking-[-.02em] sm:text-[1.25rem]"
-                accent={["owns"]}
-                text="When something needs fixing, you call one team, and that team owns the fix."
-              />
+            <div className="lg:pt-12">
+              <p className="text-[1.25rem] font-medium leading-[1.5] tracking-[-.02em] sm:text-[1.4375rem]">
+                Engineering, cloud, data, and program management work under one roof here. The people who scope your work
+                are the same people who build and support it.
+              </p>
+              <p className="mt-5 text-[1.0625rem] leading-[1.75] text-graphite-600">
+                When something needs fixing, you call one team, and that team fixes it. We have worked this way since{" "}
+                {site.founded}, mostly for USDA and its Farm Service Agency.
+              </p>
               <Link href="/about" className="btn-tech mt-9 border border-ink-950/20 text-ink-950 hover:border-ink-950 hover:bg-ink-950 hover:text-white">
-                Learn more about us <ArrowRight className="size-3.5" aria-hidden="true" />
+                About the company <ArrowRight className="size-3.5" aria-hidden="true" />
               </Link>
             </div>
           </div>
 
-          <dl className="mt-16 grid overflow-hidden rounded-2xl border border-paper-200 sm:grid-cols-3 lg:mt-20">
+          <dl className="mt-16 grid overflow-hidden rounded-xl border border-paper-200 sm:grid-cols-3 lg:mt-20">
             {[
-              { value: years, suffix: "+", text: "Years delivering for federal programs" },
-              { value: customers.length, suffix: "", text: "Federal customers named in public award records" },
-              { value: openAwards.length, suffix: "", text: "Federal orders in performance today" },
+              { value: `${years}+`, text: "Years delivering for federal programs" },
+              { value: customers.length, text: "Federal customers named in public award records" },
+              { value: openAwards.length, text: "Federal orders in performance today" },
             ].map((s, i) => (
               <div
                 key={s.text}
                 className={`flex flex-col-reverse gap-3 p-7 sm:p-8 ${i > 0 ? "border-t border-paper-200 sm:border-l sm:border-t-0" : ""}`}
               >
                 <dt className="max-w-[16rem] text-[0.9375rem] leading-snug text-graphite-600">{s.text}</dt>
-                <dd className="font-brand text-[clamp(3rem,5.5vw,4.5rem)] font-extrabold leading-none tracking-[-.04em]">
-                  <CountUp value={s.value} suffix={s.suffix} />
-                </dd>
+                <dd className="font-brand text-[clamp(3rem,5.5vw,4.5rem)] font-extrabold leading-none tracking-[-.04em]">{s.value}</dd>
               </div>
             ))}
           </dl>
@@ -326,9 +268,9 @@ export default function HomePage() {
         word="Capabilities"
         intro={
           <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-            <SweepText className="font-brand max-w-[18ch] text-[clamp(1.8rem,3.4vw,3rem)] font-extrabold leading-[1] tracking-[-.035em] text-ink-950 [--sweep-from:#f25806] [--sweep-to:#304368]">
-              Everything the mission needs. Under one team.
-            </SweepText>
+            <h2 className="font-brand max-w-[18ch] text-[clamp(1.8rem,3.4vw,3rem)] font-extrabold leading-[1] tracking-[-.035em] text-ink-950">
+              What we do
+            </h2>
             <Link href="/capabilities" className="btn-tech w-fit shrink-0 bg-ink-950 text-white hover:bg-flame-500 hover:text-ink-950">
               All {capabilities.length} capabilities <ArrowRight className="size-3.5" aria-hidden="true" />
             </Link>
@@ -349,9 +291,7 @@ export default function HomePage() {
                 </span>
                 <span className="font-tech text-xs text-white/30">{String(i + 1).padStart(2, "0")}</span>
               </span>
-              <SweepText as="h3" className="font-brand mt-8 min-h-[3.2em] text-[1.3rem] font-extrabold leading-[1.1] text-white [--sweep-from:#fa752e] [--sweep-to:#5b84ff]">
-                {c.name}
-              </SweepText>
+              <h3 className="font-brand mt-8 min-h-[3.2em] text-[1.3rem] font-extrabold leading-[1.1] text-white">{c.name}</h3>
               <p className="mt-4 text-sm leading-[1.65] text-white/55">{c.blurb}</p>
               <span className={`${label} mt-6 inline-flex items-center gap-2 text-white/70 transition-colors group-hover:text-flame-400`}>
                 Explore <ArrowUpRight className="size-3.5" aria-hidden="true" />
@@ -366,16 +306,14 @@ export default function HomePage() {
         milestones={milestones}
         heading={
           <div>
-            <p className={`${label} text-flame-600`}>How we deliver</p>
-            <SweepText className="font-brand mt-5 text-[clamp(2.1rem,4.2vw,3.5rem)] font-extrabold leading-[1.02] tracking-[-.035em] text-ink-950 [--sweep-from:#f25806] [--sweep-to:#304368]">
-              Accountable at every milestone.
-            </SweepText>
+            <p className={`${label} text-flame-600`}>How we work</p>
+            <h2 className={heading}>How a program runs with us</h2>
           </div>
         }
         lede={
           <p>
-            Every engagement runs under processes appraised at CMMI Level 3, so scope, risk, and quality stay visible
-            from the first conversation through years of operations.
+            Every engagement runs under processes appraised at CMMI Level 3, so you can see scope, risk, and quality from the
+            first meeting through years of operations.
           </p>
         }
       />
@@ -387,15 +325,15 @@ export default function HomePage() {
             <div>
               <p className={`${label} text-flame-600`}>Credentials</p>
               <h2 className="font-brand mt-5 text-[clamp(1.9rem,3.4vw,2.75rem)] font-extrabold leading-[1.04] tracking-[-.035em]">
-                Independently appraised. Externally audited.
+                Appraisals and certifications
               </h2>
             </div>
             <p className="max-w-xl text-[1.0625rem] leading-[1.75] text-graphite-600 lg:justify-self-end">
-              How we build software, run services, manage quality, and protect data is measured by outside bodies against
-              published standards, not described by us.
+              Our software, service, quality, and security practices are appraised or certified by outside bodies against
+              published standards.
             </p>
           </div>
-          <ul className="mt-12 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-paper-200 bg-paper-200 lg:grid-cols-5">
+          <ul className="mt-12 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-paper-200 bg-paper-200 lg:grid-cols-5">
             {credentials.map((c, i) => (
               <li
                 key={c.short}
@@ -429,13 +367,11 @@ export default function HomePage() {
           <div className="grid gap-8 lg:grid-cols-2 lg:items-end">
             <div>
               <p className={`${label} text-flame-400`}>Federal contract record</p>
-              <SweepText className="font-brand mt-5 text-[clamp(2.1rem,4.2vw,3.5rem)] font-extrabold leading-[1.02] tracking-[-.035em] text-white [--sweep-from:#fa752e] [--sweep-to:#5b84ff]">
-                {`On the record since ${recordFrom}.`}
-              </SweepText>
+              <h2 className={heading}>Federal work since {recordFrom}</h2>
             </div>
             <p className="max-w-md text-base leading-[1.75] text-white/60 lg:justify-self-end">
-              Federal work from {recordFrom}, with orders committed through {recordTo}. Every entry is a public federal record,
-              listed with its order number and period of performance.
+              Completed and current federal work, with orders running through {recordTo}. Each entry is a public record listed
+              with its order number and period of performance.
             </p>
           </div>
           <div className="mt-14">
@@ -449,7 +385,7 @@ export default function HomePage() {
               href={sources.usaspending}
               target="_blank"
               rel="noopener noreferrer"
-              className={`${label} inline-flex min-h-11 items-center gap-1.5 text-white/70 transition-colors hover:text-white`}
+              className="inline-flex min-h-11 items-center gap-1.5 text-[0.9375rem] font-semibold text-white/70 transition-colors hover:text-white"
             >
               Verify on USAspending.gov <ArrowUpRight className="size-3.5" aria-hidden="true" />
               <span className="sr-only">(opens in a new tab)</span>
@@ -461,7 +397,7 @@ export default function HomePage() {
           <div className="container-page mb-7 flex flex-col gap-2 sm:flex-row sm:items-baseline sm:justify-between">
             <p className={`${label} text-white/55`}>Organizations represented in our work</p>
             <Link href="/federal#organizations" className="inline-flex min-h-10 items-center gap-1 text-sm font-semibold text-white/75 hover:text-white">
-              Who these are, grouped <ArrowRight className="inline size-3.5" aria-hidden="true" />
+              See them grouped <ArrowRight className="inline size-3.5" aria-hidden="true" />
             </Link>
           </div>
           <LogoMarquee />
@@ -476,20 +412,17 @@ export default function HomePage() {
         <div className="container-page section-y grid gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:gap-20">
           <div className="lg:sticky lg:top-32 lg:self-start">
             <p className={`${label} text-flame-600`}>Leadership</p>
-            <SweepText className="font-brand mt-5 max-w-[14ch] text-[clamp(2.1rem,4.2vw,3.5rem)] font-extrabold leading-[1.02] tracking-[-.035em] text-ink-950 [--sweep-from:#f25806] [--sweep-to:#304368]">
-              Senior people, close to the work.
-            </SweepText>
+            <h2 className={heading}>Who runs Sohum</h2>
             <p className="mt-6 max-w-sm text-base leading-[1.75] text-graphite-600">
-              Sohum is led by people with decades in technology and the government market, and we are small enough that
-              they stay close to every program.
+              Our leaders have decades in technology and the government market, and they stay involved in every program.
             </p>
             <Link href="/about#leadership" className="btn-tech mt-9 border border-ink-950/20 text-ink-950 hover:border-ink-950 hover:bg-ink-950 hover:text-white">
-              Meet the leadership team <ArrowRight className="size-3.5" aria-hidden="true" />
+              Full bios <ArrowRight className="size-3.5" aria-hidden="true" />
             </Link>
           </div>
           <ul className="border-t border-ink-950/12">
             {leadership.map((p) => (
-              <li key={p.name} className="grid grid-cols-[4rem_1fr] gap-x-6 border-b border-ink-950/12 py-8 sm:grid-cols-[5rem_1fr]">
+              <li key={p.name} className="grid grid-cols-[4rem_1fr] items-center gap-x-6 border-b border-ink-950/12 py-7 sm:grid-cols-[5rem_1fr]">
                 <Image
                   src={p.photo}
                   alt={p.name}
@@ -500,14 +433,7 @@ export default function HomePage() {
                 <div>
                   <h3 className="text-[1.375rem] font-bold tracking-[-.025em]">{p.name}</h3>
                   <p className={`${label} mt-1 text-flame-700`}>{p.title}</p>
-                  <p className="mt-3 max-w-xl text-[0.9375rem] leading-[1.7] text-graphite-600">{p.note}</p>
-                  <ul className="mt-4 flex flex-wrap gap-2">
-                    {p.facts.map((f) => (
-                      <li key={f} className="rounded-full border border-paper-300 px-3 py-1 text-[0.8125rem] text-graphite-700">
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
+                  <p className="mt-2.5 max-w-xl text-[0.9375rem] leading-[1.7] text-graphite-600">{p.note}</p>
                 </div>
               </li>
             ))}
@@ -515,68 +441,17 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ============================================================ Why us */}
-      <section className="relative isolate overflow-clip bg-[#070a12] text-white">
-        {/* The hero globe, unrolled: a quiet dotted world map with a slow scan line. */}
-        <div
-          aria-hidden="true"
-          className="absolute inset-x-0 top-6 -z-10 aspect-[2.57/1] [mask-image:linear-gradient(180deg,black_45%,transparent_100%)]"
-        >
-          <DotMap />
-        </div>
-
-        <div className="container-page grid gap-14 py-24 sm:py-32 lg:grid-cols-[0.85fr_1.15fr] lg:gap-20">
-          <div className="lg:sticky lg:top-32 lg:self-start">
-            <p className={`${label} text-flame-400`}>Why Sohum</p>
-            <SweepText className="font-brand mt-5 max-w-[14ch] text-[clamp(2.1rem,4.2vw,3.5rem)] font-extrabold leading-[1.02] tracking-[-.035em] text-white [--sweep-from:#fa752e] [--sweep-to:#5b84ff]">
-              {numberWord[reasons.length]} reasons agencies choose us.
-            </SweepText>
-            <p className="mt-6 max-w-sm text-base leading-[1.75] text-white/65">
-              Every claim on this list comes with a record you can check yourself, from our CMMI appraisal to our federal award history.
-            </p>
-            <Link href="/contact" className="btn-tech mt-9 bg-flame-500 text-ink-950 hover:bg-white">
-              Talk to our team <ArrowUpRight className="size-3.5" aria-hidden="true" />
-            </Link>
-          </div>
-
-          <ol className="border-t border-white/12">
-            {reasons.map((r, i) => (
-              <li key={r.title} className="group relative grid gap-x-8 gap-y-3 border-b border-white/12 py-8 sm:grid-cols-[3rem_1fr]">
-                <span aria-hidden="true" className="absolute inset-y-0 -left-4 w-0.5 origin-top scale-y-0 bg-flame-500 transition-transform duration-500 group-hover:scale-y-100" />
-                <span className="font-tech text-sm text-flame-400">{String(i + 1).padStart(2, "0")}</span>
-                <div>
-                  <h3 className="text-[1.375rem] font-bold tracking-[-.025em] text-white">{r.title}</h3>
-                  <p className="mt-2.5 max-w-xl text-[0.9375rem] leading-[1.7] text-white/65">{r.body}</p>
-                  <a
-                    href={r.href}
-                    {...(r.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-                    className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.04] px-3.5 py-1.5 font-tech text-[0.75rem] text-white/80 transition-colors hover:border-flame-500 hover:text-white"
-                  >
-                    <span className="size-1.5 rounded-full bg-emerald-400" aria-hidden="true" />
-                    {r.proof}
-                    <ArrowUpRight className="size-3" aria-hidden="true" />
-                    {r.external && <span className="sr-only">(opens in a new tab)</span>}
-                  </a>
-                </div>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </section>
-
       {/* ============================================ For contracting officers */}
-      <section id="order" className="scroll-mt-20 bg-paper-50 text-ink-950">
+      <section id="order" className="scroll-mt-20 border-t border-paper-200 bg-paper-50 text-ink-950">
         <div className="container-page section-y">
           <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-end lg:gap-20">
             <div>
               <p className={`${label} text-flame-600`}>For contracting officers</p>
-              <SweepText className="font-brand mt-5 text-[clamp(2.1rem,4.2vw,3.5rem)] font-extrabold leading-[1.02] tracking-[-.035em] text-ink-950 [--sweep-from:#f25806] [--sweep-to:#304368]">
-                Everything you need to place an order.
-              </SweepText>
+              <h2 className={heading}>How to buy from us</h2>
             </div>
             <p className="max-w-xl text-[1.0625rem] leading-[1.75] text-graphite-600 lg:justify-self-end">
-              Contract numbers, identifiers, and ordering windows in one place, checked against federal records on{" "}
-              {formatDate(sources.checkedOn)}. Copy any number straight into your paperwork.
+              Contract numbers, identifiers, and ordering periods, checked against federal records on{" "}
+              {formatDate(sources.checkedOn)}. Click any number to copy it.
             </p>
           </div>
 
@@ -586,7 +461,7 @@ export default function HomePage() {
                 const status = vehicleStatus(v, day);
                 const closesIn = orderingClosesIn(v, day);
                 return (
-                  <li key={v.slug} className="rounded-2xl border border-paper-200 bg-white p-6 sm:p-7">
+                  <li key={v.slug} className="rounded-xl border border-paper-200 bg-white p-6 sm:p-7">
                     <div className="flex flex-wrap items-start justify-between gap-4">
                       <div className="flex items-center gap-4">
                         {v.badge && (
@@ -636,7 +511,7 @@ export default function HomePage() {
                     )}
                     <Link
                       href={`/contract-vehicles#${v.slug}`}
-                      className={`${label} mt-5 inline-flex min-h-8 items-center gap-1.5 text-ink-950 hover:text-flame-700`}
+                      className="mt-5 inline-flex min-h-8 items-center gap-1.5 text-[0.875rem] font-semibold text-ink-950 hover:text-flame-700"
                     >
                       How to order on {vehicleShort[v.slug] ?? v.name} <ArrowRight className="size-3.5" aria-hidden="true" />
                     </Link>
@@ -645,7 +520,7 @@ export default function HomePage() {
               })}
             </ul>
 
-            <aside aria-labelledby="identifiers" className="rounded-2xl bg-ink-950 p-7 text-white sm:p-8 lg:sticky lg:top-28">
+            <aside aria-labelledby="identifiers" className="rounded-xl bg-ink-950 p-7 text-white sm:p-8 lg:sticky lg:top-28">
               <h3 id="identifiers" className={`${label} text-white/55`}>
                 Company identifiers
               </h3>
@@ -712,12 +587,10 @@ export default function HomePage() {
       <section className="bg-white text-ink-950">
         <div className="container-page section-y grid gap-12 lg:grid-cols-[.8fr_1.2fr] lg:gap-20">
           <div className="lg:sticky lg:top-32 lg:self-start">
-            <p className={`${label} text-flame-600`}>Frequently asked questions</p>
-            <SweepText className="font-brand mt-5 text-[clamp(2.1rem,4.2vw,3.5rem)] font-extrabold leading-[1.02] tracking-[-.035em] text-ink-950 [--sweep-from:#f25806] [--sweep-to:#304368]">
-              Questions buyers ask us.
-            </SweepText>
+            <p className={`${label} text-flame-600`}>Questions</p>
+            <h2 className={heading}>Common questions</h2>
             <p className="mt-6 max-w-sm text-base leading-[1.75] text-graphite-600">
-              The questions contracting officers and partners ask us most. Something else? Email{" "}
+              Something else? Email{" "}
               <a href={`mailto:${contact.emailGeneral}`} className="font-medium text-ink-950 underline decoration-flame-500 underline-offset-4">
                 {contact.emailGeneral}
               </a>
@@ -725,19 +598,16 @@ export default function HomePage() {
             </p>
           </div>
           <div className="border-t border-ink-950/15">
-            {faqs.map((f, i) => (
+            {faqs.map((f) => (
               <details key={f.q} className="group border-b border-ink-950/15">
-                <summary className="flex cursor-pointer list-none items-center gap-5 py-7 text-left [&::-webkit-details-marker]:hidden">
-                  <span className="font-tech w-7 shrink-0 text-xs text-graphite-400">{String(i + 1).padStart(2, "0")}</span>
-                  <span className="flex-1 text-lg font-medium tracking-[-.035em] sm:text-xl">{f.q}</span>
-                  <span className="grid size-10 shrink-0 place-items-center rounded-full border border-ink-950/15 transition-[transform,background-color,border-color] duration-300 group-open:rotate-45 group-open:border-flame-500 group-open:bg-flame-500">
-                    <Plus className="size-4" aria-hidden="true" />
-                  </span>
+                <summary className="flex cursor-pointer list-none items-center gap-5 py-6 text-left [&::-webkit-details-marker]:hidden">
+                  <span className="flex-1 text-lg font-medium tracking-[-.025em] sm:text-xl">{f.q}</span>
+                  <Plus className="size-5 shrink-0 text-graphite-500 transition-transform duration-200 group-open:rotate-45" aria-hidden="true" />
                 </summary>
-                <div className="max-w-2xl pb-7 pl-12 text-[0.9375rem] leading-[1.8] text-graphite-600">
+                <div className="max-w-2xl pb-7 text-[0.9375rem] leading-[1.8] text-graphite-600">
                   <p>{f.a}</p>
                   {f.href && (
-                    <Link href={f.href} className={`${label} mt-3 inline-flex min-h-10 items-center gap-1.5 text-ink-950 hover:text-flame-700`}>
+                    <Link href={f.href} className="mt-3 inline-flex min-h-10 items-center gap-1.5 text-[0.875rem] font-semibold text-ink-950 hover:text-flame-700">
                       Learn more <ArrowRight className="size-3.5" aria-hidden="true" />
                     </Link>
                   )}
@@ -750,17 +620,16 @@ export default function HomePage() {
 
       {/* ======================================================= Closing CTA */}
       <section className="relative isolate overflow-hidden bg-[#05070d] text-white">
-        <div className="container-page flex flex-col items-center py-24 text-center sm:py-32">
-          <p className={`${label} text-white/60`}>Work with Sohum</p>
-          <SweepText className="font-brand mt-6 max-w-[16ch] text-[clamp(2.4rem,5.2vw,4.5rem)] font-extrabold leading-[1] tracking-[-.035em] text-white [--sweep-from:#fa752e] [--sweep-to:#5b84ff]">
-            Ready to modernize the mission?
-          </SweepText>
+        <div className="container-page flex flex-col items-center py-24 text-center sm:py-28">
+          <h2 className="font-brand max-w-[18ch] text-[clamp(2.2rem,4.6vw,3.75rem)] font-extrabold leading-[1.02] tracking-[-.035em]">
+            Have a requirement coming up?
+          </h2>
           <p className="mt-6 max-w-md text-base leading-[1.7] text-white/65">
-            Start with the challenge. We will bring the right technical and program experience to the conversation.
+            Tell us what you need and when. We will tell you whether we are a fit and how to put us under contract.
           </p>
           <div className="mt-9 flex flex-wrap justify-center gap-3">
             <Link href="/contact" className="btn-tech bg-flame-500 text-ink-950 hover:bg-white">
-              Work with us <ArrowUpRight className="size-3.5" aria-hidden="true" />
+              Contact us <ArrowUpRight className="size-3.5" aria-hidden="true" />
             </Link>
             <Link href="/capability-statement" className="btn-tech border border-white/25 text-white hover:border-white hover:bg-white/10">
               Capability statement
